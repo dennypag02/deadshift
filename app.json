@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "Deadshift",
+    "slug": "deadshift",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "com.dennypag02.deadshift"
+    },
+    "ios": {
+      "bundleIdentifier": "com.dennypag02.deadshift"
+    }
+  }
+}
