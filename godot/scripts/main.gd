@@ -13,6 +13,8 @@ const ZOMBIE_SPEED := 73.0
 const PLAYER_RADIUS := 17.0
 const ENEMY_RADIUS := 17.0
 const BULLET_RADIUS := 4.0
+const HIT_FLASH_SECONDS := 0.16
+const MUZZLE_FLASH_SECONDS := 0.07
 
 var player_pos := Vector2.ZERO
 var player_hp := 100
@@ -32,6 +34,10 @@ var hud: Label
 var instructions: Label
 var rng := RandomNumberGenerator.new()
 var game_over_label: Label
+var hit_flash_clock := 0.0
+var muzzle_flash_clock := 0.0
+var last_shot_direction := Vector2.RIGHT
+var impact_marks: Array[Dictionary] = []
 
 func _ready() -> void:
 	rng.seed = 20261008
@@ -67,6 +73,9 @@ func _reset_game() -> void:
 	elapsed = 0.0
 	fire_clock = 0.0
 	spawn_clock = 0.0
+	hit_flash_clock = 0.0
+	muzzle_flash_clock = 0.0
+	impact_marks.clear()
 	touch_active = false
 	enemies.clear()
 	bullets.clear()
@@ -107,6 +116,12 @@ func _physics_process(delta: float) -> void:
 	if player_hp <= 0:
 		return
 	elapsed += delta
+	hit_flash_clock = maxf(0.0, hit_flash_clock - delta)
+	muzzle_flash_clock = maxf(0.0, muzzle_flash_clock - delta)
+	for i in range(impact_marks.size() - 1, -1, -1):
+		impact_marks[i]["life"] -= delta
+		if impact_marks[i]["life"] <= 0.0:
+			impact_marks.remove_at(i)
 	wave = 1 + int(elapsed / 30.0)
 	var direction := Vector2.ZERO
 	if touch_active:
@@ -126,6 +141,8 @@ func _physics_process(delta: float) -> void:
 				nearest = i
 		var heading: Vector2 = (enemies[nearest]["pos"] - player_pos).normalized()
 		bullets.append({"pos": player_pos, "dir": heading, "life": 1.3})
+		last_shot_direction = heading
+		muzzle_flash_clock = MUZZLE_FLASH_SECONDS
 		fire_clock = FIRE_PERIOD
 	for i in range(bullets.size() - 1, -1, -1):
 		var b: Dictionary = bullets[i]
@@ -137,6 +154,7 @@ func _physics_process(delta: float) -> void:
 		var hit := false
 		for j in range(enemies.size() - 1, -1, -1):
 			if b["pos"].distance_squared_to(enemies[j]["pos"]) < pow(ENEMY_RADIUS + BULLET_RADIUS, 2):
+				impact_marks.append({"pos": enemies[j]["pos"], "life": 0.22})
 				enemies.remove_at(j)
 				kills += 1
 				score += 100
@@ -150,6 +168,7 @@ func _physics_process(delta: float) -> void:
 		e["pos"] += to_player.normalized() * ZOMBIE_SPEED * delta
 		if to_player.length() < PLAYER_RADIUS + ENEMY_RADIUS:
 			player_hp = maxi(0, player_hp - 1)
+			hit_flash_clock = HIT_FLASH_SECONDS
 			enemies.remove_at(i)
 	if player_hp <= 0:
 		game_over_label.text = "GAME OVER\nWave %d  |  Kills %d\nTap to restart" % [wave, kills]
@@ -178,10 +197,19 @@ func _draw() -> void:
 	for e in enemies:
 		var p: Vector2 = e["pos"]
 		draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(25, 25), Vector2(50, 50)), false)
+	for mark in impact_marks:
+		var alpha: float = clampf(mark["life"] / 0.22, 0.0, 1.0)
+		draw_circle(mark["pos"], 12.0 * (1.0 - alpha) + 4.0, Color(0.9, 0.19, 0.12, alpha * 0.8))
 	for b in bullets:
-		draw_circle(b["pos"], BULLET_RADIUS, Color("#ffd47d"))
+		draw_line(b["pos"] - b["dir"] * 15.0, b["pos"], Color("#ffcb65"), 3.0)
+		draw_circle(b["pos"], BULLET_RADIUS, Color("#fff2b8"))
+	if muzzle_flash_clock > 0.0:
+		var muzzle := player_pos + last_shot_direction * 39.0
+		draw_circle(muzzle, 9.0, Color(1.0, 0.72, 0.21, muzzle_flash_clock / MUZZLE_FLASH_SECONDS))
 	draw_circle(player_pos + Vector2(5, 12), 32, Color(0.02, 0.02, 0.02, 0.6))
 	draw_texture_rect(SURVIVOR_ART, Rect2(player_pos - Vector2(44, 44), Vector2(88, 88)), false)
+	if hit_flash_clock > 0.0:
+		draw_arc(player_pos, 37.0, 0.0, TAU, 32, Color(1.0, 0.22, 0.17, hit_flash_clock / HIT_FLASH_SECONDS), 5.0)
 
 func _draw_chunk(chunk: Vector2i) -> void:
 	var base := Vector2(chunk) * CHUNK
