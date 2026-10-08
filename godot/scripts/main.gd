@@ -3,6 +3,7 @@ extends Node2D
 ## Deterministic gameplay loop, without external art dependencies. Original detailed sprite assets follow V3A approval.
 
 const CHUNK := 512.0
+const SURVIVOR_ART := preload("res://art/survivor_wasteland.svg")
 const PLAYER_SPEED := 245.0
 const FIRE_PERIOD := 0.28
 const BULLET_SPEED := 570.0
@@ -147,11 +148,8 @@ func _draw() -> void:
 		draw_line(p + Vector2(9, 4), p + Vector2(21, 12), Color("#63765b"), 6.0)
 	for b in bullets:
 		draw_circle(b["pos"], BULLET_RADIUS, Color("#ffd47d"))
-	draw_circle(player_pos + Vector2(4, 7), 22, Color(0.03, 0.04, 0.04, 0.7))
-	draw_circle(player_pos, 17, Color("#394f53"))
-	draw_circle(player_pos + Vector2(0, -7), 10, Color("#d3a07a"))
-	draw_rect(Rect2(player_pos + Vector2(-11, 4), Vector2(22, 5)), Color("#b8332e"))
-	draw_line(player_pos + Vector2(4, -1), player_pos + Vector2(25, -13), Color("#272b2b"), 6.0)
+	draw_circle(player_pos + Vector2(5, 12), 32, Color(0.02, 0.02, 0.02, 0.6))
+	draw_texture_rect(SURVIVOR_ART, Rect2(player_pos - Vector2(44, 44), Vector2(88, 88)), false)
 
 func _draw_chunk(chunk: Vector2i) -> void:
 	var base := Vector2(chunk) * CHUNK
