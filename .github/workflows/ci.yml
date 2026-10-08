@@ -23,7 +23,10 @@ jobs:
           node-version: '22.13'
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+
+      - name: Verify Expo dependency alignment
+        run: npx expo install --check
 
       - name: Typecheck
         run: npm run typecheck
