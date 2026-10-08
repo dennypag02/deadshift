@@ -4,6 +4,8 @@ extends Node2D
 
 const CHUNK := 512.0
 const SURVIVOR_ART := preload("res://art/survivor_wasteland.svg")
+const ZOMBIE_ART := preload("res://art/zombie_shambler.svg")
+const CAR_ART := preload("res://art/wrecked_car.svg")
 const PLAYER_SPEED := 245.0
 const FIRE_PERIOD := 0.28
 const BULLET_SPEED := 570.0
@@ -141,11 +143,7 @@ func _draw() -> void:
 			_draw_chunk(Vector2i(x, y))
 	for e in enemies:
 		var p: Vector2 = e["pos"]
-		draw_circle(p + Vector2(4, 7), 19, Color(0.05, 0.06, 0.06, 0.7))
-		draw_circle(p, 17, Color("#63765b"))
-		draw_circle(p + Vector2(0, -7), 9, Color("#9bb28a"))
-		draw_line(p + Vector2(-9, 4), p + Vector2(-21, 12), Color("#63765b"), 6.0)
-		draw_line(p + Vector2(9, 4), p + Vector2(21, 12), Color("#63765b"), 6.0)
+		draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(25, 25), Vector2(50, 50)), false)
 	for b in bullets:
 		draw_circle(b["pos"], BULLET_RADIUS, Color("#ffd47d"))
 	draw_circle(player_pos + Vector2(5, 12), 32, Color(0.02, 0.02, 0.02, 0.6))
@@ -160,6 +158,8 @@ func _draw_chunk(chunk: Vector2i) -> void:
 	for i in range(4):
 		draw_rect(Rect2(base + Vector2(256, i * 135 + 25), Vector2(8, 55)), Color("#766d4c"))
 	var seed_value := absi(chunk.x * 73856093 ^ chunk.y * 19349663)
+	if posmod(chunk.x * 7 + chunk.y * 11, 4) == 0:
+		draw_texture_rect(CAR_ART, Rect2(base + Vector2(25, 220), Vector2(145, 91)), false)
 	for i in range(8):
 		var xx := float(posmod(seed_value + i * 173, 450)) + 24.0
 		var yy := float(posmod(seed_value / (i + 1) + i * 97, 440)) + 30.0
