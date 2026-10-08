@@ -1,7 +1,7 @@
 # Deadshift V3 — Approved execution sequence
 
 Owner: dennypag02
-Approval: V3A through V3E, routine technical and design decisions delegated.
+Approval: V3A through V3E, routine technical and design decisions delegated. **Exception: V3A final visual approval is a mandatory human gate before V3B–V3E implementation proceeds.**
 Execution policy: deterministic GitHub Actions for builds/tests; ChatGPT judgment for design and uncertain decisions; no Codex; preserve V2 until accepted.
 
 ## Current evidence
@@ -15,7 +15,7 @@ Execution policy: deterministic GitHub Actions for builds/tests; ChatGPT judgmen
 
 ## Stage gates
 
-1. **V3A — Art:** Original cohesive top-down survivor, zombie types, environment tiles/props, VFX; transparent game-ready PNG atlases; provenance manifest; actual in-engine visual preview. Gate: assets exist, render on phone-sized viewport, and are not just geometry placeholders.
+1. **V3A — Art:** Original cohesive top-down survivor, zombie types, environment tiles/props, VFX; transparent game-ready PNG atlases; provenance manifest; actual in-engine visual preview. Gate: assets exist, render on phone-sized viewport, and are not just geometry placeholders. Deliver a visual approval package (gameplay scene, survivor, zombie variants, environment, animation-style samples). **STOP for explicit user approval of the artwork before starting V3B–V3E.** Art direction: original gritty, detailed post-apocalyptic top-down city, rich environmental detail inspired by Project Zomboid and combat readability inspired by Yet Another Zombie Survivors; do not copy third-party assets.
 2. **V3B — Engine:** Port V2 gameplay mechanics (movement, sprint, dodge, auto-fire, grenade, drone, pickups, waves, Brute) to Godot with automated tests. Gate: functional parity evidence.
 3. **V3C — World:** Smooth following camera, persistent streamed deterministic map chunks, obstacles/collision, spawns outside view, navigation and backtracking. Gate: automated and visual evidence.
 4. **V3D — Polish:** Directional character and enemy animations, lighting, shadows, particles, hit feedback, HUD and performance profiling. Gate: integrated visuals and mobile performance evidence.
@@ -27,4 +27,4 @@ A green CI result validates only the checks run; it is not automatic proof of ar
 
 ## Next executable work
 
-Create V3A original asset set and asset manifest, replace vector placeholders in Godot, then add screenshot/animation verification. Continue into V3B–V3E after each stage gate.
+Create V3A original asset set and asset manifest, replace vector placeholders in Godot, then add screenshot/animation verification. **Do not begin V3B–V3E implementation until the user explicitly accepts the V3A visual approval package.** After approval, continue into V3B–V3E with evidence at each stage gate.
