@@ -1,0 +1,29 @@
+name: Deadshift V3 Godot Validation
+on:
+  pull_request:
+    paths:
+      - 'godot/**'
+      - '.github/workflows/v3-godot-validation.yml'
+  push:
+    branches:
+      - feature/v3-godot-scrolling-world
+    paths:
+      - 'godot/**'
+      - '.github/workflows/v3-godot-validation.yml'
+permissions:
+  contents: read
+jobs:
+  godot-parse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot 4.4.1 headless
+        run: |
+          curl -fL --retry 3 -o godot.zip https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip -q godot.zip
+          chmod +x Godot_v4.4.1-stable_linux.x86_64
+      - name: Parse and import Godot project
+        run: ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --editor --quit
+      - name: Run headless smoke test
+        run: timeout 20s ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --quit-after 60
