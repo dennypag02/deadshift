@@ -31,6 +31,7 @@ var camera: Camera2D
 var hud: Label
 var instructions: Label
 var rng := RandomNumberGenerator.new()
+var game_over_label: Label
 
 func _ready() -> void:
 	rng.seed = 20261008
@@ -50,9 +51,39 @@ func _ready() -> void:
 	instructions.text = "Drag to run  |  Auto-fire  |  V3 prototype"
 	instructions.add_theme_font_size_override("font_size", 16)
 	ui.add_child(instructions)
+	game_over_label = Label.new()
+	game_over_label.position = Vector2(34, 410)
+	game_over_label.add_theme_font_size_override("font_size", 26)
+	game_over_label.visible = false
+	ui.add_child(game_over_label)
 	_update_hud()
 
+func _reset_game() -> void:
+	player_pos = Vector2.ZERO
+	player_hp = 100
+	score = 0
+	kills = 0
+	wave = 1
+	elapsed = 0.0
+	fire_clock = 0.0
+	spawn_clock = 0.0
+	touch_active = false
+	enemies.clear()
+	bullets.clear()
+	camera.position = player_pos
+	game_over_label.visible = false
+	_update_hud()
+	queue_redraw()
+
 func _unhandled_input(event: InputEvent) -> void:
+	if player_hp <= 0:
+		if event is InputEventScreenTouch and event.pressed:
+			_reset_game()
+		elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			_reset_game()
+		elif event is InputEventKey and event.pressed and not event.echo:
+			_reset_game()
+		return
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			touch_origin = event.position
@@ -120,6 +151,9 @@ func _physics_process(delta: float) -> void:
 		if to_player.length() < PLAYER_RADIUS + ENEMY_RADIUS:
 			player_hp = maxi(0, player_hp - 1)
 			enemies.remove_at(i)
+	if player_hp <= 0:
+		game_over_label.text = "GAME OVER\nWave %d  |  Kills %d\nTap to restart" % [wave, kills]
+		game_over_label.visible = true
 	_update_hud()
 	queue_redraw()
 
