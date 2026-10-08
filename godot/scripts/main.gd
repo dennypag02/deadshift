@@ -212,20 +212,63 @@ func _draw() -> void:
 		draw_arc(player_pos, 37.0, 0.0, TAU, 32, Color(1.0, 0.22, 0.17, hit_flash_clock / HIT_FLASH_SECONDS), 5.0)
 
 func _draw_chunk(chunk: Vector2i) -> void:
+	# A reproducible downtown block: roads connect across chunk boundaries.
+	# Facades and debris use local seeded RNG so camera movement cannot rearrange the city.
 	var base := Vector2(chunk) * CHUNK
-	var tile := Rect2(base, Vector2.ONE * CHUNK)
-	var tone := 0.11 if posmod(chunk.x + chunk.y, 2) == 0 else 0.13
-	draw_rect(tile, Color(tone, tone + 0.01, tone + 0.01))
-	draw_rect(Rect2(base + Vector2(155, 0), Vector2(210, CHUNK)), Color("#2a2c2b"))
-	for i in range(4):
-		draw_rect(Rect2(base + Vector2(256, i * 135 + 25), Vector2(8, 55)), Color("#766d4c"))
-	var seed_value := absi(chunk.x * 73856093 ^ chunk.y * 19349663)
-	if posmod(chunk.x * 7 + chunk.y * 11, 4) == 0:
-		draw_texture_rect(CAR_ART, Rect2(base + Vector2(25, 220), Vector2(145, 91)), false)
-	for i in range(8):
-		var xx := float(posmod(seed_value + i * 173, 450)) + 24.0
-		var yy := float(posmod(seed_value / (i + 1) + i * 97, 440)) + 30.0
-		var p := base + Vector2(xx, yy)
-		if xx < 140 or xx > 380:
-			draw_rect(Rect2(p, Vector2(24 + i % 3 * 8, 14)), Color("#594a40"))
-			draw_line(p, p + Vector2(19, 12), Color("#7c5941"), 2.0)
+	var local_rng := RandomNumberGenerator.new()
+	local_rng.seed = absi(chunk.x * 73856093 ^ chunk.y * 19349663) + 41
+	draw_rect(Rect2(base, Vector2.ONE * CHUNK), Color("#3b3935"))
+	# Continuous north/south road, gutters and sidewalks.
+	draw_rect(Rect2(base + Vector2(137, 0), Vector2(238, CHUNK)), Color("#202326"))
+	draw_rect(Rect2(base + Vector2(130, 0), Vector2(7, CHUNK)), Color("#6b6659"))
+	draw_rect(Rect2(base + Vector2(375, 0), Vector2(7, CHUNK)), Color("#6b6659"))
+	draw_rect(Rect2(base + Vector2(116, 0), Vector2(14, CHUNK)), Color("#858071"))
+	draw_rect(Rect2(base + Vector2(382, 0), Vector2(14, CHUNK)), Color("#858071"))
+	for lane in range(4):
+		draw_rect(Rect2(base + Vector2(252, lane * 135 + 22), Vector2(7, 65)), Color("#9e9064"))
+	# Each block is a deliberate mix of commercial and residential rooftops.
+	for side in range(2):
+		var left := 8.0 if side == 0 else 400.0
+		for lot in range(3):
+			var top := float(lot * 171 + 6)
+			var roof := Rect2(base + Vector2(left, top), Vector2(105, 150))
+			var facade := Color("#4b4c49") if (lot + side + chunk.x) % 3 == 0 else Color("#60584e")
+			draw_rect(roof.grow(5.0), Color("#222322"))
+			draw_rect(roof, facade)
+			draw_rect(roof.grow(-7.0), facade.darkened(0.14), false, 3.0)
+			# Rooftop equipment and skylights make buildings readable from above.
+			draw_rect(Rect2(roof.position + Vector2(14, 17), Vector2(31, 24)), Color("#262b2b"))
+			draw_rect(Rect2(roof.position + Vector2(57, 69), Vector2(35, 42)), Color("#77776d"))
+			draw_line(roof.position + Vector2(12, 128), roof.position + Vector2(91, 128), Color("#292d2c"), 4.0)
+			if (lot + side + chunk.y) % 2 == 0:
+				draw_rect(Rect2(roof.position + Vector2(48, 18), Vector2(42, 9)), Color("#9b704e"))
+	# Deterministic damage: cracks, rubble, scorch marks and neglected weeds.
+	for i in range(17):
+		var px := local_rng.randf_range(143.0, 368.0)
+		var py := local_rng.randf_range(4.0, CHUNK - 4.0)
+		var p := base + Vector2(px, py)
+		var length := local_rng.randf_range(8.0, 34.0)
+		draw_line(p, p + Vector2(length, local_rng.randf_range(-15.0, 16.0)), Color("#11191a"), 2.0)
+	for i in range(26):
+		var px := local_rng.randf_range(110.0, 401.0)
+		var py := local_rng.randf_range(0.0, CHUNK)
+		var p := base + Vector2(px, py)
+		if i % 4 == 0:
+			draw_circle(p, local_rng.randf_range(5.0, 12.0), Color("#292825"))
+		else:
+			draw_rect(Rect2(p, Vector2(local_rng.randf_range(3.0, 10.0), local_rng.randf_range(3.0, 9.0))), Color("#777063"))
+	for i in range(13):
+		var side_x := 122.0 if i % 2 == 0 else 389.0
+		var weed := base + Vector2(side_x + local_rng.randf_range(-9.0, 9.0), local_rng.randf_range(0.0, CHUNK))
+		draw_line(weed, weed + Vector2(-4, -8), Color("#596344"), 2.0)
+		draw_line(weed, weed + Vector2(5, -7), Color("#596344"), 2.0)
+	# A recognizable abandoned car, with a shadow and oil stain.
+	if posmod(chunk.x * 7 + chunk.y * 11, 3) == 0:
+		var car_pos := base + Vector2(173, 235)
+		draw_circle(car_pos + Vector2(43, 56), 55.0, Color(0.06, 0.07, 0.07, 0.65))
+		draw_texture_rect(CAR_ART, Rect2(car_pos, Vector2(128, 80)), false)
+	# Intersections and evacuation crossings every third block.
+	if posmod(chunk.y, 3) == 0:
+		draw_rect(Rect2(base + Vector2(130, 432), Vector2(252, 80)), Color("#26292a"))
+		for stripe in range(5):
+			draw_rect(Rect2(base + Vector2(151 + stripe * 47, 443), Vector2(26, 10)), Color("#7e7c6e"))
