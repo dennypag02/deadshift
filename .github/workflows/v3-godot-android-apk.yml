@@ -63,6 +63,22 @@ jobs:
           GDSCRIPT
           timeout 120s ./Godot_v4.4.1-stable_linux.x86_64 --headless --editor --quit --path godot --script res://configure_android_export.gd
           rm godot/configure_android_export.gd
+      - name: Diagnose Android export prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "JAVA_HOME=$JAVA_HOME"
+          test -d "$ANDROID_HOME/platforms/android-35"
+          test -d "$ANDROID_HOME/build-tools/35.0.0"
+          test -f "$HOME/.android/debug.keystore"
+          test -d "$JAVA_HOME"
+          echo "Installed Android SDK platforms:"
+          ls -1 "$ANDROID_HOME/platforms"
+          echo "Installed Android build tools:"
+          ls -1 "$ANDROID_HOME/build-tools"
+          echo "Godot Android export editor settings:"
+          grep -A 16 -B 2 'export/android' "$HOME/.config/godot/editor_settings-4.4.tres" | sed -E 's/(debug_keystore_pass = ).*/\\1[REDACTED]/' || true
       - name: Import project
         run: ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --editor --quit
       - name: Export Android debug APK
