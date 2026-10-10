@@ -60,7 +60,7 @@ func _build_world() -> void:
             var h := 7.0 + float((i * 7 + (side + 1) * 3) % 11)
             _box(Vector3(side * 14.5, h / 2.0, z), Vector3(10, h, 8), Color(0.24 + i * 0.012, 0.235, 0.22))
             for floor_idx in range(int(h / 3.0)):
-                var front := side * 9.43
+                var front: float = float(side) * 9.43
                 _box(Vector3(front, 2.1 + floor_idx * 2.9, z - 1.9), Vector3(0.08, 1.25, 1.1), Color(0.065, 0.085, 0.09), false)
                 _box(Vector3(front, 2.1 + floor_idx * 2.9, z + 1.9), Vector3(0.08, 1.25, 1.1), Color(0.065, 0.085, 0.09), false)
     for i in range(16):
