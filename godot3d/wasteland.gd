@@ -278,16 +278,11 @@ func _build_player() -> void:
     capsule.height = 2.0
     collider.shape = capsule
     survivor.add_child(collider)
-    # Modular low-poly survivor, distinct silhouette and clothing, replacing green capsule.
-    _survivor_piece(survivor, Vector3(0, 0.19, 0), Vector3(0.75, 0.78, 0.38), Color(0.23, 0.27, 0.23))
-    _survivor_piece(survivor, Vector3(0, 0.67, 0), Vector3(0.42, 0.43, 0.39), Color(0.43, 0.34, 0.28))
-    _survivor_piece(survivor, Vector3(0, 0.93, 0), Vector3(0.50, 0.13, 0.48), Color(0.20, 0.23, 0.20))
-    _survivor_piece(survivor, Vector3(0, 0.13, 0.31), Vector3(0.58, 0.71, 0.30), Color(0.19, 0.22, 0.19))
-    _survivor_piece(survivor, Vector3(0, 0.26, 0.51), Vector3(0.43, 0.34, 0.16), Color(0.28, 0.28, 0.22))
-    for side in [-1.0, 1.0]:
-        _survivor_piece(survivor, Vector3(side * 0.49, 0.08, 0), Vector3(0.22, 0.72, 0.27), Color(0.24, 0.28, 0.24))
-        _survivor_piece(survivor, Vector3(side * 0.22, -0.57, 0), Vector3(0.28, 0.72, 0.32), Color(0.21, 0.23, 0.22))
-        _survivor_piece(survivor, Vector3(side * 0.22, -0.92, -0.12), Vector3(0.31, 0.17, 0.49), Color(0.12, 0.12, 0.12))
+    # Imported mesh asset; collision remains independent of visuals.
+    var imported: Mesh = load("res://assets/survivor.obj")
+    var model := MeshInstance3D.new()
+    model.mesh = imported
+    survivor.add_child(model)
 
 func _build_camera() -> void:
     camera = Camera3D.new()
@@ -298,7 +293,7 @@ func _build_camera() -> void:
 
 func _update_camera(weight: float) -> void:
     var target := survivor.position + Vector3(0, 2.2, 0)
-    var offset := Vector3(sin(camera_yaw) * 7.8, 4.2, cos(camera_yaw) * 7.8)
+    var offset := Vector3(sin(camera_yaw) * 5.9, 3.25, cos(camera_yaw) * 5.9)
     camera.global_position = camera.global_position.lerp(target + offset, weight)
     camera.look_at(target + Vector3(0, 0, -3), Vector3.UP)
 
@@ -306,7 +301,7 @@ func _build_hud() -> void:
     var ui := CanvasLayer.new()
     add_child(ui)
     var title := Label.new()
-    title.text = "DEADSHIFT  |  URBAN SURVIVAL V6.1"
+    title.text = "DEADSHIFT  |  URBAN SURVIVAL V6.2"
     title.position = Vector2(18, 16)
     title.add_theme_font_size_override("font_size", 23)
     ui.add_child(title)

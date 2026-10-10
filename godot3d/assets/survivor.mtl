@@ -1,0 +1,41 @@
+newmtl jacket
+Kd .25 .31 .25
+Ka 0.05 0.05 0.05
+Ns 8
+illum 2
+
+newmtl vest
+Kd .36 .35 .27
+Ka 0.05 0.05 0.05
+Ns 8
+illum 2
+
+newmtl skin
+Kd .54 .39 .29
+Ka 0.05 0.05 0.05
+Ns 8
+illum 2
+
+newmtl hair
+Kd .12 .12 .11
+Ka 0.05 0.05 0.05
+Ns 8
+illum 2
+
+newmtl pack
+Kd .21 .23 .19
+Ka 0.05 0.05 0.05
+Ns 8
+illum 2
+
+newmtl pants
+Kd .19 .22 .20
+Ka 0.05 0.05 0.05
+Ns 8
+illum 2
+
+newmtl metal
+Kd .44 .43 .35
+Ka 0.05 0.05 0.05
+Ns 8
+illum 2
