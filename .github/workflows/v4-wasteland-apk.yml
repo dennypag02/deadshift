@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - feature/v4-3d-wasteland-slice
-    paths:
-      - 'godot3d/**'
-      - '.github/workflows/v4-wasteland-apk.yml'
 permissions:
   contents: read
 jobs:
@@ -86,6 +83,8 @@ jobs:
           mkdir -p build
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --verbose --path godot3d --export-debug Android "$GITHUB_WORKSPACE/build/deadshift-v4-wasteland-debug.apk"
           test -s build/deadshift-v4-wasteland-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose build/deadshift-v4-wasteland-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging build/deadshift-v4-wasteland-debug.apk | head -n 8
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
