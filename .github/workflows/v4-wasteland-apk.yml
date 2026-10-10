@@ -80,6 +80,12 @@ jobs:
           grep -A 16 -B 2 'export/android' "$HOME/.config/godot/editor_settings-4.4.tres" | sed -E 's/(debug_keystore_pass = ).*/\\1[REDACTED]/' || true
       - name: Import project
         run: ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot3d --editor --quit
+      - name: Runtime scene smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot3d --quit-after 40 2>&1 | tee godot-runtime.log
+          if grep -E "SCRIPT ERROR|Parse Error|Invalid access|Invalid call|Failed to load script" godot-runtime.log; then exit 1; fi
       - name: Export Android debug APK
         run: |
           mkdir -p build
