@@ -35,6 +35,52 @@ func _box(pos: Vector3, size: Vector3, color: Color, collision := true) -> Node3
         body.add_child(collider)
     return body
 
+func _wheel(pos: Vector3) -> void:
+    var mesh := MeshInstance3D.new()
+    var cylinder := CylinderMesh.new()
+    cylinder.top_radius = 0.42
+    cylinder.bottom_radius = 0.42
+    cylinder.height = 0.18
+    cylinder.radial_segments = 12
+    mesh.mesh = cylinder
+    mesh.position = pos
+    mesh.rotation_degrees.z = 90
+    var tire := StandardMaterial3D.new()
+    tire.albedo_color = Color(0.075, 0.075, 0.073)
+    mesh.material_override = tire
+    add_child(mesh)
+    var hub := MeshInstance3D.new()
+    var hub_mesh := CylinderMesh.new()
+    hub_mesh.top_radius = 0.22
+    hub_mesh.bottom_radius = 0.22
+    hub_mesh.height = 0.20
+    hub_mesh.radial_segments = 10
+    hub.mesh = hub_mesh
+    hub.position = pos
+    hub.rotation_degrees.z = 90
+    var steel := StandardMaterial3D.new()
+    steel.albedo_color = Color(0.35, 0.36, 0.34)
+    hub.material_override = steel
+    add_child(hub)
+
+func _car(x: float, z: float, color: Color, variant: int) -> void:
+    # Recognizable vehicle silhouette: chassis, hood, sloped cabin, windows and wheels.
+    _box(Vector3(x, 0.66, z), Vector3(2.05, 0.62, 4.05), color)
+    _box(Vector3(x, 1.11, z - 0.78), Vector3(1.95, 0.24, 1.40), color, false)
+    _box(Vector3(x, 1.42, z + 0.30), Vector3(1.72, 0.54, 1.78), color, false)
+    _box(Vector3(x, 1.72, z + 0.30), Vector3(1.62, 0.08, 1.68), Color(0.21, 0.22, 0.21), false)
+    _box(Vector3(x, 1.43, z - 0.64), Vector3(1.47, 0.43, 0.065), Color(0.11, 0.17, 0.19), false)
+    _box(Vector3(x, 1.43, z + 1.24), Vector3(1.47, 0.43, 0.065), Color(0.10, 0.15, 0.16), false)
+    for side in [-1.0, 1.0]:
+        _box(Vector3(x + side * 0.88, 1.43, z + 0.32), Vector3(0.035, 0.38, 1.34), Color(0.10, 0.16, 0.17), false)
+        _box(Vector3(x + side * 0.99, 0.62, z), Vector3(0.09, 0.12, 3.55), Color(0.20, 0.19, 0.17), false)
+        _wheel(Vector3(x + side * 1.07, 0.43, z - 1.25))
+        _wheel(Vector3(x + side * 1.07, 0.43, z + 1.25))
+    _box(Vector3(x, 0.64, z - 2.06), Vector3(1.85, 0.17, 0.13), Color(0.23, 0.23, 0.22), false)
+    _box(Vector3(x, 0.64, z + 2.06), Vector3(1.85, 0.17, 0.13), Color(0.23, 0.23, 0.22), false)
+    if variant % 3 == 0:
+        _box(Vector3(x, 1.80, z + 0.35), Vector3(1.5, 0.08, 1.3), Color(0.24, 0.22, 0.19), false)
+
 func _build_world() -> void:
     var env := WorldEnvironment.new()
     var e := Environment.new()
@@ -65,6 +111,11 @@ func _build_world() -> void:
                 var front: float = float(side) * 9.43
                 _box(Vector3(front, 2.1 + floor_idx * 2.9, z - 1.9), Vector3(0.08, 1.25, 1.1), Color(0.16, 0.25, 0.30), false)
                 _box(Vector3(front, 2.1 + floor_idx * 2.9, z + 1.9), Vector3(0.08, 1.25, 1.1), Color(0.065, 0.085, 0.09), false)
+                for win_z in [z - 1.9, z + 1.9]:
+                    _box(Vector3(front, 2.80 + floor_idx * 2.9, win_z), Vector3(0.16, 0.12, 1.42), Color(0.29, 0.27, 0.25), false)
+                    _box(Vector3(front, 1.43 + floor_idx * 2.9, win_z), Vector3(0.16, 0.12, 1.42), Color(0.30, 0.28, 0.25), false)
+                    _box(Vector3(front, 2.1 + floor_idx * 2.9, win_z), Vector3(0.16, 1.38, 0.09), Color(0.31, 0.29, 0.26), false)
+            _box(Vector3(side * 14.5, h + 0.13, z), Vector3(10.35, 0.25, 8.3), Color(0.26, 0.25, 0.24), false)
             _box(Vector3(side * 9.35, 1.35, z), Vector3(0.12, 2.0, 2.7), Color(0.24, 0.28, 0.30), false)
             _box(Vector3(side * 9.29, 3.0, z), Vector3(0.16, 0.16, 3.4), Color(0.80, 0.72, 0.54), false)
     for i in range(30):
@@ -87,8 +138,7 @@ func _build_world() -> void:
     for i in range(11):
         var z := -40.0 + i * 8.1
         var side := -1 if i % 2 == 0 else 1
-        _box(Vector3(side * 4.2, 0.65, z), Vector3(2.2, 1.2, 3.6), Color(0.39 + 0.06 * (i % 3), 0.42, 0.40))
-        _box(Vector3(side * 4.2, 1.42, z - 0.3), Vector3(1.7, 0.42, 1.8), Color(0.22, 0.33, 0.38), false)
+        _car(float(side) * 4.2, z, Color(0.34 + 0.045 * float(i % 3), 0.37, 0.34), i)
     for i in range(12):
         var side: float = -1.0 if i % 2 == 0 else 1.0
         var z: float = -41.0 + i * 7.4
