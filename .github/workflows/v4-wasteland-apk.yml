@@ -29,6 +29,12 @@ jobs:
           cp -a templates-unpacked/templates/. "$HOME/.local/share/godot/export_templates/4.4.1.stable/"
           test -s "$HOME/.local/share/godot/export_templates/4.4.1.stable/android_debug.apk"
           test -s "$HOME/.local/share/godot/export_templates/4.4.1.stable/android_release.apk"
+      - name: Restore persistent prototype signing key
+        id: signing-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: deadshift-v4-prototype-debug-signing-v1
       - name: Configure Android SDK and debug signing
         shell: bash
         run: |
@@ -40,7 +46,13 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
           mkdir -p "$HOME/.android"
-          keytool -genkeypair -noprompt -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          if [ ! -s "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -noprompt -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+            echo "Created first persistent prototype signing key"
+          else
+            echo "Restored existing prototype signing key"
+          fi
+          keytool -list -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey > /dev/null
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey" >> "$GITHUB_ENV"
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >> "$GITHUB_ENV"
@@ -78,6 +90,14 @@ jobs:
           ls -1 "$ANDROID_HOME/build-tools"
           echo "Godot Android export editor settings:"
           grep -A 16 -B 2 'export/android' "$HOME/.config/godot/editor_settings-4.4.tres" | sed -E 's/(debug_keystore_pass = ).*/\\1[REDACTED]/' || true
+      - name: Assign monotonically increasing Android version code
+        shell: bash
+        env:
+          BUILD_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          sed -i -E "s/^version\\/code=[0-9]+$/version\\/code=${BUILD_VERSION_CODE}/" godot3d/export_presets.cfg
+          grep -F "version/code=${BUILD_VERSION_CODE}" godot3d/export_presets.cfg
       - name: Import project
         run: ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot3d --editor --quit
       - name: Runtime scene smoke test
