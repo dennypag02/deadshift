@@ -15,7 +15,7 @@ func _make_texture(base: Color, brick: bool) -> ImageTexture:
     var img := Image.create(128, 128, false, Image.FORMAT_RGBA8)
     for y in range(128):
         for x in range(128):
-            var grain: float = float((x * 37 + y * 73 + (x * y) % 31) % 29) / 280.0 - 0.052
+            var grain: float = float((x * 37 + y * 73 + (x * y) % 31) % 29) / 470.0 - 0.030
             var shade: float = 1.0 + grain
             if brick:
                 var row_id: int = int(y / 16)
@@ -26,7 +26,7 @@ func _make_texture(base: Color, brick: bool) -> ImageTexture:
                 elif (x * 11 + y * 7) % 53 < 3:
                     shade *= 0.78
             else:
-                if (x * 17 + y * 23) % 109 < 2:
+                if (x * 17 + y * 23) % 401 < 2:
                     shade *= 0.53
             img.set_pixel(x, y, Color(base.r * shade, base.g * shade, base.b * shade))
     return ImageTexture.create_from_image(img)
@@ -36,7 +36,7 @@ func _textured_material(base: Color, brick: bool) -> StandardMaterial3D:
     mat.albedo_texture = _make_texture(base, brick)
     mat.uv1_triplanar = true
     mat.uv1_world_triplanar = true
-    mat.uv1_scale = Vector3(0.55, 0.55, 0.55) if brick else Vector3(0.05, 0.05, 0.05)
+    mat.uv1_scale = Vector3(0.55, 0.55, 0.55) if brick else Vector3(0.025, 0.025, 0.025)
     mat.roughness = 0.97
     return mat
 
@@ -152,6 +152,49 @@ func _urban_decay() -> void:
         _box(Vector3(side * 9.0, 0.58, z + 2.3), Vector3(0.85, 1.16, 0.42), Color(0.34, 0.29, 0.24), false)
         _box(Vector3(side * 9.0, 1.2, z + 2.3), Vector3(0.93, 0.14, 0.48), Color(0.20, 0.19, 0.17), false)
 
+func _wedge(pos: Vector3, width: float, height: float, depth: float, tint: Color) -> void:
+    var surface := SurfaceTool.new()
+    surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+    var vertices := [
+        Vector3(-width * 0.5, 0, -depth * 0.5),
+        Vector3(width * 0.5, 0, -depth * 0.5),
+        Vector3(width * 0.5, 0, depth * 0.5),
+        Vector3(-width * 0.5, 0, depth * 0.5),
+        Vector3(-width * 0.5, height, depth * 0.5),
+        Vector3(width * 0.5, height, depth * 0.5)
+    ]
+    var faces := [0, 1, 5, 0, 5, 4, 0, 4, 3, 1, 2, 5, 3, 4, 5, 3, 5, 2, 0, 3, 2, 0, 2, 1]
+    for idx in faces:
+        surface.add_vertex(vertices[idx])
+    surface.generate_normals()
+    var mesh := MeshInstance3D.new()
+    mesh.mesh = surface.commit()
+    mesh.position = pos
+    var mat := StandardMaterial3D.new()
+    mat.albedo_color = tint
+    mat.roughness = 0.92
+    mesh.material_override = mat
+    add_child(mesh)
+
+func _environment_story() -> void:
+    # Localized wreckage, damaged shopfronts and roof silhouettes rather than uniform clutter.
+    for i in range(9):
+        var z: float = -39.0 + float(i) * 10.1
+        var side: float = -1.0 if i % 2 == 0 else 1.0
+        var wall_x: float = side * 9.28
+        _box(Vector3(wall_x, 3.52, z), Vector3(0.22, 0.15, 3.0), Color(0.20, 0.18, 0.16), false)
+        for plank in range(3):
+            _box(Vector3(wall_x + side * 0.13, 1.2 + float(plank) * 0.52, z + 0.2), Vector3(0.12, 0.13, 2.35), Color(0.34, 0.25, 0.17), false)
+        _box(Vector3(wall_x + side * 0.25, 0.16, z - 2.4), Vector3(0.62, 0.27, 0.72), Color(0.25, 0.24, 0.21), false)
+        _wedge(Vector3(wall_x + side * 0.3, 0.04, z - 2.1), 0.9, 0.48, 0.7, Color(0.37, 0.36, 0.31))
+    for i in range(6):
+        var z: float = -35.0 + float(i) * 15.2
+        var side: float = -1.0 if i % 2 == 0 else 1.0
+        var x: float = side * 6.25
+        _wedge(Vector3(x, 0.02, z), 1.1, 0.45, 1.5, Color(0.27, 0.27, 0.26))
+        _box(Vector3(x + 0.4, 0.10, z + 0.8), Vector3(0.65, 0.19, 0.8), Color(0.32, 0.31, 0.28), false)
+        _box(Vector3(x - 0.45, 0.08, z - 0.7), Vector3(0.4, 0.13, 0.7), Color(0.37, 0.36, 0.31), false)
+
 func _build_world() -> void:
     var env := WorldEnvironment.new()
     var e := Environment.new()
@@ -220,6 +263,7 @@ func _build_world() -> void:
         _box(Vector3(side * 7.9, 2.5, z), Vector3(0.20, 5.0, 0.20), Color(0.35, 0.39, 0.40), false)
         _box(Vector3(side * 7.9, 5.0, z), Vector3(0.25, 0.18, 1.5), Color(0.89, 0.84, 0.65), false)
     _urban_decay()
+    _environment_story()
     for i in range(24):
         var side := -1 if i % 2 == 0 else 1
         _box(Vector3(side * (5.6 + (i % 3) * 0.5), 0.12, -44 + i * 3.8), Vector3(0.65, 0.28, 0.8), Color(0.50, 0.47, 0.41))
@@ -262,7 +306,7 @@ func _build_hud() -> void:
     var ui := CanvasLayer.new()
     add_child(ui)
     var title := Label.new()
-    title.text = "DEADSHIFT  |  URBAN SURVIVAL V6"
+    title.text = "DEADSHIFT  |  URBAN SURVIVAL V6.1"
     title.position = Vector2(18, 16)
     title.add_theme_font_size_override("font_size", 23)
     ui.add_child(title)
