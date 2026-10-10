@@ -61,7 +61,7 @@ jobs:
               settings.save()
               quit()
           GDSCRIPT
-          ./Godot_v4.4.1-stable_linux.x86_64 --headless --editor --path godot --script res://configure_android_export.gd
+          timeout 120s ./Godot_v4.4.1-stable_linux.x86_64 --headless --editor --quit --path godot --script res://configure_android_export.gd
           rm godot/configure_android_export.gd
       - name: Import project
         run: ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --editor --quit
