@@ -34,6 +34,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
           echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
           mkdir -p "$HOME/.android"
@@ -41,12 +42,30 @@ jobs:
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey" >> "$GITHUB_ENV"
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >> "$GITHUB_ENV"
+      - name: Configure Godot editor Android export settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > godot/configure_android_export.gd <<'GDSCRIPT'
+          extends SceneTree
+
+          func _initialize() -> void:
+              var settings := EditorInterface.get_editor_settings()
+              settings.set_setting("export/android/android_sdk_path", OS.get_environment("ANDROID_HOME"))
+              settings.set_setting("export/android/debug_keystore", OS.get_environment("GODOT_ANDROID_KEYSTORE_DEBUG_PATH"))
+              settings.set_setting("export/android/debug_keystore_user", "androiddebugkey")
+              settings.set_setting("export/android/debug_keystore_pass", "android")
+              settings.save()
+              quit()
+          GDSCRIPT
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --editor --path godot --script res://configure_android_export.gd
+          rm godot/configure_android_export.gd
       - name: Import project
         run: ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --editor --quit
       - name: Export Android debug APK
         run: |
           mkdir -p build
-          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --export-debug Android ../build/deadshift-v3-debug.apk
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --verbose --path godot --export-debug Android "$GITHUB_WORKSPACE/build/deadshift-v3-debug.apk"
           test -s build/deadshift-v3-debug.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
