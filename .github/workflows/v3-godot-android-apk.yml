@@ -58,7 +58,6 @@ jobs:
               settings.set_setting("export/android/debug_keystore", OS.get_environment("GODOT_ANDROID_KEYSTORE_DEBUG_PATH"))
               settings.set_setting("export/android/debug_keystore_user", "androiddebugkey")
               settings.set_setting("export/android/debug_keystore_pass", "android")
-              settings.save()
               quit()
           GDSCRIPT
           timeout 120s ./Godot_v4.4.1-stable_linux.x86_64 --headless --editor --quit --path godot --script res://configure_android_export.gd
