@@ -36,7 +36,7 @@ func _textured_material(base: Color, brick: bool) -> StandardMaterial3D:
     mat.albedo_texture = _make_texture(base, brick)
     mat.uv1_triplanar = true
     mat.uv1_world_triplanar = true
-    mat.uv1_scale = Vector3(0.55, 0.55, 0.55) if brick else Vector3(0.22, 0.22, 0.22)
+    mat.uv1_scale = Vector3(0.55, 0.55, 0.55) if brick else Vector3(0.05, 0.05, 0.05)
     mat.roughness = 0.97
     return mat
 
@@ -44,7 +44,7 @@ func _textured_material(base: Color, brick: bool) -> StandardMaterial3D:
 func _ready() -> void:
     for tint in [Color(0.54, 0.46, 0.40), Color(0.57, 0.49, 0.42), Color(0.46, 0.49, 0.47), Color(0.51, 0.43, 0.40)]:
         brick_materials.append(_textured_material(tint, true))
-    asphalt_material = _textured_material(Color(0.33, 0.32, 0.31), false)
+    asphalt_material = _textured_material(Color(0.22, 0.23, 0.23), false)
     _build_world()
     _build_player()
     _build_camera()
@@ -117,6 +117,41 @@ func _car(x: float, z: float, color: Color, variant: int) -> void:
     if variant % 3 == 0:
         _box(Vector3(x, 1.80, z + 0.35), Vector3(1.5, 0.08, 1.3), Color(0.24, 0.22, 0.19), false)
 
+func _survivor_piece(parent: Node3D, pos: Vector3, size: Vector3, tint: Color) -> void:
+    var part := MeshInstance3D.new()
+    var box := BoxMesh.new()
+    box.size = size
+    part.mesh = box
+    part.position = pos
+    var mat := StandardMaterial3D.new()
+    mat.albedo_color = tint
+    mat.roughness = 0.92
+    part.material_override = mat
+    parent.add_child(part)
+
+func _urban_decay() -> void:
+    # Sparse broken pavement, cracks, vegetation, barricades and boarded openings.
+    for i in range(62):
+        var z: float = -47.0 + float(i) * 1.55
+        var side: float = -1.0 if i % 2 == 0 else 1.0
+        var x: float = side * (3.2 + float(i % 5) * 0.53)
+        _box(Vector3(x, 0.019, z), Vector3(0.025, 0.012, 0.55 + float(i % 3) * 0.21), Color(0.085, 0.09, 0.09), false)
+        if i % 3 == 0:
+            _box(Vector3(x + 0.23, 0.022, z + 0.12), Vector3(0.5, 0.012, 0.022), Color(0.08, 0.09, 0.08), false)
+        if i % 4 == 0:
+            var curb: float = side * 8.7
+            _box(Vector3(curb, 0.18, z), Vector3(0.24, 0.36, 0.18), Color(0.22, 0.30, 0.18), false)
+            _box(Vector3(curb + 0.1, 0.27, z + 0.10), Vector3(0.11, 0.52, 0.11), Color(0.28, 0.37, 0.21), false)
+        if i % 7 == 0:
+            var wall: float = side * 9.22
+            _box(Vector3(wall, 1.75, z), Vector3(0.17, 0.17, 2.15), Color(0.31, 0.23, 0.17), false)
+            _box(Vector3(wall, 2.08, z), Vector3(0.17, 0.15, 2.15), Color(0.32, 0.25, 0.18), false)
+    for i in range(9):
+        var z: float = -42.0 + float(i) * 10.5
+        var side: float = -1.0 if i % 2 == 0 else 1.0
+        _box(Vector3(side * 9.0, 0.58, z + 2.3), Vector3(0.85, 1.16, 0.42), Color(0.34, 0.29, 0.24), false)
+        _box(Vector3(side * 9.0, 1.2, z + 2.3), Vector3(0.93, 0.14, 0.48), Color(0.20, 0.19, 0.17), false)
+
 func _build_world() -> void:
     var env := WorldEnvironment.new()
     var e := Environment.new()
@@ -184,6 +219,7 @@ func _build_world() -> void:
         var z: float = -41.0 + i * 7.4
         _box(Vector3(side * 7.9, 2.5, z), Vector3(0.20, 5.0, 0.20), Color(0.35, 0.39, 0.40), false)
         _box(Vector3(side * 7.9, 5.0, z), Vector3(0.25, 0.18, 1.5), Color(0.89, 0.84, 0.65), false)
+    _urban_decay()
     for i in range(24):
         var side := -1 if i % 2 == 0 else 1
         _box(Vector3(side * (5.6 + (i % 3) * 0.5), 0.12, -44 + i * 3.8), Vector3(0.65, 0.28, 0.8), Color(0.50, 0.47, 0.41))
@@ -198,15 +234,16 @@ func _build_player() -> void:
     capsule.height = 2.0
     collider.shape = capsule
     survivor.add_child(collider)
-    var body := MeshInstance3D.new()
-    var mesh := CapsuleMesh.new()
-    mesh.radius = 0.43
-    mesh.height = 1.85
-    body.mesh = mesh
-    var mat := StandardMaterial3D.new()
-    mat.albedo_color = Color(0.17, 0.22, 0.17)
-    body.material_override = mat
-    survivor.add_child(body)
+    # Modular low-poly survivor, distinct silhouette and clothing, replacing green capsule.
+    _survivor_piece(survivor, Vector3(0, 0.19, 0), Vector3(0.75, 0.78, 0.38), Color(0.23, 0.27, 0.23))
+    _survivor_piece(survivor, Vector3(0, 0.67, 0), Vector3(0.42, 0.43, 0.39), Color(0.43, 0.34, 0.28))
+    _survivor_piece(survivor, Vector3(0, 0.93, 0), Vector3(0.50, 0.13, 0.48), Color(0.20, 0.23, 0.20))
+    _survivor_piece(survivor, Vector3(0, 0.13, 0.31), Vector3(0.58, 0.71, 0.30), Color(0.19, 0.22, 0.19))
+    _survivor_piece(survivor, Vector3(0, 0.26, 0.51), Vector3(0.43, 0.34, 0.16), Color(0.28, 0.28, 0.22))
+    for side in [-1.0, 1.0]:
+        _survivor_piece(survivor, Vector3(side * 0.49, 0.08, 0), Vector3(0.22, 0.72, 0.27), Color(0.24, 0.28, 0.24))
+        _survivor_piece(survivor, Vector3(side * 0.22, -0.57, 0), Vector3(0.28, 0.72, 0.32), Color(0.21, 0.23, 0.22))
+        _survivor_piece(survivor, Vector3(side * 0.22, -0.92, -0.12), Vector3(0.31, 0.17, 0.49), Color(0.12, 0.12, 0.12))
 
 func _build_camera() -> void:
     camera = Camera3D.new()
@@ -225,7 +262,7 @@ func _build_hud() -> void:
     var ui := CanvasLayer.new()
     add_child(ui)
     var title := Label.new()
-    title.text = "DEADSHIFT  |  WASTELAND V5.2"
+    title.text = "DEADSHIFT  |  URBAN SURVIVAL V6"
     title.position = Vector2(18, 16)
     title.add_theme_font_size_override("font_size", 23)
     ui.add_child(title)
