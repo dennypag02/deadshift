@@ -24,9 +24,11 @@ jobs:
           unzip -q godot.zip
           chmod +x Godot_v4.4.1-stable_linux.x86_64
           curl -fL --retry 3 -o templates.tpz https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz
-          mkdir -p "$HOME/.local/share/godot3d/export_templates/4.4.1.stable"
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable"
           unzip -q templates.tpz -d templates-unpacked
-          cp templates-unpacked/templates/* "$HOME/.local/share/godot3d/export_templates/4.4.1.stable/"
+          cp -a templates-unpacked/templates/. "$HOME/.local/share/godot/export_templates/4.4.1.stable/"
+          test -s "$HOME/.local/share/godot/export_templates/4.4.1.stable/android_debug.apk"
+          test -s "$HOME/.local/share/godot/export_templates/4.4.1.stable/android_release.apk"
       - name: Configure Android SDK and debug signing
         shell: bash
         run: |
@@ -75,7 +77,7 @@ jobs:
           echo "Installed Android build tools:"
           ls -1 "$ANDROID_HOME/build-tools"
           echo "Godot Android export editor settings:"
-          grep -A 16 -B 2 'export/android' "$HOME/.config/godot3d/editor_settings-4.4.tres" | sed -E 's/(debug_keystore_pass = ).*/\\1[REDACTED]/' || true
+          grep -A 16 -B 2 'export/android' "$HOME/.config/godot/editor_settings-4.4.tres" | sed -E 's/(debug_keystore_pass = ).*/\\1[REDACTED]/' || true
       - name: Import project
         run: ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot3d --editor --quit
       - name: Export Android debug APK
