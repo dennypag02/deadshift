@@ -39,26 +39,26 @@ func _build_world() -> void:
     var env := WorldEnvironment.new()
     var e := Environment.new()
     e.background_mode = Environment.BG_COLOR
-    e.background_color = Color(0.49, 0.62, 0.72)
+    e.background_color = Color(0.33, 0.37, 0.40)
     e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    e.ambient_light_color = Color(0.85, 0.88, 0.92)
-    e.ambient_light_energy = 1.2
+    e.ambient_light_color = Color(0.68, 0.65, 0.59)
+    e.ambient_light_energy = 0.85
     e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
     env.environment = e
     add_child(env)
     var sun := DirectionalLight3D.new()
     sun.rotation_degrees = Vector3(-48, -28, 0)
-    sun.light_color = Color(1.0, 0.94, 0.82)
-    sun.light_energy = 1.55
+    sun.light_color = Color(1.0, 0.79, 0.60)
+    sun.light_energy = 1.1
     add_child(sun)
     _box(Vector3(0, -0.35, 0), Vector3(110, 0.5, 110), Color(0.42, 0.43, 0.37))
-    _box(Vector3(0, -0.07, 0), Vector3(13, 0.08, 105), Color(0.25, 0.27, 0.29), false)
+    _box(Vector3(0, -0.07, 0), Vector3(13, 0.08, 105), Color(0.20, 0.21, 0.22), false)
     for side in [-1, 1]:
-        _box(Vector3(side * 7.7, 0, 0), Vector3(2.2, 0.18, 105), Color(0.61, 0.59, 0.54))
+        _box(Vector3(side * 7.7, 0, 0), Vector3(2.2, 0.18, 105), Color(0.45, 0.43, 0.40))
         for i in range(9):
             var z := -42.0 + i * 10.5
             var h := 7.0 + float((i * 7 + (side + 1) * 3) % 11)
-            var facade_colors := [Color(0.57, 0.55, 0.50), Color(0.66, 0.59, 0.50), Color(0.49, 0.56, 0.56), Color(0.59, 0.52, 0.47), Color(0.46, 0.49, 0.53)]
+            var facade_colors := [Color(0.43, 0.40, 0.36), Color(0.51, 0.43, 0.36), Color(0.36, 0.43, 0.43), Color(0.47, 0.39, 0.34), Color(0.37, 0.39, 0.42)]
             var facade: Color = facade_colors[(i + (side + 1) * 2) % facade_colors.size()]
             _box(Vector3(side * 14.5, h / 2.0, z), Vector3(10, h, 8), facade)
             for floor_idx in range(int(h / 3.0)):
@@ -67,6 +67,20 @@ func _build_world() -> void:
                 _box(Vector3(front, 2.1 + floor_idx * 2.9, z + 1.9), Vector3(0.08, 1.25, 1.1), Color(0.065, 0.085, 0.09), false)
             _box(Vector3(side * 9.35, 1.35, z), Vector3(0.12, 2.0, 2.7), Color(0.24, 0.28, 0.30), false)
             _box(Vector3(side * 9.29, 3.0, z), Vector3(0.16, 0.16, 3.4), Color(0.80, 0.72, 0.54), false)
+    for i in range(30):
+        var z: float = -45.0 + float(i) * 3.0
+        var side: float = -1.0 if i % 2 == 0 else 1.0
+        _box(Vector3(side * 6.6, 0.09, z), Vector3(0.35, 0.18, 0.65), Color(0.35, 0.33, 0.30), false)
+        if i % 3 == 0:
+            _box(Vector3(side * 8.4, 0.42, z), Vector3(0.8, 0.8, 0.85), Color(0.26, 0.29, 0.27), false)
+            _box(Vector3(side * 8.4, 0.85, z), Vector3(0.9, 0.07, 0.95), Color(0.18, 0.20, 0.18), false)
+        if i % 4 == 0:
+            _box(Vector3(side * 5.8, 0.045, z + 0.8), Vector3(0.65, 0.025, 1.3), Color(0.12, 0.13, 0.13), false)
+    for i in range(14):
+        var z: float = -43.0 + float(i) * 6.2
+        var side: float = -1.0 if i % 2 == 0 else 1.0
+        _box(Vector3(side * 9.28, 1.2, z), Vector3(0.16, 2.1, 1.7), Color(0.19, 0.24, 0.25), false)
+        _box(Vector3(side * 9.27, 2.3, z), Vector3(0.3, 0.16, 2.2), Color(0.36, 0.29, 0.22), false)
     for i in range(16):
         var z := -43.0 + i * 5.6
         _box(Vector3(0, 0.015, z), Vector3(0.22, 0.025, 2.6), Color(0.65, 0.56, 0.36), false)
