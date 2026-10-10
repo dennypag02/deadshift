@@ -8,7 +8,43 @@ var start_touch := Vector2.ZERO
 var camera_yaw := 0.0
 const SPEED := 6.0
 
+var brick_materials: Array[StandardMaterial3D] = []
+var asphalt_material: StandardMaterial3D
+
+func _make_texture(base: Color, brick: bool) -> ImageTexture:
+    var img := Image.create(128, 128, false, Image.FORMAT_RGBA8)
+    for y in range(128):
+        for x in range(128):
+            var grain: float = float((x * 37 + y * 73 + (x * y) % 31) % 29) / 280.0 - 0.052
+            var shade: float = 1.0 + grain
+            if brick:
+                var row_id: int = int(y / 16)
+                var bx: int = (x + (row_id % 2) * 16) % 32
+                var by: int = y % 16
+                if bx < 2 or by < 2:
+                    shade *= 0.57
+                elif (x * 11 + y * 7) % 53 < 3:
+                    shade *= 0.78
+            else:
+                if (x * 17 + y * 23) % 109 < 2:
+                    shade *= 0.53
+            img.set_pixel(x, y, Color(base.r * shade, base.g * shade, base.b * shade))
+    return ImageTexture.create_from_image(img)
+
+func _textured_material(base: Color, brick: bool) -> StandardMaterial3D:
+    var mat := StandardMaterial3D.new()
+    mat.albedo_texture = _make_texture(base, brick)
+    mat.uv1_triplanar = true
+    mat.uv1_world_triplanar = true
+    mat.uv1_scale = Vector3(0.55, 0.55, 0.55) if brick else Vector3(0.22, 0.22, 0.22)
+    mat.roughness = 0.97
+    return mat
+
+
 func _ready() -> void:
+    for tint in [Color(0.54, 0.46, 0.40), Color(0.57, 0.49, 0.42), Color(0.46, 0.49, 0.47), Color(0.51, 0.43, 0.40)]:
+        brick_materials.append(_textured_material(tint, true))
+    asphalt_material = _textured_material(Color(0.33, 0.32, 0.31), false)
     _build_world()
     _build_player()
     _build_camera()
@@ -98,7 +134,9 @@ func _build_world() -> void:
     sun.light_energy = 1.1
     add_child(sun)
     _box(Vector3(0, -0.35, 0), Vector3(110, 0.5, 110), Color(0.42, 0.43, 0.37))
-    _box(Vector3(0, -0.07, 0), Vector3(13, 0.08, 105), Color(0.20, 0.21, 0.22), false)
+    var street := _box(Vector3(0, -0.07, 0), Vector3(13, 0.08, 105), Color(0.20, 0.21, 0.22), false)
+    var street_mesh := street.get_child(0) as MeshInstance3D
+    street_mesh.material_override = asphalt_material
     for side in [-1, 1]:
         _box(Vector3(side * 7.7, 0, 0), Vector3(2.2, 0.18, 105), Color(0.45, 0.43, 0.40))
         for i in range(9):
@@ -106,7 +144,9 @@ func _build_world() -> void:
             var h := 7.0 + float((i * 7 + (side + 1) * 3) % 11)
             var facade_colors := [Color(0.43, 0.40, 0.36), Color(0.51, 0.43, 0.36), Color(0.36, 0.43, 0.43), Color(0.47, 0.39, 0.34), Color(0.37, 0.39, 0.42)]
             var facade: Color = facade_colors[(i + (side + 1) * 2) % facade_colors.size()]
-            _box(Vector3(side * 14.5, h / 2.0, z), Vector3(10, h, 8), facade)
+            var building := _box(Vector3(side * 14.5, h / 2.0, z), Vector3(10, h, 8), facade)
+            var building_mesh := building.get_child(0) as MeshInstance3D
+            building_mesh.material_override = brick_materials[(i + (side + 1)) % brick_materials.size()]
             for floor_idx in range(int(h / 3.0)):
                 var front: float = float(side) * 9.43
                 _box(Vector3(front, 2.1 + floor_idx * 2.9, z - 1.9), Vector3(0.08, 1.25, 1.1), Color(0.16, 0.25, 0.30), false)
@@ -177,7 +217,7 @@ func _build_camera() -> void:
 
 func _update_camera(weight: float) -> void:
     var target := survivor.position + Vector3(0, 2.2, 0)
-    var offset := Vector3(sin(camera_yaw) * 8.5, 6.0, cos(camera_yaw) * 8.5)
+    var offset := Vector3(sin(camera_yaw) * 7.8, 4.2, cos(camera_yaw) * 7.8)
     camera.global_position = camera.global_position.lerp(target + offset, weight)
     camera.look_at(target + Vector3(0, 0, -3), Vector3.UP)
 
@@ -185,7 +225,7 @@ func _build_hud() -> void:
     var ui := CanvasLayer.new()
     add_child(ui)
     var title := Label.new()
-    title.text = "DEADSHIFT  |  WASTELAND 3D TEST"
+    title.text = "DEADSHIFT  |  WASTELAND V5.2"
     title.position = Vector2(18, 16)
     title.add_theme_font_size_override("font_size", 23)
     ui.add_child(title)
