@@ -2,8 +2,8 @@
 config_version=5
 
 [application]
-config/name="Deadshift V3"
-run/main_scene="res://scenes/main.tscn"
+config/name="Deadshift 2D Arena"
+run/main_scene="res://scenes/arena.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/description="Deadshift V3 scrolling-world acceptance prototype"
 
