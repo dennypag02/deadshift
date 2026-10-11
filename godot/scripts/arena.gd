@@ -3,6 +3,9 @@ extends Node2D
 
 const ZOMBIE_SCENE = preload("res://scenes/zombie.tscn")
 const CAR_SCENE = preload("res://scenes/car.tscn")
+const CAR_ART = [preload("res://art/car_sedan.png"), preload("res://art/car_rust.png"), preload("res://art/car_olive.png")]
+const BUILDING_ART = [preload("res://art/building_01.png"), preload("res://art/building_02.png"), preload("res://art/building_03.png")]
+const DEBRIS_ART = [preload("res://art/debris_0.png"), preload("res://art/debris_1.png"), preload("res://art/debris_2.png")]
 const PLAYER_SPEED := 230.0
 const ZOMBIE_SPEED := 65.0
 @onready var player: CharacterBody2D = $World/Player
@@ -35,6 +38,10 @@ func _populate_arena() -> void:
         for side in [-1, 1]:
             var car := CAR_SCENE.instantiate()
             car.position = Vector2(float(side) * 250.0, road_z + float((i * 43) % 100))
+            var sprite: Sprite2D = car.get_node("Sprite2D")
+            sprite.texture = CAR_ART[rng.randi_range(0, CAR_ART.size() - 1)]
+            car.rotation_degrees = rng.randf_range(-20.0, 20.0)
+            sprite.flip_h = rng.randf() < 0.5
             props.add_child(car)
     for i in range(24):
         var b := StaticBody2D.new()
@@ -46,11 +53,19 @@ func _populate_arena() -> void:
         rect.size = Vector2(185, 55)
         collision.shape = rect
         b.add_child(collision)
-        var facade := Polygon2D.new()
-        facade.polygon = PackedVector2Array([Vector2(-120,-250),Vector2(120,-250),Vector2(120,0),Vector2(-120,0)])
-        facade.color = Color(0.35 + float(i % 3) * 0.07, 0.31, 0.28)
+        var facade := Sprite2D.new()
+        facade.texture = BUILDING_ART[i % BUILDING_ART.size()]
+        facade.position = Vector2(0, -160)
+        facade.scale = Vector2(0.95, 1.0)
         b.add_child(facade)
         buildings.add_child(b)
+    for i in range(160):
+        var mark := Sprite2D.new()
+        mark.texture = DEBRIS_ART[rng.randi_range(0, DEBRIS_ART.size() - 1)]
+        mark.position = Vector2(rng.randf_range(-320, 320), rng.randf_range(-1500, 1500))
+        mark.rotation = rng.randf_range(-PI, PI)
+        mark.scale = Vector2.ONE * rng.randf_range(0.45, 0.95)
+        decals.add_child(mark)
 
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventScreenTouch:

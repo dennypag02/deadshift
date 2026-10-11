@@ -23,6 +23,10 @@ jobs:
           curl -fL --retry 3 -o godot.zip https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
           unzip -q godot.zip
           chmod +x Godot_v4.4.1-stable_linux.x86_64
+      - name: Generate PNG art assets
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 godot/tools/make_art.py
       - name: Parse and import Godot project
         run: ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --editor --quit
       - name: Run headless smoke test

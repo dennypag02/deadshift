@@ -1,16 +1,23 @@
 extends Node2D
-## Static asphalt, sidewalks, lane markings and wear underneath Y-sorted actors.
-func _draw() -> void:
-    draw_rect(Rect2(-1400, -1600, 2800, 3200), Color("#343b3a"))
-    draw_rect(Rect2(-315, -1600, 630, 3200), Color("#252a2b"))
+## World-space textured Sprite2D tiles. No procedural _draw geometry.
+const ASPHALT = preload("res://art/asphalt.png")
+const SIDEWALK = preload("res://art/sidewalk.png")
+const LANE = preload("res://art/lane.png")
+func _ready() -> void:
+    for x in range(-5, 6):
+        for y in range(-7, 8):
+            var tile := Sprite2D.new()
+            tile.texture = ASPHALT
+            tile.position = Vector2(float(x) * 256.0, float(y) * 256.0)
+            add_child(tile)
     for side in [-1.0, 1.0]:
-        var x: float = side * 340.0
-        draw_rect(Rect2(x - 28.0, -1600.0, 56.0, 3200.0), Color("#676258"))
-        draw_line(Vector2(x - side * 27.0, -1600.0), Vector2(x - side * 27.0, 1600.0), Color("#a39a84"), 5.0)
-    for i in range(30):
-        var y: float = -1520.0 + float(i) * 108.0
-        draw_rect(Rect2(-5.0, y, 10.0, 51.0), Color("#b5a16e"))
-    for i in range(110):
-        var x: float = -295.0 + float((i * 89) % 580)
-        var y: float = -1490.0 + float((i * 167) % 2950)
-        draw_line(Vector2(x,y), Vector2(x + float(i % 3) * 11.0 + 8.0,y + 8.0), Color("#151b1c",0.55), 2.0)
+        for i in range(-7, 8):
+            var walk := Sprite2D.new()
+            walk.texture = SIDEWALK
+            walk.position = Vector2(side * 350.0, float(i) * 256.0)
+            add_child(walk)
+    for i in range(-17, 18):
+        var stripe := Sprite2D.new()
+        stripe.texture = LANE
+        stripe.position = Vector2(0, float(i) * 100.0)
+        add_child(stripe)

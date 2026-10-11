@@ -101,6 +101,10 @@ jobs:
           set -euo pipefail
           sed -i -E "s/^version\\/code=[0-9]+$/version\\/code=${BUILD_VERSION_CODE}/" godot/export_presets.cfg
           grep -F "version/code=${BUILD_VERSION_CODE}" godot/export_presets.cfg
+      - name: Generate PNG art assets
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 godot/tools/make_art.py
       - name: Import project
         run: ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --editor --quit
       - name: Runtime scene smoke test
