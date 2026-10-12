@@ -91,3 +91,21 @@ The launcher automatically:
 6. saves an accepted version into `picks.yaml`.
 
 It never promotes or overwrites Godot art automatically. Promotion remains a separate explicit step.
+
+
+## Chat-to-local worker
+
+The one-time Windows setup is `Install-DeadShift-Worker.bat`.
+
+After installation, the worker starts with Windows, polls the GitHub-backed
+`jobs/queued/` folder every 20 seconds, waits for local ComfyUI when needed,
+generates each batch sequentially, and serves the latest review at:
+
+`http://127.0.0.1:8765/latest`
+
+Normal operation requires no PowerShell or YAML editing. The user tells ChatGPT
+the asset plus positive and negative prompt. ChatGPT queues the job in GitHub.
+The local worker handles generation and opens the completed review automatically.
+
+Local generated images, manifests, workflows, logs, worker state, and status are
+ignored by Git and remain on the PC.
