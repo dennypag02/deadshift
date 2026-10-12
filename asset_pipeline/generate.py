@@ -273,6 +273,9 @@ def generate_one(
     version: int,
     seed: int,
     dry_run: bool,
+    positive_override: str | None = None,
+    negative_override: str | None = None,
+    job_id: str | None = None,
 ) -> dict[str, Any] | None:
     name = str(asset["name"])
     category_name = str(asset["category"])
@@ -283,8 +286,8 @@ def generate_one(
     workflow_kind = str(category["workflow"])
     width, height = [int(value) for value in category["size"]]
     steps = 30 if workflow_kind == "scene" else 28
-    positive = f"{category['style']}, {asset['prompt']}"
-    negative = str(category["negative"])
+    positive = positive_override or f"{category['style']}, {asset['prompt']}"
+    negative = negative_override or str(category["negative"])
     version_label = f"v{version:02d}"
     filename_prefix = f"deadshift/{category_name}/{name}_{version_label}_{seed}"
 
@@ -326,6 +329,7 @@ def generate_one(
     return {
         "asset": name,
         "category": category_name,
+        "job_id": job_id,
         "version": version,
         "version_label": version_label,
         "seed": seed,
@@ -357,12 +361,35 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--only", help="Generate one named asset")
     parser.add_argument("--category", help="Generate only one category")
     parser.add_argument("--count", type=int, help="Override the configured count per asset")
+    parser.add_argument("--positive", help="Replace the full positive prompt")
+    parser.add_argument("--negative", help="Replace the full negative prompt")
+    parser.add_argument("--job-id", help="Tag manifest entries with a worker job id")
+    parser.add_argument("--job-file", type=Path, help="Load asset/count/prompt overrides from a YAML job file")
     parser.add_argument("--dry-run", action="store_true", help="Print jobs without queueing them")
     return parser.parse_args()
 
 
+def apply_job_file(args: argparse.Namespace) -> argparse.Namespace:
+    if args.job_file is None:
+        return args
+    try:
+        job = yaml.safe_load(args.job_file.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise SystemExit(f"Job file not found: {args.job_file}") from exc
+    if not isinstance(job, dict):
+        raise SystemExit("Job file must contain a YAML mapping")
+
+    args.only = job.get("asset", args.only)
+    args.category = job.get("category", args.category)
+    args.count = int(job.get("count", args.count or 20))
+    args.positive = job.get("positive", args.positive)
+    args.negative = job.get("negative", args.negative)
+    args.job_id = str(job.get("job_id") or args.job_file.stem)
+    return args
+
+
 def main() -> None:
-    args = parse_args()
+    args = apply_job_file(parse_args())
     if args.count is not None and args.count < 1:
         raise SystemExit("--count must be at least 1")
 
@@ -389,6 +416,9 @@ def main() -> None:
                 version=version + offset,
                 seed=seed,
                 dry_run=args.dry_run,
+                positive_override=args.positive,
+                negative_override=args.negative,
+                job_id=args.job_id,
             )
             if entry is not None:
                 manifest.append(entry)
