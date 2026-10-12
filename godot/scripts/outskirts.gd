@@ -39,21 +39,26 @@ const SCRUB_WEST := Vector2(7.0 * TILE, 80)
 const SCRUB_EAST := Vector2(24.0 * TILE, 80)
 const MOTEL_A := Vector2(24.0 * TILE, 15.0 * TILE)
 const MOTEL_B := Vector2(28.0 * TILE, 15.0 * TILE)
+const WEST_MID := Vector2(80, 21.0 * TILE)
+const EAST_MID := Vector2(MAP_SIZE.x - 80, 21.0 * TILE)
+const NORTH_WEST := Vector2(3.5 * TILE, 80)
+const NORTH_EAST := Vector2(28.5 * TILE, 80)
+const SOUTH_CENTER := Vector2(16.0 * TILE, MAP_SIZE.y - 80)
 const PLAYER_START := Vector2(16.0 * TILE, 22.0 * TILE)
 const DINER_HEALTH_POS := Vector2(6.0 * TILE, 14.0 * TILE)
 const NORTH_EXIT := Rect2(14.0 * TILE, 0, 3.0 * TILE, 5.0 * TILE)
 
 var wave_plan := {
-	1: {"shamblers": 8, "runners": 0, "trucker": 0},
-	2: {"shamblers": 12, "runners": 0, "trucker": 0},
-	3: {"shamblers": 15, "runners": 0, "trucker": 0},
-	4: {"shamblers": 18, "runners": 0, "trucker": 0},
-	5: {"shamblers": 12, "runners": 5, "trucker": 0},
-	6: {"shamblers": 14, "runners": 6, "trucker": 0},
-	7: {"shamblers": 18, "runners": 6, "trucker": 0},
-	8: {"shamblers": 20, "runners": 8, "trucker": 0},
-	9: {"shamblers": 24, "runners": 10, "trucker": 0},
-	10: {"shamblers": 28, "runners": 10, "trucker": 1},
+	1: {"shamblers": 18, "runners": 0, "trucker": 0},
+	2: {"shamblers": 28, "runners": 0, "trucker": 0},
+	3: {"shamblers": 36, "runners": 0, "trucker": 0},
+	4: {"shamblers": 42, "runners": 0, "trucker": 0},
+	5: {"shamblers": 36, "runners": 10, "trucker": 0},
+	6: {"shamblers": 42, "runners": 12, "trucker": 0},
+	7: {"shamblers": 50, "runners": 14, "trucker": 0},
+	8: {"shamblers": 58, "runners": 18, "trucker": 0},
+	9: {"shamblers": 68, "runners": 22, "trucker": 0},
+	10: {"shamblers": 78, "runners": 26, "trucker": 1},
 }
 
 var player_pos := PLAYER_START
@@ -282,8 +287,10 @@ func _physics_process(delta: float) -> void:
 	if wave_active:
 		spawn_clock -= delta
 		if spawn_clock <= 0.0 and wave_spawned < wave_total:
-			_spawn_next_enemy()
-			spawn_clock = maxf(0.30, 1.15 - float(wave) * 0.065)
+			var burst_size := mini(2 + int(wave / 3), wave_total - wave_spawned)
+			for _n in range(burst_size):
+				_spawn_next_enemy()
+			spawn_clock = maxf(0.42, 0.90 - float(wave) * 0.035)
 		if wave_spawned >= wave_total and enemies.is_empty():
 			_finish_wave()
 
@@ -336,17 +343,32 @@ func _spawn_next_enemy() -> void:
 
 func _pick_spawn_point() -> Vector2:
 	var points: Array[Vector2] = []
+
+	# Wave 1 still teaches the highway threat, but from three lanes instead of one drain.
 	if wave == 1:
-		points = [HIGHWAY_WEST]
+		points = [HIGHWAY_WEST, HIGHWAY_EAST, SOUTH_CENTER]
 	else:
-		points = [HIGHWAY_WEST, HIGHWAY_EAST]
-	if wave >= 4:
+		points = [HIGHWAY_WEST, HIGHWAY_EAST, SOUTH_CENTER, WEST_MID, EAST_MID]
+
+	# From wave 3 onward the open northern scrub becomes an active threat.
+	if wave >= 3:
 		points.append(SCRUB_WEST)
 		points.append(SCRUB_EAST)
-	if wave >= 6 and rng.randf() < 0.34:
+		points.append(NORTH_WEST)
+		points.append(NORTH_EAST)
+
+	# Motel pressure starts on wave 6 and is always part of the active pool.
+	if wave >= 6:
 		points.append(MOTEL_A)
 		points.append(MOTEL_B)
-	return points[rng.randi_range(0, points.size() - 1)]
+
+	var base := points[rng.randi_range(0, points.size() - 1)]
+	# Scatter each spawn so zombies arrive as a loose group rather than a single-file line.
+	var jitter := Vector2(rng.randf_range(-90.0, 90.0), rng.randf_range(-90.0, 90.0))
+	return Vector2(
+		clampf(base.x + jitter.x, 45.0, MAP_SIZE.x - 45.0),
+		clampf(base.y + jitter.y, 45.0, MAP_SIZE.y - 45.0)
+	)
 
 func _update_bullets(delta: float) -> void:
 	for i in range(bullets.size() - 1, -1, -1):
@@ -525,21 +547,25 @@ func _draw_asset_centered(texture: Texture2D, center: Vector2, size: Vector2, ro
 
 func _draw_car(texture: Texture2D, center: Vector2, rotation: float, tint: Color) -> void:
 	var texture_size := Vector2(texture.get_size())
-	var scale_factor := 150.0 / maxf(texture_size.x, texture_size.y)
+	var scale_factor := 285.0 / maxf(texture_size.x, texture_size.y)
 	var draw_size := texture_size * scale_factor
-	draw_circle(center + Vector2(7,12), 58, Color(0.05,0.05,0.05,0.38))
+	draw_circle(center + Vector2(10,18), 102, Color(0.05,0.05,0.05,0.38))
 	draw_set_transform(center, rotation, Vector2.ONE)
 	draw_texture_rect(texture, Rect2(-draw_size * 0.5, draw_size), false, tint)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 func _draw_spawn_markers() -> void:
-	if wave <= 2:
-		_spawn_marker(HIGHWAY_WEST, Color("#e6c04d"))
-		if wave >= 2:
-			_spawn_marker(HIGHWAY_EAST, Color("#e6c04d"))
-	if wave >= 4:
+	_spawn_marker(HIGHWAY_WEST, Color("#e6c04d"))
+	_spawn_marker(HIGHWAY_EAST, Color("#e6c04d"))
+	_spawn_marker(SOUTH_CENTER, Color("#e6c04d"))
+	if wave >= 2:
+		_spawn_marker(WEST_MID, Color("#d98c4d"))
+		_spawn_marker(EAST_MID, Color("#d98c4d"))
+	if wave >= 3:
 		_spawn_marker(SCRUB_WEST, Color("#6ca45a"))
 		_spawn_marker(SCRUB_EAST, Color("#6ca45a"))
+		_spawn_marker(NORTH_WEST, Color("#6ca45a"))
+		_spawn_marker(NORTH_EAST, Color("#6ca45a"))
 	if wave >= 6:
 		_spawn_marker(MOTEL_A, Color("#c84f4f"))
 		_spawn_marker(MOTEL_B, Color("#c84f4f"))
