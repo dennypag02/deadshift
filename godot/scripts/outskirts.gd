@@ -9,6 +9,21 @@ const SURVIVOR_ART := preload("res://art/survivor_wasteland.svg")
 const ZOMBIE_ART := preload("res://art/zombie_shambler.svg")
 const CAR_SUV_ART := preload("res://art/cars/car_suv.png")
 const CAR_SEDAN_ART := preload("res://art/cars/car_sedan.png")
+const OUT_MINIMART_ART := preload("res://art/outskirts/out_minimart.svg")
+const OUT_DINER_ART := preload("res://art/outskirts/out_diner.svg")
+const OUT_MOTEL_ART := preload("res://art/outskirts/out_motel.svg")
+const OUT_AUTOSHOP_ART := preload("res://art/outskirts/out_autoshop.svg")
+const OUT_CANOPY_ART := preload("res://art/outskirts/out_canopy.svg")
+const OUT_SEMI_ART := preload("res://art/outskirts/out_semi_trailer.svg")
+const OUT_TANKER_ART := preload("res://art/outskirts/out_tanker.svg")
+const OUT_GAS_PUMP_ART := preload("res://art/outskirts/out_gas_pump.svg")
+const OUT_BARRIER_ART := preload("res://art/outskirts/out_barrier.svg")
+const OUT_FENCE_ART := preload("res://art/outskirts/out_fence.svg")
+const OUT_TIRES_ART := preload("res://art/outskirts/out_tires.svg")
+const OUT_SCRUB_ART := preload("res://art/outskirts/out_scrub.svg")
+const OUT_SIGN_ART := preload("res://art/outskirts/out_sign_down.svg")
+const GROUND_SCRUB_ART := preload("res://art/outskirts/ground_scrub_dirt.svg")
+const GROUND_GRAVEL_ART := preload("res://art/outskirts/ground_gravel.svg")
 
 const PLAYER_RADIUS := 22.0
 const BULLET_RADIUS := 5.0
@@ -79,6 +94,7 @@ var rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	rng.seed = 20261012
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_setup_pumps()
 	_setup_camera()
 	_setup_ui()
@@ -419,11 +435,15 @@ func _draw() -> void:
 	_draw_dusk()
 
 func _draw_ground() -> void:
-	draw_rect(Rect2(Vector2.ZERO, MAP_SIZE), Color("#b99a61"))
-	draw_rect(Rect2(0, 0, MAP_SIZE.x, 5.0 * TILE), Color("#8f7a4d"))
+	# Warm cracked dirt is the district's dominant ground treatment.
+	draw_texture_rect(GROUND_SCRUB_ART, Rect2(Vector2.ZERO, MAP_SIZE), false, Color("#d7b779"))
+	# Scrub edge is darker and rougher.
+	draw_texture_rect(GROUND_SCRUB_ART, Rect2(0, 0, MAP_SIZE.x, 5.0 * TILE), false, Color("#9e8759"))
+	# Road north and bottom highway remain high-contrast navigation anchors.
 	draw_rect(Rect2(14.0 * TILE, 0, 3.0 * TILE, 11.0 * TILE), Color("#4b4942"))
 	draw_rect(Rect2(0, 36.0 * TILE, MAP_SIZE.x, 4.0 * TILE), Color("#2b2d2f"))
-	draw_rect(Rect2(22.0 * TILE, 24.0 * TILE, 9.0 * TILE, 10.0 * TILE), Color("#736f65"))
+	# Truck-stop lot gets a distinct gravel surface.
+	draw_texture_rect(GROUND_GRAVEL_ART, Rect2(22.0 * TILE, 24.0 * TILE, 9.0 * TILE, 10.0 * TILE), false, Color("#999283"))
 	for lane in range(1, 32):
 		var x := float(lane) * TILE
 		draw_line(Vector2(x, 36.0 * TILE), Vector2(x, MAP_SIZE.y), Color(0.12,0.12,0.12,0.18), 1.0)
@@ -431,12 +451,13 @@ func _draw_ground() -> void:
 		draw_rect(Rect2(stripe * TILE, 37.85 * TILE, TILE * 0.65, 10), Color("#d0b76f"))
 
 func _draw_structures() -> void:
-	_draw_building(Rect2(12.0 * TILE, 11.0 * TILE, 7.0 * TILE, 4.0 * TILE), Color("#c6b48e"), "MINI-MART / UPGRADES")
-	_draw_building(Rect2(3.0 * TILE, 8.0 * TILE, 6.0 * TILE, 5.0 * TILE), Color("#638f8b"), "DINER / HEALTH")
-	_draw_building(Rect2(2.0 * TILE, 25.0 * TILE, 7.0 * TILE, 6.0 * TILE), Color("#51545a"), "AUTO SHOP")
-	_draw_building(Rect2(22.0 * TILE, 7.0 * TILE, 9.0 * TILE, 8.0 * TILE), Color("#aa846e"), "MOTEL")
-	draw_rect(Rect2(13.0 * TILE, 16.0 * TILE, 6.0 * TILE, 5.0 * TILE), Color("#a54f3a"))
-	draw_rect(Rect2(13.4 * TILE, 16.4 * TILE, 5.2 * TILE, 4.2 * TILE), Color("#d9c28d"))
+	_draw_asset_rect(OUT_MINIMART_ART, Rect2(12.0 * TILE, 11.0 * TILE, 7.0 * TILE, 4.0 * TILE))
+	_draw_asset_rect(OUT_DINER_ART, Rect2(3.0 * TILE, 8.0 * TILE, 6.0 * TILE, 5.0 * TILE))
+	_draw_asset_rect(OUT_AUTOSHOP_ART, Rect2(2.0 * TILE, 25.0 * TILE, 7.0 * TILE, 6.0 * TILE))
+	_draw_asset_rect(OUT_MOTEL_ART, Rect2(22.0 * TILE, 7.0 * TILE, 9.0 * TILE, 8.0 * TILE))
+	_draw_asset_rect(OUT_CANOPY_ART, Rect2(13.0 * TILE, 16.0 * TILE, 6.0 * TILE, 5.0 * TILE))
+	_label(Vector2(12.2 * TILE, 10.8 * TILE), "MINI-MART / UPGRADES", 24, Color("#2a211b"))
+	_label(Vector2(3.2 * TILE, 7.8 * TILE), "DINER / HEALTH", 24, Color("#2a211b"))
 	_label(Vector2(13.2 * TILE, 15.7 * TILE), "GAS STATION HUB", 28, Color("#2a211b"))
 
 	if not district_cleared:
@@ -456,20 +477,30 @@ func _draw_props() -> void:
 	for pump in pumps:
 		var p: Vector2 = pump["pos"]
 		if bool(pump["alive"]):
-			draw_rect(Rect2(p - Vector2(23, 38), Vector2(46, 76)), Color("#b34d37"))
-			draw_circle(p + Vector2(0, -22), 7, Color("#f4c36d"))
+			_draw_asset_centered(OUT_GAS_PUMP_ART, p, Vector2(92, 118))
 		else:
-			draw_circle(p, 28, Color("#25211d"))
+			draw_circle(p, 30, Color("#25211d"))
 
-	# Truck stop semi-trailer cover.
-	draw_rect(Rect2(23.2 * TILE, 26.2 * TILE, 1.4 * TILE, 5.2 * TILE), Color("#d5d1c6"))
-	draw_rect(Rect2(27.0 * TILE, 27.8 * TILE, 1.4 * TILE, 5.2 * TILE), Color("#b6b2aa"))
+	# Truck-stop trailer cover.
+	_draw_asset_rect(OUT_SEMI_ART, Rect2(23.0 * TILE, 25.8 * TILE, 1.8 * TILE, 5.5 * TILE))
+	_draw_asset_rect(OUT_SEMI_ART, Rect2(26.7 * TILE, 27.4 * TILE, 1.8 * TILE, 5.5 * TILE))
 
-	# Existing approved car art around the district.
+	# Existing approved vehicle art remains part of the district language.
 	_draw_car(CAR_SUV_ART, Vector2(10.0 * TILE, 23.0 * TILE), -0.18, Color(0.93,0.90,0.82))
 	_draw_car(CAR_SEDAN_ART, Vector2(21.0 * TILE, 19.5 * TILE), 0.16, Color(0.82,0.88,0.92))
 	_draw_car(CAR_SUV_ART, Vector2(7.5 * TILE, 34.0 * TILE), 0.08, Color(0.84,0.90,0.80))
 	_draw_car(CAR_SEDAN_ART, Vector2(26.0 * TILE, 35.0 * TILE), -0.12, Color(0.92,0.82,0.78))
+
+	# Boundary dressing turns the map edge into readable physical space.
+	for x in range(1, 31, 3):
+		_draw_asset_centered(OUT_SCRUB_ART, Vector2(float(x) * TILE, 3.5 * TILE), Vector2(150, 120))
+	for y in range(6, 35, 5):
+		_draw_asset_centered(OUT_FENCE_ART, Vector2(70, float(y) * TILE), Vector2(105, 150))
+		_draw_asset_centered(OUT_FENCE_ART, Vector2(MAP_SIZE.x - 70, float(y) * TILE), Vector2(105, 150))
+	for x in range(2, 31, 5):
+		_draw_asset_centered(OUT_BARRIER_ART, Vector2(float(x) * TILE, 35.6 * TILE), Vector2(120, 72))
+	_draw_asset_centered(OUT_TIRES_ART, Vector2(8.3 * TILE, 30.5 * TILE), Vector2(150, 150))
+	_draw_asset_centered(OUT_SIGN_ART, Vector2(19.8 * TILE, 34.5 * TILE), Vector2(160, 145))
 
 	if health_available:
 		draw_circle(DINER_HEALTH_POS, 30, Color("#d85454"))
@@ -477,14 +508,20 @@ func _draw_props() -> void:
 		draw_rect(Rect2(DINER_HEALTH_POS - Vector2(23, 7), Vector2(46, 14)), Color.WHITE)
 
 	if tanker_event:
-		var tanker_rect := Rect2(8.5 * TILE, 36.4 * TILE, 15.0 * TILE, 1.6 * TILE)
-		draw_rect(tanker_rect, Color("#88877f"))
-		draw_rect(tanker_rect.grow(-15), Color("#b0a99c"))
+		_draw_asset_rect(OUT_TANKER_ART, Rect2(8.5 * TILE, 35.9 * TILE, 15.0 * TILE, 2.4 * TILE))
 	if fire_hazard:
 		for i in range(10):
 			var fire_pos := Vector2((7.0 + i * 1.8) * TILE, 36.8 * TILE)
 			draw_circle(fire_pos, 38, Color(1.0, 0.35, 0.08, 0.78))
 			draw_circle(fire_pos + Vector2(8,-16), 22, Color(1.0, 0.75, 0.15, 0.85))
+
+func _draw_asset_rect(texture: Texture2D, rect: Rect2, tint: Color = Color.WHITE) -> void:
+	draw_texture_rect(texture, rect, false, tint)
+
+func _draw_asset_centered(texture: Texture2D, center: Vector2, size: Vector2, rotation: float = 0.0, tint: Color = Color.WHITE) -> void:
+	draw_set_transform(center, rotation, Vector2.ONE)
+	draw_texture_rect(texture, Rect2(-size * 0.5, size), false, tint)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 func _draw_car(texture: Texture2D, center: Vector2, rotation: float, tint: Color) -> void:
 	var texture_size := Vector2(texture.get_size())

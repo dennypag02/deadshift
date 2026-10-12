@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<defs><filter id="shadow"><feDropShadow dx="8" dy="12" stdDeviation="7" flood-color="#17130f" flood-opacity=".42"/></filter></defs>
+
+<rect width="512" height="512" fill="#777266"/>
+<g fill="#918b7c"><circle cx="48" cy="74" r="9"/><circle cx="128" cy="42" r="6"/><circle cx="210" cy="92" r="8"/><circle cx="318" cy="54" r="7"/><circle cx="426" cy="112" r="10"/><circle cx="84" cy="202" r="7"/><circle cx="176" cy="246" r="9"/><circle cx="286" cy="194" r="6"/><circle cx="390" cy="264" r="8"/><circle cx="460" cy="212" r="6"/><circle cx="68" cy="366" r="10"/><circle cx="188" cy="410" r="7"/><circle cx="302" cy="350" r="9"/><circle cx="430" cy="402" r="8"/></g>
+<g stroke="#5f5a50" stroke-width="5" opacity=".65"><path d="M20 144l160 38M248 132l220 48M62 304l190 30M286 320l196 44"/></g></svg>

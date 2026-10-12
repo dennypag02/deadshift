@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<defs><filter id="shadow"><feDropShadow dx="8" dy="12" stdDeviation="7" flood-color="#17130f" flood-opacity=".42"/></filter></defs>
+
+<rect width="512" height="512" fill="#b0945d"/>
+<g stroke="#7d6845" stroke-width="5" fill="none" opacity=".78">
+<path d="M42 64l42 30-18 42 54 34M232 26l-16 58 42 30-28 58M410 44l-48 42 16 58-52 28M72 314l58-26 44 34-28 58M282 330l38-54 52 22 34-40M414 382l-30 58 44 32"/>
+</g>
+<g fill="#c8b56b" opacity=".85"><circle cx="112" cy="218" r="9"/><circle cx="194" cy="394" r="7"/><circle cx="352" cy="204" r="8"/><circle cx="448" cy="278" r="6"/><circle cx="56" cy="450" r="8"/></g></svg>
