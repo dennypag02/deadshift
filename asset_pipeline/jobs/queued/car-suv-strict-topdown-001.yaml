@@ -1,0 +1,6 @@
+job_id: car-suv-strict-topdown-001
+asset: car_suv
+category: cars
+count: 20
+positive: "(flat vector illustration:1.3), 2D game sprite, cel shaded, bold dark outlines, (strict orthographic top-down view:1.8), camera directly overhead, vehicle roof centered, roof is the dominant visible surface, hood and windshield only slightly visible, no visible side panels, no perspective, no three-quarter view, no isometric view, muted palette of rust brown, olive green and dusty gray, (isolated on plain white background:1.4), abandoned modern SUV, boxy shape, roof rails, tinted windows, sunroof, faded paint and rust patches, roof silhouette emphasized, designed for direct-overhead readability"
+negative: "photograph, photorealistic, realistic, 3D render, side view, front view, rear view, three-quarter view, three-quarter angle, isometric, perspective, perspective foreshortening, diagonal camera, horizon, grille, headlights, front bumper, visible doors, visible side panels, visible side windows, vintage, classic car, 1950s, retro, chrome fins, chrome bumper, whitewall tires, ground, dirt, grass, terrain, people, characters, sticker, border, frame, drop shadow, text, watermark, blurry"
