@@ -369,7 +369,7 @@ func _explode_pump(pump: Dictionary) -> void:
 	impact_marks.append({"pos": pump["pos"], "life": 0.55, "blast": true})
 	for i in range(enemies.size() - 1, -1, -1):
 		var enemy: Dictionary = enemies[i]
-		var distance := enemy["pos"].distance_to(pump["pos"])
+		var distance: float = Vector2(enemy["pos"]).distance_to(Vector2(pump["pos"]))
 		if distance <= PUMP_BLAST_RADIUS:
 			var damage := 10 if str(enemy["kind"]) == "trucker" else 99
 			enemy["hp"] = int(enemy["hp"]) - damage
