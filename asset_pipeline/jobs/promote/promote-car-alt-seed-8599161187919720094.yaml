@@ -1,0 +1,5 @@
+job_id: promote-car-alt-seed-8599161187919720094
+asset: car_alt
+seed: 8599161187919720094
+target: godot/art/cars/car_alt.png
+overwrite: false
