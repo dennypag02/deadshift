@@ -49,16 +49,16 @@ const DINER_HEALTH_POS := Vector2(6.0 * TILE, 14.0 * TILE)
 const NORTH_EXIT := Rect2(14.0 * TILE, 0, 3.0 * TILE, 5.0 * TILE)
 
 var wave_plan := {
-	1: {"shamblers": 18, "runners": 0, "trucker": 0},
-	2: {"shamblers": 28, "runners": 0, "trucker": 0},
-	3: {"shamblers": 36, "runners": 0, "trucker": 0},
-	4: {"shamblers": 42, "runners": 0, "trucker": 0},
-	5: {"shamblers": 36, "runners": 10, "trucker": 0},
-	6: {"shamblers": 42, "runners": 12, "trucker": 0},
-	7: {"shamblers": 50, "runners": 14, "trucker": 0},
-	8: {"shamblers": 58, "runners": 18, "trucker": 0},
-	9: {"shamblers": 68, "runners": 22, "trucker": 0},
-	10: {"shamblers": 78, "runners": 26, "trucker": 1},
+	1: {"shamblers": 42, "runners": 0, "trucker": 0},
+	2: {"shamblers": 58, "runners": 0, "trucker": 0},
+	3: {"shamblers": 72, "runners": 0, "trucker": 0},
+	4: {"shamblers": 84, "runners": 0, "trucker": 0},
+	5: {"shamblers": 72, "runners": 16, "trucker": 0},
+	6: {"shamblers": 82, "runners": 20, "trucker": 0},
+	7: {"shamblers": 94, "runners": 24, "trucker": 0},
+	8: {"shamblers": 108, "runners": 30, "trucker": 0},
+	9: {"shamblers": 124, "runners": 36, "trucker": 0},
+	10: {"shamblers": 140, "runners": 44, "trucker": 1},
 }
 
 var player_pos := PLAYER_START
@@ -195,7 +195,7 @@ func _start_wave(next_wave: int) -> void:
 	trucker_spawned = false
 	var plan: Dictionary = wave_plan[wave]
 	wave_total = int(plan["shamblers"]) + int(plan["runners"]) + int(plan["trucker"])
-	spawn_clock = 0.3
+	spawn_clock = 0.12
 	_reset_pumps()
 	if wave == 10:
 		tanker_event = true
@@ -212,7 +212,7 @@ func _start_wave(next_wave: int) -> void:
 	elif wave == 2:
 		banner.text = "WAVE 2: WATCH BOTH HIGHWAY ENDS"
 	else:
-		banner.text = "WAVE 1: DRAG TO MOVE - AUTO-FIRE IS ACTIVE"
+		banner.text = "WAVE 1: MOVE NOW - AUTO-FIRE IS ACTIVE"
 	_update_hud()
 
 func _finish_wave() -> void:
@@ -287,10 +287,10 @@ func _physics_process(delta: float) -> void:
 	if wave_active:
 		spawn_clock -= delta
 		if spawn_clock <= 0.0 and wave_spawned < wave_total:
-			var burst_size := mini(2 + int(wave / 3), wave_total - wave_spawned)
+			var burst_size := mini(5 + int(wave / 2), wave_total - wave_spawned)
 			for _n in range(burst_size):
 				_spawn_next_enemy()
-			spawn_clock = maxf(0.42, 0.90 - float(wave) * 0.035)
+			spawn_clock = maxf(0.36, 0.58 - float(wave) * 0.018)
 		if wave_spawned >= wave_total and enemies.is_empty():
 			_finish_wave()
 
@@ -344,9 +344,9 @@ func _spawn_next_enemy() -> void:
 func _pick_spawn_point() -> Vector2:
 	var points: Array[Vector2] = []
 
-	# Wave 1 still teaches the highway threat, but from three lanes instead of one drain.
+	# Wave 1 teaches movement under pressure: slow enemies, but from five readable approach lanes.
 	if wave == 1:
-		points = [HIGHWAY_WEST, HIGHWAY_EAST, SOUTH_CENTER]
+		points = [HIGHWAY_WEST, HIGHWAY_EAST, SOUTH_CENTER, WEST_MID, EAST_MID]
 	else:
 		points = [HIGHWAY_WEST, HIGHWAY_EAST, SOUTH_CENTER, WEST_MID, EAST_MID]
 
