@@ -61,7 +61,7 @@ set "DS_WORKER_CWD=%WORKER_CWD%"
 set "DS_STARTUP_LINK=%STARTUP_LINK%"
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$w=New-Object -ComObject WScript.Shell; $s=$w.CreateShortcut($env:DS_STARTUP_LINK); $s.TargetPath=$env:DS_PYTHONW; $s.Arguments='"""' + $env:DS_WORKER_SCRIPT + '"""'; $s.WorkingDirectory=$env:DS_WORKER_CWD; $s.WindowStyle=7; $s.Description='DeadShift local asset generation worker'; $s.Save()"
+  "$w=New-Object -ComObject WScript.Shell; $s=$w.CreateShortcut($env:DS_STARTUP_LINK); $s.TargetPath=$env:DS_PYTHONW; $s.Arguments='"' + $env:DS_WORKER_SCRIPT + '"'; $s.WorkingDirectory=$env:DS_WORKER_CWD; $s.WindowStyle=7; $s.Description='DeadShift local asset generation worker'; $s.Save()"
 
 if errorlevel 1 (
   echo ERROR: Could not create startup shortcut.
