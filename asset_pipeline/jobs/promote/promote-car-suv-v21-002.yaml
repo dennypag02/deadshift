@@ -1,0 +1,5 @@
+job_id: promote-car-suv-v21-002
+asset: car_suv
+source: asset_pipeline/staging/candidates/cars/car_suv_v21.png
+target: godot/art/cars/car_suv.png
+overwrite: false
