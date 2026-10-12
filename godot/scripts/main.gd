@@ -5,7 +5,7 @@ extends Node2D
 const CHUNK := 512.0
 const SURVIVOR_ART := preload("res://art/survivor_wasteland.svg")
 const ZOMBIE_ART := preload("res://art/zombie_shambler.svg")
-const CAR_ART := preload("res://art/wrecked_car.svg")
+const CAR_ART := preload("res://art/cars/car_suv.png")
 const PLAYER_SPEED := 245.0
 const FIRE_PERIOD := 0.28
 const BULLET_SPEED := 570.0
@@ -262,11 +262,14 @@ func _draw_chunk(chunk: Vector2i) -> void:
 		var weed := base + Vector2(side_x + local_rng.randf_range(-9.0, 9.0), local_rng.randf_range(0.0, CHUNK))
 		draw_line(weed, weed + Vector2(-4, -8), Color("#596344"), 2.0)
 		draw_line(weed, weed + Vector2(5, -7), Color("#596344"), 2.0)
-	# A recognizable abandoned car, with a shadow and oil stain.
+	# Approved abandoned SUV asset, preserving its generated aspect ratio.
 	if posmod(chunk.x * 7 + chunk.y * 11, 3) == 0:
-		var car_pos := base + Vector2(173, 235)
-		draw_circle(car_pos + Vector2(43, 56), 55.0, Color(0.06, 0.07, 0.07, 0.65))
-		draw_texture_rect(CAR_ART, Rect2(car_pos, Vector2(128, 80)), false)
+		var car_center := base + Vector2(237, 275)
+		var car_texture_size := Vector2(CAR_ART.get_size())
+		var car_scale := 128.0 / maxf(car_texture_size.x, car_texture_size.y)
+		var car_draw_size := car_texture_size * car_scale
+		draw_circle(car_center + Vector2(5, 9), 55.0, Color(0.06, 0.07, 0.07, 0.65))
+		draw_texture_rect(CAR_ART, Rect2(car_center - car_draw_size * 0.5, car_draw_size), false)
 	# Intersections and evacuation crossings every third block.
 	if posmod(chunk.y, 3) == 0:
 		draw_rect(Rect2(base + Vector2(130, 432), Vector2(252, 80)), Color("#26292a"))
