@@ -47,18 +47,26 @@ const SOUTH_CENTER := Vector2(16.0 * TILE, MAP_SIZE.y - 80)
 const PLAYER_START := Vector2(16.0 * TILE, 22.0 * TILE)
 const DINER_HEALTH_POS := Vector2(6.0 * TILE, 14.0 * TILE)
 const NORTH_EXIT := Rect2(14.0 * TILE, 0, 3.0 * TILE, 5.0 * TILE)
+const GENERATOR_POS := Vector2(15.5 * TILE, 13.2 * TILE)
+const SUPPLY_DINER := Vector2(6.0 * TILE, 11.0 * TILE)
+const SUPPLY_AUTOSHOP := Vector2(5.0 * TILE, 28.0 * TILE)
+const SUPPLY_MOTEL := Vector2(27.0 * TILE, 11.0 * TILE)
+const NEST_WEST := Vector2(1.5 * TILE, 20.0 * TILE)
+const NEST_EAST := Vector2(30.5 * TILE, 20.0 * TILE)
+const NEST_NW := Vector2(5.0 * TILE, 3.2 * TILE)
+const NEST_NE := Vector2(27.0 * TILE, 3.2 * TILE)
 
 var wave_plan := {
-	1: {"shamblers": 42, "runners": 0, "trucker": 0},
-	2: {"shamblers": 58, "runners": 0, "trucker": 0},
-	3: {"shamblers": 72, "runners": 0, "trucker": 0},
-	4: {"shamblers": 84, "runners": 0, "trucker": 0},
-	5: {"shamblers": 72, "runners": 16, "trucker": 0},
-	6: {"shamblers": 82, "runners": 20, "trucker": 0},
-	7: {"shamblers": 94, "runners": 24, "trucker": 0},
-	8: {"shamblers": 108, "runners": 30, "trucker": 0},
-	9: {"shamblers": 124, "runners": 36, "trucker": 0},
-	10: {"shamblers": 140, "runners": 44, "trucker": 1},
+	1: {"shamblers": 180, "runners": 0, "trucker": 0},
+	2: {"shamblers": 230, "runners": 0, "trucker": 0},
+	3: {"shamblers": 280, "runners": 0, "trucker": 0},
+	4: {"shamblers": 330, "runners": 0, "trucker": 0},
+	5: {"shamblers": 320, "runners": 40, "trucker": 0},
+	6: {"shamblers": 370, "runners": 50, "trucker": 0},
+	7: {"shamblers": 420, "runners": 65, "trucker": 0},
+	8: {"shamblers": 480, "runners": 80, "trucker": 0},
+	9: {"shamblers": 540, "runners": 95, "trucker": 0},
+	10: {"shamblers": 600, "runners": 110, "trucker": 1},
 }
 
 var player_pos := PLAYER_START
@@ -89,6 +97,11 @@ var enemies: Array[Dictionary] = []
 var bullets: Array[Dictionary] = []
 var pumps: Array[Dictionary] = []
 var impact_marks: Array[Dictionary] = []
+var supply_caches: Array[Dictionary] = []
+var infestation_nests: Array[Dictionary] = []
+var generator_active := false
+var wave10_survived := false
+var objective_flash_clock := 0.0
 
 var camera: Camera2D
 var hud: Label
@@ -101,6 +114,7 @@ func _ready() -> void:
 	rng.seed = 20261012
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_setup_pumps()
+	_setup_objectives()
 	_setup_camera()
 	_setup_ui()
 	_start_wave(1)
@@ -121,7 +135,7 @@ func _setup_ui() -> void:
 	var bar := ColorRect.new()
 	bar.color = Color(0.04, 0.04, 0.04, 0.82)
 	bar.position = Vector2(0, 0)
-	bar.size = Vector2(432, 82)
+	bar.size = Vector2(432, 118)
 	ui.add_child(bar)
 
 	hud = Label.new()
@@ -130,7 +144,7 @@ func _setup_ui() -> void:
 	ui.add_child(hud)
 
 	banner = Label.new()
-	banner.position = Vector2(18, 92)
+	banner.position = Vector2(18, 128)
 	banner.size = Vector2(396, 84)
 	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	banner.add_theme_font_size_override("font_size", 18)
@@ -185,6 +199,19 @@ func _reset_pumps() -> void:
 	for pump in pumps:
 		pump["alive"] = true
 
+func _setup_objectives() -> void:
+	supply_caches = [
+		{"pos": SUPPLY_DINER, "name": "Diner", "collected": false},
+		{"pos": SUPPLY_AUTOSHOP, "name": "Auto Shop", "collected": false},
+		{"pos": SUPPLY_MOTEL, "name": "Motel", "collected": false},
+	]
+	infestation_nests = [
+		{"pos": NEST_WEST, "destroyed": false},
+		{"pos": NEST_EAST, "destroyed": false},
+		{"pos": NEST_NW, "destroyed": false},
+		{"pos": NEST_NE, "destroyed": false},
+	]
+
 func _start_wave(next_wave: int) -> void:
 	wave = next_wave
 	if wave > 10:
@@ -212,15 +239,17 @@ func _start_wave(next_wave: int) -> void:
 	elif wave == 2:
 		banner.text = "WAVE 2: WATCH BOTH HIGHWAY ENDS"
 	else:
-		banner.text = "WAVE 1: MOVE NOW - AUTO-FIRE IS ACTIVE"
+		banner.text = "WAVE 1: THE HORDE IS HERE\nPOWER THE MINI-MART GENERATOR"
 	_update_hud()
 
 func _finish_wave() -> void:
 	wave_active = false
 	if wave == 10:
-		district_cleared = true
+		wave10_survived = true
 		fire_hazard = false
-		banner.text = "OUTSKIRTS CLEARED!\nROAD NORTH TO DOWNTOWN UNLOCKED"
+		_try_unlock_district()
+		if not district_cleared:
+			banner.text = "HORDE BROKEN - FINISH DISTRICT OBJECTIVES"
 		_update_hud()
 		return
 	banner.text = "WAVE %d CLEARED - RETURN TO THE MINI-MART" % wave
@@ -286,11 +315,13 @@ func _physics_process(delta: float) -> void:
 
 	if wave_active:
 		spawn_clock -= delta
-		if spawn_clock <= 0.0 and wave_spawned < wave_total:
-			var burst_size := mini(5 + int(wave / 2), wave_total - wave_spawned)
+		var active_target := _active_horde_target()
+		if spawn_clock <= 0.0 and wave_spawned < wave_total and enemies.size() < active_target:
+			var room := active_target - enemies.size()
+			var burst_size := mini(18 + wave * 2, room, wave_total - wave_spawned)
 			for _n in range(burst_size):
 				_spawn_next_enemy()
-			spawn_clock = maxf(0.36, 0.58 - float(wave) * 0.018)
+			spawn_clock = maxf(0.22, 0.32 - float(wave) * 0.008)
 		if wave_spawned >= wave_total and enemies.is_empty():
 			_finish_wave()
 
@@ -307,8 +338,12 @@ func _physics_process(delta: float) -> void:
 	_update_bullets(delta)
 	_update_enemies(delta)
 	_update_health(delta)
+	_update_objectives(delta)
 	_update_hud()
 	queue_redraw()
+
+func _active_horde_target() -> int:
+	return mini(115, 50 + wave * 6)
 
 func _spawn_next_enemy() -> void:
 	var plan: Dictionary = wave_plan[wave]
@@ -322,7 +357,7 @@ func _spawn_next_enemy() -> void:
 
 	var spawn := _pick_spawn_point()
 	var hp := 1
-	var speed := 76.0
+	var speed := 86.0
 	var radius := 18.0
 	if kind == "runner":
 		speed = 155.0
@@ -443,15 +478,75 @@ func _update_health(delta: float) -> void:
 		if health_spawn_clock <= 0.0:
 			health_available = true
 
+func _update_objectives(delta: float) -> void:
+	objective_flash_clock = maxf(0.0, objective_flash_clock - delta)
+
+	if not generator_active and player_pos.distance_to(GENERATOR_POS) < 105.0:
+		generator_active = true
+		score += 500
+		objective_flash_clock = 2.5
+		banner.text = "GENERATOR ONLINE!\nMINI-MART POWER RESTORED"
+		_try_unlock_district()
+
+	for cache in supply_caches:
+		if not bool(cache["collected"]) and player_pos.distance_to(Vector2(cache["pos"])) < 95.0:
+			cache["collected"] = true
+			score += 350
+			objective_flash_clock = 2.5
+			banner.text = "SUPPLIES RECOVERED: %s" % str(cache["name"])
+			_try_unlock_district()
+
+	for nest in infestation_nests:
+		if not bool(nest["destroyed"]) and player_pos.distance_to(Vector2(nest["pos"])) < 105.0:
+			nest["destroyed"] = true
+			score += 600
+			objective_flash_clock = 2.5
+			impact_marks.append({"pos": nest["pos"], "life": 0.55, "blast": true})
+			_kill_enemies_near(Vector2(nest["pos"]), 240.0)
+			banner.text = "INFESTATION NEST DESTROYED!"
+			_try_unlock_district()
+
+func _kill_enemies_near(center: Vector2, radius: float) -> void:
+	for i in range(enemies.size() - 1, -1, -1):
+		if Vector2(enemies[i]["pos"]).distance_to(center) <= radius:
+			kills += 1
+			score += 100
+			enemies.remove_at(i)
+
+func _objective_counts() -> Dictionary:
+	var supplies := 0
+	for cache in supply_caches:
+		if bool(cache["collected"]):
+			supplies += 1
+	var nests := 0
+	for nest in infestation_nests:
+		if bool(nest["destroyed"]):
+			nests += 1
+	return {"supplies": supplies, "nests": nests}
+
+func _objectives_complete() -> bool:
+	var counts := _objective_counts()
+	return generator_active and int(counts["supplies"]) == 3 and int(counts["nests"]) == 4
+
+func _try_unlock_district() -> void:
+	if wave10_survived and _objectives_complete():
+		district_cleared = true
+		banner.text = "OUTSKIRTS CLEARED!\nROAD NORTH TO DOWNTOWN UNLOCKED"
+
 func _update_hud() -> void:
 	var remaining := enemies.size() + maxi(0, wave_total - wave_spawned)
 	var state := "CLEAR" if district_cleared else ("FIGHT" if wave_active else "UPGRADE")
-	hud.text = "OUTSKIRTS  Wave %d/10  HP %d  Score %d\n%s  Threats %d" % [wave, player_hp, score, state, remaining]
+	var counts := _objective_counts()
+	var gen_mark := "ON" if generator_active else "OFF"
+	hud.text = "OUTSKIRTS  W%d/10  HP %d  Score %d  %s\nThreats %d | Generator %s | Supplies %d/3 | Nests %d/4" % [
+		wave, player_hp, score, state, remaining, gen_mark, int(counts["supplies"]), int(counts["nests"])
+	]
 
 func _draw() -> void:
 	_draw_ground()
 	_draw_structures()
 	_draw_props()
+	_draw_objectives()
 	_draw_spawn_markers()
 	_draw_combat()
 	_draw_dusk()
@@ -553,6 +648,32 @@ func _draw_car(texture: Texture2D, center: Vector2, rotation: float, tint: Color
 	draw_set_transform(center, rotation, Vector2.ONE)
 	draw_texture_rect(texture, Rect2(-draw_size * 0.5, draw_size), false, tint)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+func _draw_objectives() -> void:
+	# Generator objective.
+	if not generator_active:
+		draw_circle(GENERATOR_POS, 42, Color(0.95, 0.80, 0.20, 0.28))
+		draw_circle(GENERATOR_POS, 22, Color("#e6c04d"))
+		_label(GENERATOR_POS + Vector2(-76, -55), "GENERATOR", 20, Color("#fff0a8"))
+
+	# Supply caches.
+	for cache in supply_caches:
+		if not bool(cache["collected"]):
+			var p := Vector2(cache["pos"])
+			draw_rect(Rect2(p - Vector2(24, 18), Vector2(48, 36)), Color("#4b8f61"))
+			draw_rect(Rect2(p - Vector2(30, 24), Vector2(60, 48)), Color(0.6, 1.0, 0.7, 0.25), false, 5.0)
+			_label(p + Vector2(-52, -38), "SUPPLIES", 18, Color("#d8ffdf"))
+
+	# Infestation nests: dangerous red targets at the perimeter.
+	for nest in infestation_nests:
+		if not bool(nest["destroyed"]):
+			var p := Vector2(nest["pos"])
+			draw_circle(p, 42, Color(0.55, 0.08, 0.05, 0.55))
+			draw_circle(p, 24, Color("#7f1d18"))
+			for a in range(0, 8):
+				var angle := float(a) * TAU / 8.0
+				draw_line(p + Vector2.RIGHT.rotated(angle) * 22.0, p + Vector2.RIGHT.rotated(angle) * 54.0, Color("#a83a2f"), 7.0)
+			_label(p + Vector2(-34, -62), "NEST", 18, Color("#ffd0c4"))
 
 func _draw_spawn_markers() -> void:
 	_spawn_marker(HIGHWAY_WEST, Color("#e6c04d"))
