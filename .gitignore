@@ -4,3 +4,11 @@ dist/
 coverage/
 *.log
 .DS_Store
+
+# DeadShift local asset pipeline outputs/state
+asset_pipeline/staging/
+asset_pipeline/manifest.json
+asset_pipeline/worker_state.json
+asset_pipeline/worker_status.json
+asset_pipeline/workflow_sprite.json
+asset_pipeline/workflow_scene.json
