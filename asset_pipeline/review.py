@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import html
 import json
 from pathlib import Path
@@ -36,7 +37,8 @@ def build_sheet(category: str, entries: list[dict[str, Any]], output_name: str |
         if not candidate.exists():
             continue
 
-        rel = candidate.relative_to(REVIEW_DIR.parent).as_posix()
+        encoded = base64.b64encode(candidate.read_bytes()).decode("ascii")
+        image_src = f"data:image/png;base64,{encoded}"
         asset = html.escape(str(item.get("asset", "")))
         version = html.escape(str(item.get("version_label", "")))
         seed = html.escape(str(item.get("seed", "")))
@@ -46,7 +48,7 @@ def build_sheet(category: str, entries: list[dict[str, Any]], output_name: str |
             f"""
             <article class="card">
               <div class="preview">
-                <img src="../{rel}" alt="{filename}">
+                <img src="{image_src}" alt="{filename}">
               </div>
               <div class="meta">
                 <div><strong>{asset} {version}</strong></div>
