@@ -207,8 +207,13 @@ def process_promotion_job(path: Path, job: dict) -> bool:
     push = run(["git", "push", "origin", BRANCH], cwd=REPO_ROOT)
     if push.returncode != 0:
         message = (push.stderr or push.stdout or "git push failed").strip()
-        write_status(state="failed", job_id=job_id, asset=asset, message=message)
-        return True
+        write_status(
+            state="promotion_waiting_for_git_auth",
+            job_id=job_id,
+            asset=asset,
+            message=message,
+        )
+        return False
 
     write_status(
         state="promotion_complete",
