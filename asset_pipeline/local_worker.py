@@ -33,7 +33,7 @@ STATUS_PATH = HERE / "worker_status.json"
 LOG_PATH = HERE / "worker.log"
 
 BRANCH = "feature/asset-pipeline-step1"
-POLL_SECONDS = 20
+POLL_SECONDS = 60
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 8765
 
@@ -80,6 +80,10 @@ def run(command: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
     logging.info("RUN %s", " ".join(command))
     kwargs = {}
     if sys.platform == "win32":
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = 0
+        kwargs["startupinfo"] = startupinfo
         kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
     return subprocess.run(
         command,
