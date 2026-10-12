@@ -73,3 +73,21 @@ Generation defaults are `dpmpp_2m`, `karras`, CFG 6.5, denoise 1.0, batch size 1
 ## Next implementation slice
 
 After the two `car_suv` candidates succeed, add `review.py` and the HTML contact sheet, then `promote.py` and `picks.yaml`.
+
+
+## No-terminal review workflow
+
+For normal use on Windows, double-click:
+
+`DeadShift-Asset-Review.bat`
+
+The launcher automatically:
+
+1. updates the current branch with `git pull --ff-only`;
+2. runs the local ComfyUI generator for two `car_suv` candidates;
+3. rebuilds and opens the HTML contact sheet in your browser;
+4. asks you to pick one version, reject both, or quit;
+5. if you reject both, generates the next pair automatically;
+6. saves an accepted version into `picks.yaml`.
+
+It never promotes or overwrites Godot art automatically. Promotion remains a separate explicit step.
