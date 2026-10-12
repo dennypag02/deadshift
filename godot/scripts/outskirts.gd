@@ -7,6 +7,27 @@ const MAP_SIZE := Vector2(MAP_W * TILE, MAP_H * TILE)
 
 const SURVIVOR_ART := preload("res://art/survivor_wasteland.svg")
 const ZOMBIE_ART := preload("res://art/zombie_shambler.svg")
+const CAR_SEDAN_ART := preload("res://art/cars/car_sedan.png")
+const CAR_SUV_ART := preload("res://art/cars/car_suv.png")
+const OUT_DINER_ART := preload("res://art/outskirts/out_diner.svg")
+const OUT_MINIMART_ART := preload("res://art/outskirts/out_minimart.svg")
+const OUT_MOTEL_N_ART := preload("res://art/outskirts/out_motel_north.svg")
+const OUT_MOTEL_E_ART := preload("res://art/outskirts/out_motel_east.svg")
+const OUT_AUTOSHOP_ART := preload("res://art/outskirts/out_autoshop.svg")
+const OUT_CANOPY_ART := preload("res://art/outskirts/out_canopy.svg")
+const OUT_SEMI_ART := preload("res://art/outskirts/out_semi_trailer.svg")
+const OUT_PUMP_ART := preload("res://art/outskirts/out_pump_island.svg")
+const OUT_BARRELS_ART := preload("res://art/outskirts/out_barrels.svg")
+const OUT_BARRIER_ART := preload("res://art/outskirts/out_barrier.svg")
+const OUT_FENCE_ART := preload("res://art/outskirts/out_fence.svg")
+const OUT_TANKER_ART := preload("res://art/outskirts/out_tanker.svg")
+const TEX_FORECOURT := preload("res://art/outskirts/tex_forecourt.svg")
+const TEX_ASPHALT := preload("res://art/outskirts/tex_asphalt.svg")
+const TEX_HIGHWAY := preload("res://art/outskirts/tex_highway.svg")
+const TEX_CRACKED := preload("res://art/outskirts/tex_cracked.svg")
+const TEX_OIL := preload("res://art/outskirts/tex_oil.svg")
+const TEX_GRAVEL := preload("res://art/outskirts/tex_gravel.svg")
+const TEX_SCRUB := preload("res://art/outskirts/tex_scrub.svg")
 const MAP_ROWS: Array[String] = [
 	",,,,,,,,,,,,,,GGG,,,,,,,,,,,,,,,",
 	",,,,,S,,,,,,,,...,,,,,,,,,S,,,,,",
@@ -590,6 +611,7 @@ func _update_hud() -> void:
 
 func _draw() -> void:
 	_draw_grid_map()
+	_draw_map_art()
 	_draw_objectives()
 	_draw_spawn_markers()
 	_draw_combat()
@@ -605,48 +627,85 @@ func _draw_grid_map() -> void:
 		_draw_hazard_debug()
 
 func _draw_grid_tile(rect: Rect2, ch: String) -> void:
-	var base := Color("#3a3a3a")
+	var ground_texture: Texture2D = TEX_ASPHALT
 	match ch:
-		",": base = Color("#5b5a3a")
-		"-": base = Color("#2f2f2f")
-		"=": base = Color("#2f6f6a")
-		":": base = Color("#8a7a5a")
-		"o": base = Color("#3a3a3a")
-		"x": base = Color("#3a3a3a")
-		"B": base = Color("#555555")
-		"C": base = Color("#4a6a8a")
-		"T": base = Color("#9a9a9a")
-		"P": base = Color("#c0392b")
-		"b": base = Color("#e67e22")
-		"J": base = Color("#bbbbbb")
-		"F": base = Color("#777777")
-		"K": base = Color("#3a3a3a")
-		"G": base = Color("#8e44ad") if not district_cleared else Color("#4d9d55")
-		"S": base = Color("#3a3a3a")
-		"U": base = Color("#3a3a3a")
-		"+": base = Color("#3a3a3a")
-	draw_rect(rect, base)
+		",": ground_texture = TEX_SCRUB
+		"-": ground_texture = TEX_HIGHWAY
+		"=": ground_texture = TEX_FORECOURT
+		":": ground_texture = TEX_GRAVEL
+		"x": ground_texture = TEX_CRACKED
+		"o": ground_texture = TEX_OIL
+		_:
+			ground_texture = TEX_ASPHALT
+	draw_texture_rect(ground_texture, rect, false)
 
-	if ch == "o":
-		draw_rect(rect.grow(-10.0), Color(0.02, 0.02, 0.02, 0.70))
-		draw_line(rect.position + Vector2(20, 28), rect.end - Vector2(20, 36), Color(0.28,0.28,0.30,0.75), 7.0)
-	elif ch == "x":
-		draw_rect(rect, Color("#6b4a2f"))
-		for n in range(0, 4):
-			var yy := rect.position.y + 20.0 + float(n) * 28.0
-			draw_line(Vector2(rect.position.x + 18, yy), Vector2(rect.position.x + 54, yy - 34), Color("#2f241b"), 4.0)
-	elif ch == "F":
-		draw_rect(rect, Color("#3a3a3a"))
-		draw_line(rect.position + Vector2(0, TILE * 0.35), rect.position + Vector2(TILE, TILE * 0.35), Color("#777777"), 10.0)
-		draw_line(rect.position + Vector2(0, TILE * 0.65), rect.position + Vector2(TILE, TILE * 0.65), Color("#777777"), 10.0)
-	elif ch == "K":
-		draw_rect(rect.grow(-4.0), Color("#c0392b"), false, 5.0)
-	elif ch == "S":
-		draw_circle(rect.get_center(), 12.0, Color("#ff25c6"))
-	elif ch == "U":
-		draw_rect(Rect2(rect.get_center() - Vector2(16,16), Vector2(32,32)), Color("#f1c40f"))
-	elif ch == "+":
-		draw_rect(Rect2(rect.get_center() - Vector2(15,15), Vector2(30,30)), Color("#2ecc71"))
+	# Gray-box blocker fill remains underneath final art so collision footprints stay obvious.
+	match ch:
+		"B": draw_rect(rect, Color("#555555"))
+		"C": draw_rect(rect, Color("#4a6a8a"))
+		"T": draw_rect(rect, Color("#9a9a9a"))
+		"P": draw_rect(rect, Color("#c0392b"))
+		"b": draw_rect(rect, Color("#e67e22"))
+		"J": draw_rect(rect, Color("#bbbbbb"))
+		"F":
+			draw_line(rect.position + Vector2(0, TILE * 0.35), rect.position + Vector2(TILE, TILE * 0.35), Color("#777777"), 10.0)
+			draw_line(rect.position + Vector2(0, TILE * 0.65), rect.position + Vector2(TILE, TILE * 0.65), Color("#777777"), 10.0)
+		"K": draw_rect(rect.grow(-4.0), Color("#c0392b"), false, 5.0)
+		"G": draw_rect(rect, Color("#8e44ad") if not district_cleared else Color("#4d9d55"))
+		"S": draw_circle(rect.get_center(), 12.0, Color("#ff25c6"))
+		"U": draw_rect(Rect2(rect.get_center() - Vector2(16,16), Vector2(32,32)), Color("#f1c40f"))
+		"+": draw_rect(Rect2(rect.get_center() - Vector2(15,15), Vector2(30,30)), Color("#2ecc71"))
+
+func _draw_map_art() -> void:
+	# Buildings follow the exact locked gray-box footprints.
+	_draw_art_rect(OUT_DINER_ART, _tiles_rect(1, 8, 7, 6))
+	_draw_art_rect(OUT_MINIMART_ART, _tiles_rect(12, 8, 8, 4))
+	_draw_art_rect(OUT_MOTEL_N_ART, _tiles_rect(23, 7, 8, 3))
+	_draw_art_rect(OUT_MOTEL_E_ART, _tiles_rect(28, 10, 3, 7))
+	_draw_art_rect(OUT_AUTOSHOP_ART, _tiles_rect(1, 20, 7, 6))
+	_draw_art_rect(OUT_CANOPY_ART, _tiles_rect(11, 14, 10, 8), Color(1,1,1,0.90))
+
+	# Two 2x7 truck-stop trailers.
+	_draw_art_rect(OUT_SEMI_ART, _tiles_rect(23, 21, 2, 7))
+	_draw_art_rect(OUT_SEMI_ART, _tiles_rect(27, 22, 2, 7))
+
+	# Four 2x1 pump islands.
+	for p in [Vector2i(13,16), Vector2i(17,16), Vector2i(13,19), Vector2i(17,19)]:
+		_draw_art_rect(OUT_PUMP_ART, _tiles_rect(p.x, p.y, 2, 1))
+
+	# Two disposable barrel clusters.
+	_draw_art_rect(OUT_BARRELS_ART, _tiles_rect(21,13,2,1))
+	_draw_art_rect(OUT_BARRELS_ART, _tiles_rect(26,29,2,1))
+
+	# Fences are long 6x1 art pieces but still use the grid collision.
+	_draw_art_rect(OUT_FENCE_ART, _tiles_rect(3,2,6,1))
+	_draw_art_rect(OUT_FENCE_ART, _tiles_rect(23,2,6,1))
+
+	# Cars occupy every 2-tile C run in the design sheet.
+	var cars := [
+		[19,6, CAR_SEDAN_ART], [1,14, CAR_SUV_ART], [4,14, CAR_SEDAN_ART],
+		[21,17, CAR_SUV_ART], [11,23, CAR_SEDAN_ART], [17,25, CAR_SUV_ART],
+		[1,27, CAR_SEDAN_ART], [6,27, CAR_SUV_ART], [12,28, CAR_SEDAN_ART],
+		[6,34, CAR_SUV_ART], [27,34, CAR_SEDAN_ART], [9,36, CAR_SUV_ART],
+		[24,37, CAR_SEDAN_ART]
+	]
+	for car in cars:
+		_draw_art_rect(car[2], _tiles_rect(int(car[0]), int(car[1]), 2, 1))
+
+	# Jersey barriers use one tile each.
+	for p in [Vector2i(24,18), Vector2i(25,18), Vector2i(16,30), Vector2i(17,30), Vector2i(18,30),
+		Vector2i(22,31), Vector2i(23,31), Vector2i(24,31), Vector2i(27,31), Vector2i(28,31), Vector2i(29,31)]:
+		_draw_art_rect(OUT_BARRIER_ART, _tiles_rect(p.x,p.y,1,1))
+
+	# Wave 10 art replaces the red K outline with the tanker wreck.
+	if tanker_event:
+		_draw_art_rect(OUT_TANKER_ART, _tiles_rect(13,34,7,3))
+
+func _tiles_rect(x: int, y: int, w: int, h: int) -> Rect2:
+	return Rect2(Vector2(float(x),float(y))*TILE, Vector2(float(w),float(h))*TILE)
+
+func _draw_art_rect(texture: Texture2D, rect: Rect2, tint: Color = Color.WHITE) -> void:
+	draw_texture_rect(texture, rect, false, tint)
 
 func _draw_hazard_debug() -> void:
 	for y in range(MAP_H):
