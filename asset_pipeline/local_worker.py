@@ -78,12 +78,16 @@ def save_state(state: dict) -> None:
 
 def run(command: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
     logging.info("RUN %s", " ".join(command))
+    kwargs = {}
+    if sys.platform == "win32":
+        kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
     return subprocess.run(
         command,
         cwd=cwd,
         text=True,
         capture_output=True,
         check=False,
+        **kwargs,
     )
 
 
