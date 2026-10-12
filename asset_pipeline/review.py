@@ -27,7 +27,7 @@ def load_manifest() -> list[dict[str, Any]]:
     return data
 
 
-def build_sheet(category: str, entries: list[dict[str, Any]]) -> Path:
+def build_sheet(category: str, entries: list[dict[str, Any]], output_name: str | None = None) -> Path:
     REVIEW_DIR.mkdir(parents=True, exist_ok=True)
     cards: list[str] = []
 
@@ -118,7 +118,8 @@ def build_sheet(category: str, entries: list[dict[str, Any]]) -> Path:
 </html>
 """
 
-    path = REVIEW_DIR / f"{category}.html"
+    safe_name = output_name or category
+    path = REVIEW_DIR / f"{safe_name}.html"
     path.write_text(document, encoding="utf-8")
     return path
 
@@ -126,6 +127,9 @@ def build_sheet(category: str, entries: list[dict[str, Any]]) -> Path:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build DeadShift candidate review pages")
     parser.add_argument("--category", help="Build only one category")
+    parser.add_argument("--asset", help="Build only one asset")
+    parser.add_argument("--job-id", help="Build only one worker job batch")
+    parser.add_argument("--latest", type=int, help="Keep only the latest N matching entries")
     return parser.parse_args()
 
 
@@ -133,20 +137,27 @@ def main() -> None:
     args = parse_args()
     manifest = load_manifest()
 
-    categories = sorted(
-        {
-            str(item.get("category"))
-            for item in manifest
-            if item.get("category")
-            and (args.category is None or item.get("category") == args.category)
-        }
-    )
-    if not categories:
-        raise SystemExit("No manifest entries matched the requested category")
+    filtered = [
+        item
+        for item in manifest
+        if item.get("category")
+        and (args.category is None or item.get("category") == args.category)
+        and (args.asset is None or item.get("asset") == args.asset)
+        and (args.job_id is None or item.get("job_id") == args.job_id)
+    ]
+    if args.latest is not None:
+        if args.latest < 1:
+            raise SystemExit("--latest must be at least 1")
+        filtered = filtered[-args.latest:]
 
+    if not filtered:
+        raise SystemExit("No manifest entries matched the requested filters")
+
+    categories = sorted({str(item.get("category")) for item in filtered})
     for category in categories:
-        entries = [item for item in manifest if item.get("category") == category]
-        path = build_sheet(category, entries)
+        entries = [item for item in filtered if item.get("category") == category]
+        output_name = args.job_id or args.asset or category
+        path = build_sheet(category, entries, output_name=output_name)
         print(f"Wrote {path}")
 
     print("Review pages complete.")
