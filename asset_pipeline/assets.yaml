@@ -48,6 +48,14 @@ categories:
     style: "(flat vector illustration:1.3), cel shaded, bold dark outlines, muted palette of rust brown, olive green and dusty gray"
     negative: "photograph, photorealistic, realistic, 3D render, people, characters, zombies, text, title, logo, letters, words, watermark, blurry, border, frame, bright cheerful colors, clean intact buildings, blue sky"
 
+  terrain:
+    workflow: scene
+    size: [1024, 1024]
+    target: {width: 1024, height: 1024}
+    count: 4
+    style: "(flat vector illustration:1.2), seamless top-down game ground texture, orthographic, muted dusty palette, tileable edges"
+    negative: "photograph, photorealistic, perspective, horizon, buildings, vehicles, people, characters, text, watermark, border, frame, obvious seams"
+
 assets:
   - {name: car_sedan, category: cars, prompt: "abandoned modern sedan, 2020s car design, sleek rounded body, panoramic glass roof, cracked windshield, dented roof, faded paint and rust patches"}
   - {name: car_suv, category: cars, prompt: "abandoned modern SUV, boxy shape, roof rails, tinted windows, sunroof, faded paint and rust patches"}
@@ -62,11 +70,34 @@ assets:
   - {name: bldg_gas_canopy, category: buildings, prompt: "gas station canopy roof, broken lights, rust stains, debris on roof"}
   - {name: bldg_garage, category: buildings, prompt: "parking garage top level, faded parking lines, cracked concrete, a few abandoned cars"}
 
+  # --- outskirts: buildings ---
+  - {name: out_minimart, category: buildings, prompt: "small gas station convenience store rooftop, flat roof, rusted AC unit, faded sign lying on roof, broken skylight"}
+  - {name: out_diner, category: buildings, prompt: "roadside diner rooftop, rounded corners, chrome trim edge, rooftop vent fans, torn neon sign frame on roof"}
+  - {name: out_motel, category: buildings, prompt: "L-shaped single-story motel rooftop, long row of rooms, flat tar roof, rusted vents, debris"}
+  - {name: out_autoshop, category: buildings, prompt: "auto repair shop rooftop, corrugated metal roof, open garage bay at one end, oil stains, scattered tires"}
+
+  # --- outskirts: vehicles and large props ---
+  - {name: out_semi_trailer, category: cars, prompt: "abandoned semi truck trailer, long white trailer roof, rust streaks, dents"}
+  - {name: out_tanker, category: cars, prompt: "abandoned fuel tanker truck, cylindrical silver tank, hazard markings, rust"}
+
+
   - {name: debris_rubble, category: debris, prompt: "pile of concrete rubble and broken bricks"}
   - {name: debris_trash, category: debris, prompt: "scattered trash cluster, crumpled paper, cans, broken glass, torn fabric"}
   - {name: debris_crash, category: debris, prompt: "trail of shattered glass and car parts, loose tire, bumper fragments"}
   - {name: decal_stain, category: debris, prompt: "dark dried blood splatter and oil stain, irregular organic shape"}
   - {name: decal_scorch, category: debris, prompt: "black scorch mark and burn crater, soot spray pattern"}
+
+  # --- outskirts: props ---
+  - {name: out_gas_pump, category: debris, prompt: "single rusted gas pump on concrete island, hanging hose, cracked display"}
+  - {name: out_barrier, category: debris, prompt: "concrete highway jersey barrier segment, chipped edges, spray paint"}
+  - {name: out_fence, category: debris, prompt: "section of bent chain-link fence on wooden posts, torn mesh"}
+  - {name: out_tires, category: debris, prompt: "pile of old rubber tires, some stacked, one rolled away"}
+  - {name: out_scrub, category: debris, prompt: "dry desert scrub bush and tumbleweed cluster, brown and pale olive"}
+  - {name: out_sign_down, category: debris, prompt: "fallen highway road sign lying flat on ground, bent metal post"}
+
+
+  - {name: ground_scrub_dirt, category: terrain, prompt: "dry cracked dirt with sparse yellow grass for scrubland"}
+  - {name: ground_truckstop_gravel, category: terrain, prompt: "gravel parking lot for a worn truck stop"}
 
   - {name: survivor, category: characters, prompt: "massive hulking post-apocalyptic survivor, big shoulders and small legs, spiky mohawk, welding goggles, red bandana, scrap metal armor with spiked tire shoulder pad, holding an oversized makeshift machine gun, red accents"}
 
