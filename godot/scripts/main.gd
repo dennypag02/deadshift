@@ -5,7 +5,15 @@ extends Node2D
 const CHUNK := 512.0
 const SURVIVOR_ART := preload("res://art/survivor_wasteland.svg")
 const ZOMBIE_ART := preload("res://art/zombie_shambler.svg")
-const CAR_ART := preload("res://art/cars/car_suv.png")
+const CAR_SUV_ART := preload("res://art/cars/car_suv.png")
+const CAR_SEDAN_ART := preload("res://art/cars/car_sedan.png")
+const CAR_TINTS := [
+	Color(1.0, 1.0, 1.0),
+	Color(0.92, 0.90, 0.82),
+	Color(0.84, 0.90, 0.80),
+	Color(0.82, 0.86, 0.92),
+	Color(0.92, 0.82, 0.78),
+]
 const PLAYER_SPEED := 245.0
 const FIRE_PERIOD := 0.28
 const BULLET_SPEED := 570.0
@@ -262,14 +270,25 @@ func _draw_chunk(chunk: Vector2i) -> void:
 		var weed := base + Vector2(side_x + local_rng.randf_range(-9.0, 9.0), local_rng.randf_range(0.0, CHUNK))
 		draw_line(weed, weed + Vector2(-4, -8), Color("#596344"), 2.0)
 		draw_line(weed, weed + Vector2(5, -7), Color("#596344"), 2.0)
-	# Approved abandoned SUV asset, preserving its generated aspect ratio.
-	if posmod(chunk.x * 7 + chunk.y * 11, 3) == 0:
-		var car_center := base + Vector2(237, 275)
-		var car_texture_size := Vector2(CAR_ART.get_size())
-		var car_scale := 128.0 / maxf(car_texture_size.x, car_texture_size.y)
+	# Multiple deterministic abandoned vehicles per city block.
+	var car_count := 2 + local_rng.randi_range(0, 2)
+	for car_index in range(car_count):
+		var car_texture: Texture2D = CAR_SUV_ART if local_rng.randi_range(0, 1) == 0 else CAR_SEDAN_ART
+		var lane_x := 186.0 if car_index % 2 == 0 else 326.0
+		var car_center := base + Vector2(
+			lane_x + local_rng.randf_range(-18.0, 18.0),
+			90.0 + float(car_index) * 118.0 + local_rng.randf_range(-24.0, 24.0)
+		)
+		var car_texture_size := Vector2(car_texture.get_size())
+		var car_scale := local_rng.randf_range(0.44, 0.56)
 		var car_draw_size := car_texture_size * car_scale
-		draw_circle(car_center + Vector2(5, 9), 55.0, Color(0.06, 0.07, 0.07, 0.65))
-		draw_texture_rect(CAR_ART, Rect2(car_center - car_draw_size * 0.5, car_draw_size), false)
+		var rotation := deg_to_rad(local_rng.randf_range(-20.0, 20.0))
+		var flip_x := -1.0 if local_rng.randi_range(0, 1) == 1 else 1.0
+		var tint: Color = CAR_TINTS[local_rng.randi_range(0, CAR_TINTS.size() - 1)]
+		draw_circle(car_center + Vector2(5, 9), 48.0, Color(0.06, 0.07, 0.07, 0.55))
+		draw_set_transform(car_center, rotation, Vector2(flip_x, 1.0))
+		draw_texture_rect(car_texture, Rect2(-car_draw_size * 0.5, car_draw_size), false, tint)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	# Intersections and evacuation crossings every third block.
 	if posmod(chunk.y, 3) == 0:
 		draw_rect(Rect2(base + Vector2(130, 432), Vector2(252, 80)), Color("#26292a"))
