@@ -7,24 +7,50 @@ const MAP_SIZE := Vector2(MAP_W * TILE, MAP_H * TILE)
 
 const SURVIVOR_ART := preload("res://art/survivor_wasteland.svg")
 const ZOMBIE_ART := preload("res://art/zombie_shambler.svg")
-const CAR_SUV_ART := preload("res://art/cars/car_suv.png")
-const CAR_SEDAN_ART := preload("res://art/cars/car_sedan.png")
-const OUT_MINIMART_ART := preload("res://art/outskirts/out_minimart.svg")
-const OUT_DINER_ART := preload("res://art/outskirts/out_diner.svg")
-const OUT_MOTEL_ART := preload("res://art/outskirts/out_motel.svg")
-const OUT_AUTOSHOP_ART := preload("res://art/outskirts/out_autoshop.svg")
-const OUT_CANOPY_ART := preload("res://art/outskirts/out_canopy.svg")
-const OUT_SEMI_ART := preload("res://art/outskirts/out_semi_trailer.svg")
-const OUT_TANKER_ART := preload("res://art/outskirts/out_tanker.svg")
-const OUT_GAS_PUMP_ART := preload("res://art/outskirts/out_gas_pump.svg")
-const OUT_BARRIER_ART := preload("res://art/outskirts/out_barrier.svg")
-const OUT_FENCE_ART := preload("res://art/outskirts/out_fence.svg")
-const OUT_TIRES_ART := preload("res://art/outskirts/out_tires.svg")
-const OUT_SCRUB_ART := preload("res://art/outskirts/out_scrub.svg")
-const OUT_SIGN_ART := preload("res://art/outskirts/out_sign_down.svg")
-const GROUND_SCRUB_ART := preload("res://art/outskirts/ground_scrub_dirt.svg")
-const GROUND_GRAVEL_ART := preload("res://art/outskirts/ground_gravel.svg")
+const MAP_ROWS: Array[String] = [
+	",,,,,,,,,,,,,,GGG,,,,,,,,,,,,,,,",
+	",,,,,S,,,,,,,,...,,,,,,,,,S,,,,,",
+	",,,FFFFFF,,,,,...,,,,,FFFFFF,,,,",
+	",,,,,,,,,,,,,,...,,,,,,,,,,,,,,,",
+	",,,,,,,,,,,,,,...,,,,,,,,,,,,,,,",
+	"......xxx...............xx......",
+	"...................CC...........",
+	".......................BBBBBBBB.",
+	".BBBBBBB....BBBBBBBB...BBBBBBBB.",
+	".BBBBBBB.+..BBBBBBBB...BBBBBBBB.",
+	".BBBBBBB....BBBBBBBB......S.BBB.",
+	".BBBBBBB....BBBBBBBB........BBB.",
+	".BBBBBBB.......U............BBB.",
+	".BBBBBBB.............bb.....BBB.",
+	".CC.CC.....==========.......BBB.",
+	"...........==========......SBBB.",
+	"...........==PP==PP==.......BBB.",
+	"...........==========.CC........",
+	"...........==========...JJ......",
+	"...........==PP==PP==...........",
+	".BBBBBBBooo==========.:::::::::.",
+	".BBBBBBBooo==========.:TT::::::.",
+	".BBBBBBBoo............:TT:::TT:.",
+	".BBBBBBBo..CC.........:TT:::TT:.",
+	".BBBBBBB..............:TT:o:TT:.",
+	".BBBBBBB.........CC...:TT:::TT:.",
+	"..ooooo...............:TT:::TT:.",
+	".CCoooCC..............:TT:::TT:.",
+	"...oo.......CC........::::::TT:.",
+	"......................::::bb:::.",
+	"................JJJ...:::::::::.",
+	"......................JJJ..JJJ..",
+	"................................",
+	"JJJJxxxxJJJJ.......JJJJxxxxJJJJJ",
+	"S-----CC-----KKKKKKK----xxxCC---",
+	"---xxx-------KKKKKKK------------",
+	"---------CC--KKKKKKK--xxxx-----S",
+	"-----xxx-------------CC---------",
+	"..........xxxx..............xxxx",
+	",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,",
+]
 
+const BLOCKING_CHARS := "BCTPbJF"
 const PLAYER_RADIUS := 22.0
 const BULLET_RADIUS := 5.0
 const BASE_PLAYER_SPEED := 285.0
@@ -48,10 +74,10 @@ const PLAYER_START := Vector2(16.0 * TILE, 22.0 * TILE)
 const DINER_HEALTH_POS := Vector2(6.0 * TILE, 14.0 * TILE)
 const NORTH_EXIT := Rect2(14.0 * TILE, 0, 3.0 * TILE, 5.0 * TILE)
 const GENERATOR_POS := Vector2(15.5 * TILE, 13.2 * TILE)
-const SUPPLY_DINER := Vector2(6.0 * TILE, 11.0 * TILE)
+const SUPPLY_DINER := Vector2(9.5 * TILE, 10.5 * TILE)
 const SUPPLY_AUTOSHOP := Vector2(5.0 * TILE, 28.0 * TILE)
 const SUPPLY_MOTEL := Vector2(27.0 * TILE, 11.0 * TILE)
-const NEST_WEST := Vector2(1.5 * TILE, 20.0 * TILE)
+const NEST_WEST := Vector2(9.5 * TILE, 21.5 * TILE)
 const NEST_EAST := Vector2(30.5 * TILE, 20.0 * TILE)
 const NEST_NW := Vector2(5.0 * TILE, 3.2 * TILE)
 const NEST_NE := Vector2(27.0 * TILE, 3.2 * TILE)
@@ -102,6 +128,8 @@ var infestation_nests: Array[Dictionary] = []
 var generator_active := false
 var wave10_survived := false
 var objective_flash_clock := 0.0
+var player_velocity := Vector2.ZERO
+var hazard_debug := false
 
 var camera: Camera2D
 var hud: Label
@@ -186,14 +214,11 @@ func _setup_ui() -> void:
 	upgrade_panel.add_child(fleet)
 
 func _setup_pumps() -> void:
-	var positions := [
-		Vector2(14.5 * TILE, 18.0 * TILE),
-		Vector2(15.5 * TILE, 18.0 * TILE),
-		Vector2(16.5 * TILE, 18.0 * TILE),
-		Vector2(17.5 * TILE, 18.0 * TILE),
-	]
-	for p in positions:
-		pumps.append({"pos": p, "alive": true})
+	pumps.clear()
+	for y in range(MAP_H):
+		for x in range(MAP_W):
+			if _tile_char(x, y) == "P":
+				pumps.append({"pos": _tile_center(x, y), "alive": true})
 
 func _reset_pumps() -> void:
 	for pump in pumps:
@@ -273,6 +298,9 @@ func _continue_after_upgrade(choice: String) -> void:
 	_start_wave(wave + 1)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_H:
+		hazard_debug = not hazard_debug
+		queue_redraw()
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			touch_origin = event.position
@@ -301,7 +329,17 @@ func _physics_process(delta: float) -> void:
 	if touch_active:
 		direction = (touch_position - touch_origin).limit_length(90.0) / 90.0
 	direction += Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-	player_pos += direction.limit_length(1.0) * player_speed * delta
+	direction = direction.limit_length(1.0)
+
+	var hazard := _hazard_at(player_pos)
+	var speed_mult := float(hazard["speed_mult"])
+	var desired_velocity := direction * player_speed * speed_mult
+	if bool(hazard["slippery"]):
+		player_velocity = player_velocity.move_toward(desired_velocity, player_speed * delta / 0.35)
+	else:
+		player_velocity = desired_velocity
+
+	player_pos = _move_with_blockers(player_pos, player_velocity * delta, PLAYER_RADIUS)
 	player_pos.x = clampf(player_pos.x, 40.0, MAP_SIZE.x - 40.0)
 	player_pos.y = clampf(player_pos.y, 40.0, MAP_SIZE.y - 40.0)
 	if not district_cleared and NORTH_EXIT.has_point(player_pos):
@@ -412,6 +450,11 @@ func _update_bullets(delta: float) -> void:
 		bullet["life"] -= delta
 		var consumed := false
 
+		var bullet_tile := _char_at_world(Vector2(bullet["pos"]))
+		if _bullet_blocked_by(bullet_tile):
+			bullets.remove_at(i)
+			continue
+
 		for pump in pumps:
 			if bool(pump["alive"]) and bullet["pos"].distance_to(pump["pos"]) <= PUMP_RADIUS + BULLET_RADIUS:
 				_explode_pump(pump)
@@ -460,7 +503,10 @@ func _update_enemies(delta: float) -> void:
 		if str(enemy["kind"]) == "trucker" and float(enemy["charge"]) > 0.0:
 			enemy["charge"] = maxf(0.0, float(enemy["charge"]) - delta)
 			speed = 165.0
-		enemy["pos"] += to_player.normalized() * speed * delta
+		var enemy_hazard := _hazard_at(Vector2(enemy["pos"]))
+		speed *= float(enemy_hazard["speed_mult"])
+		var enemy_step := to_player.normalized() * speed * delta
+		enemy["pos"] = _move_with_blockers(Vector2(enemy["pos"]), enemy_step, float(enemy["radius"]))
 		if to_player.length() < PLAYER_RADIUS + float(enemy["radius"]):
 			var damage := 18 if str(enemy["kind"]) == "trucker" else 7
 			player_hp = maxi(0, player_hp - damage)
@@ -543,111 +589,135 @@ func _update_hud() -> void:
 	]
 
 func _draw() -> void:
-	_draw_ground()
-	_draw_structures()
-	_draw_props()
+	_draw_grid_map()
 	_draw_objectives()
 	_draw_spawn_markers()
 	_draw_combat()
 	_draw_dusk()
 
-func _draw_ground() -> void:
-	# Warm cracked dirt is the district's dominant ground treatment.
-	draw_texture_rect(GROUND_SCRUB_ART, Rect2(Vector2.ZERO, MAP_SIZE), false, Color("#d7b779"))
-	# Scrub edge is darker and rougher.
-	draw_texture_rect(GROUND_SCRUB_ART, Rect2(0, 0, MAP_SIZE.x, 5.0 * TILE), false, Color("#9e8759"))
-	# Road north and bottom highway remain high-contrast navigation anchors.
-	draw_rect(Rect2(14.0 * TILE, 0, 3.0 * TILE, 11.0 * TILE), Color("#4b4942"))
-	draw_rect(Rect2(0, 36.0 * TILE, MAP_SIZE.x, 4.0 * TILE), Color("#2b2d2f"))
-	# Truck-stop lot gets a distinct gravel surface.
-	draw_texture_rect(GROUND_GRAVEL_ART, Rect2(22.0 * TILE, 24.0 * TILE, 9.0 * TILE, 10.0 * TILE), false, Color("#999283"))
-	for lane in range(1, 32):
-		var x := float(lane) * TILE
-		draw_line(Vector2(x, 36.0 * TILE), Vector2(x, MAP_SIZE.y), Color(0.12,0.12,0.12,0.18), 1.0)
-	for stripe in range(0, 32, 2):
-		draw_rect(Rect2(stripe * TILE, 37.85 * TILE, TILE * 0.65, 10), Color("#d0b76f"))
+func _draw_grid_map() -> void:
+	for y in range(MAP_H):
+		for x in range(MAP_W):
+			var ch := _tile_char(x, y)
+			var rect := Rect2(Vector2(x, y) * TILE, Vector2(TILE, TILE))
+			_draw_grid_tile(rect, ch)
+	if hazard_debug:
+		_draw_hazard_debug()
 
-func _draw_structures() -> void:
-	_draw_asset_rect(OUT_MINIMART_ART, Rect2(12.0 * TILE, 11.0 * TILE, 7.0 * TILE, 4.0 * TILE))
-	_draw_asset_rect(OUT_DINER_ART, Rect2(3.0 * TILE, 8.0 * TILE, 6.0 * TILE, 5.0 * TILE))
-	_draw_asset_rect(OUT_AUTOSHOP_ART, Rect2(2.0 * TILE, 25.0 * TILE, 7.0 * TILE, 6.0 * TILE))
-	_draw_asset_rect(OUT_MOTEL_ART, Rect2(22.0 * TILE, 7.0 * TILE, 9.0 * TILE, 8.0 * TILE))
-	_draw_asset_rect(OUT_CANOPY_ART, Rect2(13.0 * TILE, 16.0 * TILE, 6.0 * TILE, 5.0 * TILE))
-	_label(Vector2(12.2 * TILE, 10.8 * TILE), "MINI-MART / UPGRADES", 24, Color("#2a211b"))
-	_label(Vector2(3.2 * TILE, 7.8 * TILE), "DINER / HEALTH", 24, Color("#2a211b"))
-	_label(Vector2(13.2 * TILE, 15.7 * TILE), "GAS STATION HUB", 28, Color("#2a211b"))
+func _draw_grid_tile(rect: Rect2, ch: String) -> void:
+	var base := Color("#3a3a3a")
+	match ch:
+		",": base = Color("#5b5a3a")
+		"-": base = Color("#2f2f2f")
+		"=": base = Color("#2f6f6a")
+		":": base = Color("#8a7a5a")
+		"o": base = Color("#3a3a3a")
+		"x": base = Color("#3a3a3a")
+		"B": base = Color("#555555")
+		"C": base = Color("#4a6a8a")
+		"T": base = Color("#9a9a9a")
+		"P": base = Color("#c0392b")
+		"b": base = Color("#e67e22")
+		"J": base = Color("#bbbbbb")
+		"F": base = Color("#777777")
+		"K": base = Color("#3a3a3a")
+		"G": base = Color("#8e44ad") if not district_cleared else Color("#4d9d55")
+		"S": base = Color("#3a3a3a")
+		"U": base = Color("#3a3a3a")
+		"+": base = Color("#3a3a3a")
+	draw_rect(rect, base)
 
-	if not district_cleared:
-		draw_rect(Rect2(14.0 * TILE, 0, 3.0 * TILE, 18), Color("#a83232"))
-		_label(Vector2(14.05 * TILE, 40), "DOWNTOWN LOCKED", 24, Color("#f0d8c0"))
-	else:
-		draw_rect(Rect2(14.0 * TILE, 0, 3.0 * TILE, 18), Color("#4d9d55"))
-		_label(Vector2(14.05 * TILE, 40), "DOWNTOWN OPEN", 24, Color("#e5f5d9"))
+	if ch == "o":
+		draw_rect(rect.grow(-10.0), Color(0.02, 0.02, 0.02, 0.70))
+		draw_line(rect.position + Vector2(20, 28), rect.end - Vector2(20, 36), Color(0.28,0.28,0.30,0.75), 7.0)
+	elif ch == "x":
+		draw_rect(rect, Color("#6b4a2f"))
+		for n in range(0, 4):
+			var yy := rect.position.y + 20.0 + float(n) * 28.0
+			draw_line(Vector2(rect.position.x + 18, yy), Vector2(rect.position.x + 54, yy - 34), Color("#2f241b"), 4.0)
+	elif ch == "F":
+		draw_rect(rect, Color("#3a3a3a"))
+		draw_line(rect.position + Vector2(0, TILE * 0.35), rect.position + Vector2(TILE, TILE * 0.35), Color("#777777"), 10.0)
+		draw_line(rect.position + Vector2(0, TILE * 0.65), rect.position + Vector2(TILE, TILE * 0.65), Color("#777777"), 10.0)
+	elif ch == "K":
+		draw_rect(rect.grow(-4.0), Color("#c0392b"), false, 5.0)
+	elif ch == "S":
+		draw_circle(rect.get_center(), 12.0, Color("#ff25c6"))
+	elif ch == "U":
+		draw_rect(Rect2(rect.get_center() - Vector2(16,16), Vector2(32,32)), Color("#f1c40f"))
+	elif ch == "+":
+		draw_rect(Rect2(rect.get_center() - Vector2(15,15), Vector2(30,30)), Color("#2ecc71"))
 
-func _draw_building(rect: Rect2, color: Color, title: String) -> void:
-	draw_rect(rect.grow(12.0), Color(0.08,0.08,0.08,0.55))
-	draw_rect(rect, color)
-	draw_rect(rect.grow(-18.0), color.darkened(0.15), false, 6.0)
-	_label(rect.position + Vector2(16, 42), title, 24, Color("#1b1b1b"))
+func _draw_hazard_debug() -> void:
+	for y in range(MAP_H):
+		for x in range(MAP_W):
+			var ch := _tile_char(x, y)
+			var mult := _speed_mult_for_char(ch)
+			if mult < 1.0:
+				var center := _tile_center(x, y)
+				_label(center + Vector2(-34, 7), "%.2fx" % mult, 18, Color.WHITE)
 
-func _draw_props() -> void:
-	for pump in pumps:
-		var p: Vector2 = pump["pos"]
-		if bool(pump["alive"]):
-			_draw_asset_centered(OUT_GAS_PUMP_ART, p, Vector2(92, 118))
-		else:
-			draw_circle(p, 30, Color("#25211d"))
+func _tile_char(x: int, y: int) -> String:
+	if x < 0 or x >= MAP_W or y < 0 or y >= MAP_H:
+		return "B"
+	return MAP_ROWS[y].substr(x, 1)
 
-	# Truck-stop trailer cover.
-	_draw_asset_rect(OUT_SEMI_ART, Rect2(23.0 * TILE, 25.8 * TILE, 1.8 * TILE, 5.5 * TILE))
-	_draw_asset_rect(OUT_SEMI_ART, Rect2(26.7 * TILE, 27.4 * TILE, 1.8 * TILE, 5.5 * TILE))
+func _char_at_world(pos: Vector2) -> String:
+	return _tile_char(int(floor(pos.x / TILE)), int(floor(pos.y / TILE)))
 
-	# Existing approved vehicle art remains part of the district language.
-	_draw_car(CAR_SUV_ART, Vector2(10.0 * TILE, 23.0 * TILE), -0.18, Color(0.93,0.90,0.82))
-	_draw_car(CAR_SEDAN_ART, Vector2(21.0 * TILE, 19.5 * TILE), 0.16, Color(0.82,0.88,0.92))
-	_draw_car(CAR_SUV_ART, Vector2(7.5 * TILE, 34.0 * TILE), 0.08, Color(0.84,0.90,0.80))
-	_draw_car(CAR_SEDAN_ART, Vector2(26.0 * TILE, 35.0 * TILE), -0.12, Color(0.92,0.82,0.78))
+func _tile_center(x: int, y: int) -> Vector2:
+	return Vector2((float(x) + 0.5) * TILE, (float(y) + 0.5) * TILE)
 
-	# Boundary dressing turns the map edge into readable physical space.
-	for x in range(1, 31, 3):
-		_draw_asset_centered(OUT_SCRUB_ART, Vector2(float(x) * TILE, 3.5 * TILE), Vector2(150, 120))
-	for y in range(6, 35, 5):
-		_draw_asset_centered(OUT_FENCE_ART, Vector2(70, float(y) * TILE), Vector2(105, 150))
-		_draw_asset_centered(OUT_FENCE_ART, Vector2(MAP_SIZE.x - 70, float(y) * TILE), Vector2(105, 150))
-	for x in range(2, 31, 5):
-		_draw_asset_centered(OUT_BARRIER_ART, Vector2(float(x) * TILE, 35.6 * TILE), Vector2(120, 72))
-	_draw_asset_centered(OUT_TIRES_ART, Vector2(8.3 * TILE, 30.5 * TILE), Vector2(150, 150))
-	_draw_asset_centered(OUT_SIGN_ART, Vector2(19.8 * TILE, 34.5 * TILE), Vector2(160, 145))
+func _speed_mult_for_char(ch: String) -> float:
+	match ch:
+		":": return 0.90
+		"x": return 0.80
+		"o": return 0.70
+	return 1.0
 
-	if health_available:
-		draw_circle(DINER_HEALTH_POS, 30, Color("#d85454"))
-		draw_rect(Rect2(DINER_HEALTH_POS - Vector2(7, 23), Vector2(14, 46)), Color.WHITE)
-		draw_rect(Rect2(DINER_HEALTH_POS - Vector2(23, 7), Vector2(46, 14)), Color.WHITE)
+func _hazard_at(pos: Vector2) -> Dictionary:
+	var ch := _char_at_world(pos)
+	return {"speed_mult": _speed_mult_for_char(ch), "slippery": ch == "o", "char": ch}
 
-	if tanker_event:
-		_draw_asset_rect(OUT_TANKER_ART, Rect2(8.5 * TILE, 35.9 * TILE, 15.0 * TILE, 2.4 * TILE))
-	if fire_hazard:
-		for i in range(10):
-			var fire_pos := Vector2((7.0 + i * 1.8) * TILE, 36.8 * TILE)
-			draw_circle(fire_pos, 38, Color(1.0, 0.35, 0.08, 0.78))
-			draw_circle(fire_pos + Vector2(8,-16), 22, Color(1.0, 0.75, 0.15, 0.85))
+func _is_blocking_char(ch: String) -> bool:
+	if ch == "G":
+		return not district_cleared
+	return BLOCKING_CHARS.contains(ch)
 
-func _draw_asset_rect(texture: Texture2D, rect: Rect2, tint: Color = Color.WHITE) -> void:
-	draw_texture_rect(texture, rect, false, tint)
+func _bullet_blocked_by(ch: String) -> bool:
+	# Chain-link fences block movement but bullets pass through.
+	if ch == "F":
+		return false
+	# Pumps remain handled by their explosion hit-test.
+	if ch == "P":
+		return false
+	return ch in ["B", "C", "T", "b", "J"]
 
-func _draw_asset_centered(texture: Texture2D, center: Vector2, size: Vector2, rotation: float = 0.0, tint: Color = Color.WHITE) -> void:
-	draw_set_transform(center, rotation, Vector2.ONE)
-	draw_texture_rect(texture, Rect2(-size * 0.5, size), false, tint)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+func _circle_hits_blocker(pos: Vector2, radius: float) -> bool:
+	var min_x := int(floor((pos.x - radius) / TILE))
+	var max_x := int(floor((pos.x + radius) / TILE))
+	var min_y := int(floor((pos.y - radius) / TILE))
+	var max_y := int(floor((pos.y + radius) / TILE))
+	for y in range(min_y, max_y + 1):
+		for x in range(min_x, max_x + 1):
+			var ch := _tile_char(x, y)
+			if not _is_blocking_char(ch):
+				continue
+			var rect := Rect2(Vector2(x, y) * TILE, Vector2(TILE, TILE))
+			var closest := Vector2(clampf(pos.x, rect.position.x, rect.end.x), clampf(pos.y, rect.position.y, rect.end.y))
+			if closest.distance_squared_to(pos) < radius * radius:
+				return true
+	return false
 
-func _draw_car(texture: Texture2D, center: Vector2, rotation: float, tint: Color) -> void:
-	var texture_size := Vector2(texture.get_size())
-	var scale_factor := 285.0 / maxf(texture_size.x, texture_size.y)
-	var draw_size := texture_size * scale_factor
-	draw_circle(center + Vector2(10,18), 102, Color(0.05,0.05,0.05,0.38))
-	draw_set_transform(center, rotation, Vector2.ONE)
-	draw_texture_rect(texture, Rect2(-draw_size * 0.5, draw_size), false, tint)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+func _move_with_blockers(pos: Vector2, delta_pos: Vector2, radius: float) -> Vector2:
+	var result := pos
+	var try_x := Vector2(pos.x + delta_pos.x, pos.y)
+	if not _circle_hits_blocker(try_x, radius):
+		result.x = try_x.x
+	var try_y := Vector2(result.x, pos.y + delta_pos.y)
+	if not _circle_hits_blocker(try_y, radius):
+		result.y = try_y.y
+	return result
 
 func _draw_objectives() -> void:
 	# Generator objective.
