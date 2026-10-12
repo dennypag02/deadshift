@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3]
+[ext_resource type="Texture2D" path="res://art/zombie_shambler.svg" id="1"]
+[node name="Zombie" type="Node2D"]
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1")
+offset = Vector2(0, -26)
+scale = Vector2(0.65, 0.65)
