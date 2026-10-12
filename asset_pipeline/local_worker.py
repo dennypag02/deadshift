@@ -10,6 +10,7 @@ from __future__ import annotations
 import html
 import json
 import logging
+import shutil
 import subprocess
 import sys
 import threading
@@ -25,6 +26,7 @@ import yaml
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
 QUEUE_DIR = HERE / "jobs" / "queued"
+PROMOTION_QUEUE_DIR = HERE / "jobs" / "promote"
 REVIEW_DIR = HERE / "staging" / "review"
 STATE_PATH = HERE / "worker_state.json"
 STATUS_PATH = HERE / "worker_status.json"
@@ -122,6 +124,104 @@ def read_job(path: Path) -> dict:
     return data
 
 
+
+def read_promotion_job(path: Path) -> dict:
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("promotion job file must contain a YAML mapping")
+
+    required = ("asset", "source", "target")
+    missing = [key for key in required if not str(data.get(key, "")).strip()]
+    if missing:
+        raise ValueError("missing required fields: " + ", ".join(missing))
+
+    data["job_id"] = str(data.get("job_id") or path.stem)
+    data["overwrite"] = bool(data.get("overwrite", False))
+    return data
+
+
+def process_promotion_job(path: Path, job: dict) -> bool:
+    job_id = str(job["job_id"])
+    asset = str(job["asset"])
+    source = (REPO_ROOT / str(job["source"])).resolve()
+    target = (REPO_ROOT / str(job["target"])).resolve()
+    repo_root = REPO_ROOT.resolve()
+    godot_art = (REPO_ROOT / "godot" / "art").resolve()
+
+    if repo_root not in source.parents:
+        raise ValueError("promotion source must be inside the repository")
+    if godot_art != target.parent and godot_art not in target.parents:
+        raise ValueError("promotion target must be inside godot/art")
+    if not source.exists():
+        write_status(
+            state="promotion_waiting_for_source",
+            job_id=job_id,
+            asset=asset,
+            message=f"Waiting for approved source image: {source.name}",
+        )
+        return False
+
+    if target.exists() and target.read_bytes() != source.read_bytes() and not job["overwrite"]:
+        write_status(
+            state="failed",
+            job_id=job_id,
+            asset=asset,
+            message=f"Promotion target already exists and overwrite is disabled: {target.relative_to(REPO_ROOT)}",
+        )
+        return True
+
+    write_status(
+        state="promoting",
+        job_id=job_id,
+        asset=asset,
+        message=f"Promoting {source.name} into Godot.",
+    )
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if not target.exists() or target.read_bytes() != source.read_bytes():
+        shutil.copy2(source, target)
+
+    rel_target = target.relative_to(REPO_ROOT).as_posix()
+    add = run(["git", "add", "--", rel_target], cwd=REPO_ROOT)
+    if add.returncode != 0:
+        message = (add.stderr or add.stdout or "git add failed").strip()
+        write_status(state="failed", job_id=job_id, asset=asset, message=message)
+        return True
+
+    status = run(["git", "status", "--porcelain", "--", rel_target], cwd=REPO_ROOT)
+    if status.returncode != 0:
+        message = (status.stderr or status.stdout or "git status failed").strip()
+        write_status(state="failed", job_id=job_id, asset=asset, message=message)
+        return True
+
+    if status.stdout.strip():
+        commit = run(
+            ["git", "commit", "-m", f"Promote approved DeadShift asset: {asset}", "--", rel_target],
+            cwd=REPO_ROOT,
+        )
+        if commit.returncode != 0:
+            message = (commit.stderr or commit.stdout or "git commit failed").strip()
+            write_status(state="failed", job_id=job_id, asset=asset, message=message)
+            return True
+
+    push = run(["git", "push", "origin", BRANCH], cwd=REPO_ROOT)
+    if push.returncode != 0:
+        message = (push.stderr or push.stdout or "git push failed").strip()
+        write_status(state="failed", job_id=job_id, asset=asset, message=message)
+        return True
+
+    write_status(
+        state="promotion_complete",
+        job_id=job_id,
+        asset=asset,
+        promoted_file=rel_target,
+        message=f"Promoted {asset} into Godot and pushed it to GitHub.",
+    )
+    logging.info("completed promotion job %s", job_id)
+    return True
+
+
+
 def process_job(path: Path, job: dict) -> bool:
     job_id = str(job["job_id"])
     asset = str(job["asset"])
@@ -177,6 +277,17 @@ def process_job(path: Path, job: dict) -> bool:
     return True
 
 
+
+def queued_promotions(processed: set[str]) -> list[Path]:
+    PROMOTION_QUEUE_DIR.mkdir(parents=True, exist_ok=True)
+    files = sorted(
+        [*PROMOTION_QUEUE_DIR.glob("*.yaml"), *PROMOTION_QUEUE_DIR.glob("*.yml")],
+        key=lambda p: p.name,
+    )
+    return [path for path in files if path.stem not in processed]
+
+
+
 def queued_jobs(processed: set[str]) -> list[Path]:
     QUEUE_DIR.mkdir(parents=True, exist_ok=True)
     files = sorted(
@@ -193,6 +304,33 @@ def worker_loop() -> None:
             update_repo()
             state = load_state()
             processed = set(str(item) for item in state.get("processed", []))
+
+            for path in queued_promotions(processed):
+                try:
+                    job = read_promotion_job(path)
+                except Exception as exc:
+                    logging.exception("invalid promotion job %s", path)
+                    write_status(
+                        state="failed",
+                        job_id=path.stem,
+                        message=f"Invalid promotion job file: {exc}",
+                    )
+                    processed.add(path.stem)
+                    state["processed"] = sorted(processed)
+                    save_state(state)
+                    continue
+
+                job_id = str(job["job_id"])
+                if job_id in processed:
+                    continue
+
+                finished = process_promotion_job(path, job)
+                if finished:
+                    processed.add(job_id)
+                    state["processed"] = sorted(processed)
+                    save_state(state)
+                else:
+                    break
 
             for path in queued_jobs(processed):
                 try:
@@ -221,7 +359,7 @@ def worker_loop() -> None:
                 else:
                     break
 
-            if not queued_jobs(processed):
+            if not queued_jobs(processed) and not queued_promotions(processed):
                 current = {}
                 if STATUS_PATH.exists():
                     try:
