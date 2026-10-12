@@ -43,8 +43,8 @@ jobs:
           mkdir -p "$HOME/.android"
           cp "$GITHUB_WORKSPACE/.github/android/deadshift-dev.keystore" "$HOME/.android/debug.keystore"
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
-          echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=deadshiftdev" >> "$GITHUB_ENV"
-          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=deadshiftdev" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >> "$GITHUB_ENV"
       - name: Configure Godot editor Android export settings
         shell: bash
         run: |
@@ -57,8 +57,8 @@ jobs:
               settings.set_setting("export/android/android_sdk_path", OS.get_environment("ANDROID_HOME"))
               settings.set_setting("export/android/java_sdk_path", OS.get_environment("JAVA_HOME"))
               settings.set_setting("export/android/debug_keystore", OS.get_environment("GODOT_ANDROID_KEYSTORE_DEBUG_PATH"))
-              settings.set_setting("export/android/debug_keystore_user", "deadshiftdev")
-              settings.set_setting("export/android/debug_keystore_pass", "deadshiftdev")
+              settings.set_setting("export/android/debug_keystore_user", "androiddebugkey")
+              settings.set_setting("export/android/debug_keystore_pass", "android")
               quit()
           GDSCRIPT
           timeout 120s ./Godot_v4.4.1-stable_linux.x86_64 --headless --editor --quit --path godot --script res://configure_android_export.gd
