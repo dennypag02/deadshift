@@ -284,10 +284,20 @@ def generate_one(
         raise SystemExit(f"Asset {name} references unknown category {category_name}")
 
     workflow_kind = str(category["workflow"])
-    width, height = [int(value) for value in category["size"]]
-    steps = 30 if workflow_kind == "scene" else 28
+    source_size = asset.get("size", category["size"])
+    width, height = [int(value) for value in source_size]
+    steps = int(asset.get("steps", 30 if workflow_kind == "scene" else 28))
     positive = positive_override or f"{category['style']}, {asset['prompt']}"
-    negative = negative_override or str(category["negative"])
+    base_negative = str(category["negative"])
+    negative_remove = str(asset.get("negative_remove", "")).strip()
+    if negative_remove:
+        parts = [part.strip() for part in base_negative.split(",") if part.strip()]
+        parts = [part for part in parts if part.lower() != negative_remove.lower()]
+        base_negative = ", ".join(parts)
+    negative_extra = str(asset.get("negative_extra", "")).strip()
+    if negative_extra:
+        base_negative = f"{base_negative}, {negative_extra}"
+    negative = negative_override or base_negative
     version_label = f"v{version:02d}"
     filename_prefix = f"deadshift/{category_name}/{name}_{version_label}_{seed}"
 
@@ -319,11 +329,13 @@ def generate_one(
     candidate_path = CANDIDATE_DIR / category_name / f"{name}_{version_label}.png"
     download_image(base_url, saved, raw_path)
 
-    target = category["target"]
-    if workflow_kind == "sprite":
+    target = asset.get("target", category["target"])
+    if "width" in target and "height" in target:
+        postprocess_scene(raw_path, candidate_path, int(target["width"]), int(target["height"]))
+    elif workflow_kind == "sprite":
         postprocess_sprite(raw_path, candidate_path, int(target["long_side"]))
     else:
-        postprocess_scene(raw_path, candidate_path, int(target["width"]), int(target["height"]))
+        raise SystemExit(f"Asset {name} requires target width/height or category long_side")
 
     print(f"  candidate: {candidate_path.relative_to(HERE)}")
     return {

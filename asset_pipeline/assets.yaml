@@ -13,16 +13,16 @@ categories:
     size: [1024, 1024]
     target: {long_side: 512}
     count: 4
-    style: "(flat vector illustration:1.3), 2D game sprite, cel shaded, bold dark outlines, (top-down view:1.5), seen from directly above, flat rooftop, rectangular building footprint, muted palette of rust brown, olive green and dusty gray, (isolated on plain white background:1.4)"
-    negative: "photograph, photorealistic, realistic, 3D render, side view, front view, building facade, windows on walls, three-quarter view, isometric, perspective, horizon, sky, street, road, ground, cars, people, characters, sticker, border, frame, shadow on ground, text, letters, watermark, blurry"
+    style: "(flat vector illustration:1.3), 2D game sprite, cel shaded, bold dark outlines, (top-down view:1.6), seen from directly above, flat rooftop, sharp rectangular footprint, single building, muted palette of rust brown, olive green and dusty gray, warm golden hour light from top left, (isolated on plain white background:1.4)"
+    negative: "photograph, photorealistic, realistic, 3D render, side view, front view, building facade, windows on walls, three-quarter view, isometric, perspective, horizon, sky, street, road, ground, grass, parking lot, cars, people, characters, zombies, multiple buildings, round building, irregular shape, red, sticker, border, frame, shadow on ground, text, letters, signage text, watermark, blurry"
 
   debris:
     workflow: sprite
     size: [1024, 1024]
     target: {long_side: 160}
     count: 4
-    style: "(flat vector illustration:1.3), 2D game sprite, cel shaded, bold dark outlines, (top-down view:1.5), seen from directly above, small cluster shape, muted palette of rust brown, olive green and dusty gray, (isolated on plain white background:1.4)"
-    negative: "photograph, photorealistic, realistic, 3D render, side view, perspective, horizon, ground texture, road, people, characters, sticker, border, frame, text, watermark, blurry"
+    style: "(flat vector illustration:1.3), 2D game sprite, cel shaded, bold dark outlines, (top-down view:1.5), seen from directly above, single object, muted palette of rust brown, olive green and dusty gray, warm golden hour light from top left, (isolated on plain white background:1.4)"
+    negative: "photograph, photorealistic, realistic, 3D render, side view, front view, three-quarter view, isometric, perspective, horizon, ground, dirt, grass, road, people, characters, zombies, multiple objects, sticker, border, frame, drop shadow, text, letters, watermark, blurry"
 
   characters:
     workflow: sprite
@@ -53,8 +53,8 @@ categories:
     size: [1024, 1024]
     target: {width: 1024, height: 1024}
     count: 4
-    style: "(flat vector illustration:1.2), seamless top-down game ground texture, orthographic, muted dusty palette, tileable edges"
-    negative: "photograph, photorealistic, perspective, horizon, buildings, vehicles, people, characters, text, watermark, border, frame, obvious seams"
+    style: "(flat vector illustration:1.2), seamless tileable texture, seen from directly above, flat even lighting, no shadows, cel shaded, muted palette of rust brown, olive green and dusty gray"
+    negative: "photograph, photorealistic, 3D render, perspective, horizon, objects, cars, people, characters, border, frame, vignette, text, watermark, blurry, seams"
 
 assets:
   - {name: car_sedan, category: cars, prompt: "abandoned modern sedan, 2020s car design, sleek rounded body, panoramic glass roof, cracked windshield, dented roof, faded paint and rust patches"}
@@ -70,34 +70,32 @@ assets:
   - {name: bldg_gas_canopy, category: buildings, prompt: "gas station canopy roof, broken lights, rust stains, debris on roof"}
   - {name: bldg_garage, category: buildings, prompt: "parking garage top level, faded parking lines, cracked concrete, a few abandoned cars"}
 
-  # --- outskirts: buildings ---
-  - {name: out_minimart, category: buildings, prompt: "small gas station convenience store rooftop, flat roof, rusted AC unit, faded sign lying on roof, broken skylight"}
-  - {name: out_diner, category: buildings, prompt: "roadside diner rooftop, rounded corners, chrome trim edge, rooftop vent fans, torn neon sign frame on roof"}
-  - {name: out_motel, category: buildings, prompt: "L-shaped single-story motel rooftop, long row of rooms, flat tar roof, rusted vents, debris"}
-  - {name: out_autoshop, category: buildings, prompt: "auto repair shop rooftop, corrugated metal roof, open garage bay at one end, oil stains, scattered tires"}
+  # --- outskirts buildings: locked gray-box footprints ---
+  - {name: out_diner, category: buildings, size: [1152, 896], target: {width: 896, height: 768}, prompt: "roadside diner rooftop, rounded chrome trim edge, two rooftop vent fans, rusted AC unit, fallen neon sign frame lying on the roof, kitchen exhaust hood with grease stains, scattered debris"}
+  - {name: out_minimart, category: buildings, size: [1344, 768], target: {width: 1024, height: 512}, prompt: "long low gas station convenience store rooftop, flat tar roof, two rusted AC units, broken skylight, faded blank sign board lying flat on the roof, puddles and debris"}
+  - {name: out_motel_north, category: buildings, size: [1536, 640], target: {width: 1024, height: 384}, prompt: "long narrow single-story motel roof, flat tar roof divided into a row of room sections, small rusted vent on each section, one collapsed section, debris"}
+  - {name: out_motel_east, category: buildings, size: [640, 1536], target: {width: 384, height: 896}, prompt: "long narrow single-story motel roof running vertically, flat tar roof divided into a row of room sections, small rusted vent on each section, rooftop water heater, debris"}
+  - {name: out_autoshop, category: buildings, size: [1152, 896], target: {width: 896, height: 768}, prompt: "auto repair garage rooftop, corrugated metal roof panels, rust streaks, oil stains dripping off one edge, rooftop exhaust pipes, a few old tires lying on the roof"}
+  - {name: out_canopy_roof, category: buildings, size: [1152, 896], target: {width: 1280, height: 1024}, prompt: "large flat gas station canopy roof, thin metal roof panels, rust stains, a few missing panels with gaps, bird droppings, scattered leaves and debris"}
 
-  # --- outskirts: vehicles and large props ---
-  - {name: out_semi_trailer, category: cars, prompt: "abandoned semi truck trailer, long white trailer roof, rust streaks, dents"}
-  - {name: out_tanker, category: cars, prompt: "abandoned fuel tanker truck, cylindrical silver tank, hazard markings, rust"}
+  # --- outskirts structures and blockers ---
+  - {name: out_semi_trailer, category: debris, size: [640, 1536], target: {width: 256, height: 896}, negative_extra: "truck cab, wheels visible", prompt: "abandoned semi truck trailer roof running vertically, long faded white roof, rust streaks, dents, torn tarp patch"}
+  - {name: out_pump_island, category: debris, size: [1344, 768], target: {width: 256, height: 128}, prompt: "gas station pump island, narrow raised concrete curb with two rusted fuel pumps, hanging hoses, faded yellow safety posts at each end"}
+  - {name: out_barrels, category: debris, size: [1344, 768], target: {width: 256, height: 128}, negative_remove: "multiple objects", prompt: "cluster of four rusted orange fuel drums seen from above, round lids, hazard symbols, small spill of black oil"}
+  - {name: out_barrier, category: debris, size: [1024, 1024], target: {width: 128, height: 128}, prompt: "single concrete highway jersey barrier segment, chipped edges, faded spray paint, cracks"}
+  - {name: out_fence, category: debris, size: [1536, 640], target: {width: 768, height: 128}, prompt: "long straight section of bent chain-link fence on rusted metal posts, torn mesh, sagging top rail"}
+  - {name: out_tanker_wreck, category: debris, size: [1536, 640], target: {width: 896, height: 384}, prompt: "jackknifed burned-out fuel tanker truck wreck, blackened cylindrical tank split open, charred cab bent at an angle, scorched metal, smoldering"}
+
+  # --- outskirts terrain tiles ---
+  - {name: tex_forecourt, category: terrain, size: [1024, 1024], target: {width: 128, height: 128}, prompt: "smooth gas station concrete slabs, faded yellow paint line, light oil stains"}
+  - {name: tex_asphalt, category: terrain, size: [1024, 1024], target: {width: 128, height: 128}, prompt: "worn dark gray asphalt, faint tire marks, small pebbles"}
+  - {name: tex_highway, category: terrain, size: [1024, 1024], target: {width: 128, height: 128}, prompt: "darker highway asphalt, slightly smoother, dust"}
+  - {name: tex_cracked, category: terrain, size: [1024, 1024], target: {width: 128, height: 128}, prompt: "heavily cracked broken asphalt, deep fractures, loose chunks, (clearly brown-tinted cracks:1.2)"}
+  - {name: tex_oil, category: terrain, size: [1024, 1024], target: {width: 128, height: 128}, prompt: "glossy black oil spill on asphalt, (shiny rainbow sheen highlights:1.3), wet look"}
+  - {name: tex_gravel, category: terrain, size: [1024, 1024], target: {width: 128, height: 128}, prompt: "loose tan gravel, small stones, dusty"}
+  - {name: tex_scrub, category: terrain, size: [1024, 1024], target: {width: 128, height: 128}, prompt: "dry cracked dirt, sparse yellow grass tufts, small rocks"}
 
 
-  - {name: debris_rubble, category: debris, prompt: "pile of concrete rubble and broken bricks"}
-  - {name: debris_trash, category: debris, prompt: "scattered trash cluster, crumpled paper, cans, broken glass, torn fabric"}
-  - {name: debris_crash, category: debris, prompt: "trail of shattered glass and car parts, loose tire, bumper fragments"}
-  - {name: decal_stain, category: debris, prompt: "dark dried blood splatter and oil stain, irregular organic shape"}
-  - {name: decal_scorch, category: debris, prompt: "black scorch mark and burn crater, soot spray pattern"}
-
-  # --- outskirts: props ---
-  - {name: out_gas_pump, category: debris, prompt: "single rusted gas pump on concrete island, hanging hose, cracked display"}
-  - {name: out_barrier, category: debris, prompt: "concrete highway jersey barrier segment, chipped edges, spray paint"}
-  - {name: out_fence, category: debris, prompt: "section of bent chain-link fence on wooden posts, torn mesh"}
-  - {name: out_tires, category: debris, prompt: "pile of old rubber tires, some stacked, one rolled away"}
-  - {name: out_scrub, category: debris, prompt: "dry desert scrub bush and tumbleweed cluster, brown and pale olive"}
-  - {name: out_sign_down, category: debris, prompt: "fallen highway road sign lying flat on ground, bent metal post"}
-
-
-  - {name: ground_scrub_dirt, category: terrain, prompt: "dry cracked dirt with sparse yellow grass for scrubland"}
-  - {name: ground_truckstop_gravel, category: terrain, prompt: "gravel parking lot for a worn truck stop"}
 
   - {name: survivor, category: characters, prompt: "massive hulking post-apocalyptic survivor, big shoulders and small legs, spiky mohawk, welding goggles, red bandana, scrap metal armor with spiked tire shoulder pad, holding an oversized makeshift machine gun, red accents"}
 
