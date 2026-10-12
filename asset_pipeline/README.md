@@ -39,6 +39,37 @@ The JSON files use clear titles and placeholder values so `generate.py` can repl
 - Do not install additional packages or models without approval.
 - Preserve prompt and seed for every generated candidate.
 
+## Step 3 - generate candidates
+
+Pull the latest branch, then dry-run the first acceptance-test asset:
+
+```powershell
+git pull
+python generate.py --only car_suv --count 2 --dry-run
+```
+
+A dry run prints the two planned jobs and queues nothing.
+
+If the dry run looks correct, generate the two real candidates:
+
+```powershell
+python generate.py --only car_suv --count 2
+```
+
+The generator:
+
+- detects ComfyUI on port 8000 or 8188;
+- rebuilds workflow JSON automatically if it is missing;
+- queues exactly one image at a time and waits for it to finish;
+- uses random 63-bit seeds and records each seed and full prompt;
+- downloads untouched ComfyUI output into `staging/raw/<category>/`;
+- crops sprite output to its alpha bounds and resizes it with Pillow LANCZOS;
+- resizes scene output to the configured target dimensions;
+- writes game-ready candidates to `staging/candidates/<category>/`;
+- appends each successful image immediately to `manifest.json`.
+
+Generation defaults are `dpmpp_2m`, `karras`, CFG 6.5, denoise 1.0, batch size 1, 28 steps for sprites and 30 for scenes.
+
 ## Next implementation slice
 
-`generate.py`, `review.py`, `promote.py`, `manifest.json`, `picks.yaml`, and staging folders are added after the two API workflows pass the local schema/build test.
+After the two `car_suv` candidates succeed, add `review.py` and the HTML contact sheet, then `promote.py` and `picks.yaml`.
