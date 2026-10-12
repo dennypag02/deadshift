@@ -318,7 +318,7 @@ func _physics_process(delta: float) -> void:
 		var active_target := _active_horde_target()
 		if spawn_clock <= 0.0 and wave_spawned < wave_total and enemies.size() < active_target:
 			var room := active_target - enemies.size()
-			var burst_size := mini(18 + wave * 2, room, wave_total - wave_spawned)
+			var burst_size := mini(mini(18 + wave * 2, room), wave_total - wave_spawned)
 			for _n in range(burst_size):
 				_spawn_next_enemy()
 			spawn_clock = maxf(0.22, 0.32 - float(wave) * 0.008)
