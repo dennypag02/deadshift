@@ -90,7 +90,6 @@ echo.
 echo The worker will also start automatically with Windows.
 echo ===============================================
 echo.
-pause
 exit /b 0
 
 :gitfail
