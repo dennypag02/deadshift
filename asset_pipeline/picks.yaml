@@ -1,3 +1,8 @@
-# Choose one generated version per asset.
-# Example:
-car_suv: v01
+# Approved DeadShift asset selections.
+# Keep the generated candidate intact; promotion copies the selected image into Godot.
+car_suv:
+  version: v21
+  seed: 8351688803261329666
+  source: staging/candidates/cars/car_suv_v21.png
+  target: godot/art/cars/car_suv.png
+  status: approved
