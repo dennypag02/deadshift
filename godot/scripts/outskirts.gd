@@ -7,8 +7,8 @@ const MAP_SIZE := Vector2(MAP_W * TILE, MAP_H * TILE)
 
 const SURVIVOR_ART := preload("res://art/survivor_wasteland.svg")
 const ZOMBIE_ART := preload("res://art/zombie_shambler.svg")
-const CAR_SEDAN_ART := preload("res://art/outskirts/car_sedan_outskirts.svg")
-const CAR_SUV_ART := preload("res://art/outskirts/car_suv_outskirts.svg")
+const CAR_SEDAN_ART := preload("res://art/cars/car_sedan.png")
+const CAR_SUV_ART := preload("res://art/cars/car_suv.png")
 const OUT_DINER_ART := preload("res://art/outskirts/out_diner.svg")
 const OUT_MINIMART_ART := preload("res://art/outskirts/out_minimart.svg")
 const OUT_MOTEL_N_ART := preload("res://art/outskirts/out_motel_north.svg")
@@ -642,7 +642,7 @@ func _draw_grid_tile(rect: Rect2, ch: String) -> void:
 	# Gray-box blocker fill remains underneath final art so collision footprints stay obvious.
 	match ch:
 		"B": draw_rect(rect, Color("#555555"))
-		"C": draw_rect(rect, Color("#4a6a8a"))
+		"C": pass # collision-only car footprint; pavement remains visible beneath transparent sprite
 		"T": draw_rect(rect, Color("#9a9a9a"))
 		"P": draw_rect(rect, Color("#c0392b"))
 		"b": draw_rect(rect, Color("#e67e22"))
