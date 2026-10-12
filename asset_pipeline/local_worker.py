@@ -18,7 +18,7 @@ import time
 import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import quote, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 
 import requests
 import yaml
@@ -31,6 +31,7 @@ REVIEW_DIR = HERE / "staging" / "review"
 STATE_PATH = HERE / "worker_state.json"
 STATUS_PATH = HERE / "worker_status.json"
 LOG_PATH = HERE / "worker.log"
+MANIFEST_PATH = HERE / "manifest.json"
 
 BRANCH = "feature/asset-pipeline-step1"
 POLL_SECONDS = 60
@@ -416,6 +417,12 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._send_status_page(status)
             return
 
+        if path == "/library":
+            query = parse_qs(urlparse(self.path).query)
+            asset = str(query.get("asset", [""])[0]).strip()
+            self._send_library_page(asset)
+            return
+
         if path == "/":
             status = {}
             if STATUS_PATH.exists():
@@ -452,8 +459,107 @@ code{{color:#ddd}} a{{color:#9ecbff}}
 <p>{message}</p>
 <p><strong>Job:</strong> {job_id or "none"}</p>
 <p><strong>Asset:</strong> {asset or "none"}</p>
+<p><a href="/library">Open Asset Library</a> &nbsp;|&nbsp; <a href="/latest">Open Latest Review</a></p>
 <p>This page refreshes automatically while work is in progress.</p>
 </div></body></html>"""
+        encoded = body.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        self.wfile.write(encoded)
+
+
+    def _send_library_page(self, selected_asset: str = "") -> None:
+        manifest: list[dict] = []
+        if MANIFEST_PATH.exists():
+            try:
+                loaded = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+                if isinstance(loaded, list):
+                    manifest = [item for item in loaded if isinstance(item, dict)]
+            except Exception:
+                logging.exception("could not load asset manifest")
+
+        available: dict[str, dict[str, object]] = {}
+        for item in manifest:
+            asset_name = str(item.get("asset", "")).strip()
+            category = str(item.get("category", "")).strip()
+            candidate_path = str(item.get("candidate_path", "")).strip()
+            if not asset_name or not candidate_path:
+                continue
+            candidate = HERE / candidate_path
+            if not candidate.exists():
+                continue
+            record = available.setdefault(asset_name, {"category": category, "count": 0})
+            record["count"] = int(record["count"]) + 1
+
+        if not selected_asset:
+            rows = []
+            for asset_name in sorted(available):
+                record = available[asset_name]
+                rows.append(
+                    "<tr>"
+                    f"<td><a href='/library?asset={quote(asset_name)}'>{html.escape(asset_name)}</a></td>"
+                    f"<td>{html.escape(str(record['category']))}</td>"
+                    f"<td>{record['count']}</td>"
+                    "</tr>"
+                )
+            content = (
+                "<h1>DeadShift Asset Library</h1>"
+                "<p><a href='/'>Worker Status</a> &nbsp;|&nbsp; <a href='/latest'>Latest Review</a></p>"
+                "<p>All generated candidates that still exist locally are listed below.</p>"
+                "<table><thead><tr><th>Asset</th><th>Category</th><th>Candidates</th></tr></thead>"
+                f"<tbody>{''.join(rows) if rows else '<tr><td colspan=3>No local candidates found.</td></tr>'}</tbody></table>"
+            )
+        else:
+            cards = []
+            entries = [item for item in manifest if str(item.get("asset", "")).strip() == selected_asset]
+            for item in entries:
+                candidate_path = str(item.get("candidate_path", "")).strip()
+                if not candidate_path:
+                    continue
+                candidate = HERE / candidate_path
+                if not candidate.exists():
+                    continue
+                try:
+                    import base64
+                    encoded_image = base64.b64encode(candidate.read_bytes()).decode("ascii")
+                except Exception:
+                    logging.exception("could not embed candidate %s", candidate)
+                    continue
+                version = html.escape(str(item.get("version_label", "")))
+                seed = html.escape(str(item.get("seed", "")))
+                filename = html.escape(candidate.name)
+                cards.append(
+                    "<article class='asset-card'>"
+                    "<div class='preview'>"
+                    f"<img src='data:image/png;base64,{encoded_image}' alt='{filename}'>"
+                    "</div>"
+                    "<div class='meta'>"
+                    f"<strong>{html.escape(selected_asset)} {version}</strong><br>"
+                    f"{filename}<br>seed: {seed}"
+                    "</div></article>"
+                )
+            content = (
+                f"<h1>{html.escape(selected_asset)} history</h1>"
+                "<p><a href='/library'>Back to Asset Library</a> &nbsp;|&nbsp; <a href='/'>Worker Status</a></p>"
+                f"<p>{len(cards)} locally available candidate(s).</p>"
+                f"<div class='asset-grid'>{''.join(cards) if cards else '<p>No local candidates found for this asset.</p>'}</div>"
+            )
+
+        body = f"""<!doctype html>
+<html><head><meta charset="utf-8">
+<title>DeadShift Asset Library</title>
+<style>
+body{{font-family:Arial,sans-serif;background:#202020;color:#eee;padding:32px}}
+a{{color:#9ecbff}} table{{border-collapse:collapse;min-width:620px;background:#2d2d2d}}
+th,td{{padding:12px 16px;border-bottom:1px solid #444;text-align:left}}
+.asset-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}}
+.asset-card{{background:#2d2d2d;border:1px solid #444;border-radius:10px;overflow:hidden}}
+.preview{{min-height:280px;background:#3a3a3a;display:flex;align-items:center;justify-content:center;padding:16px}}
+.preview img{{max-width:100%;max-height:380px}}
+.meta{{padding:12px 14px;line-height:1.5;word-break:break-word}}
+</style></head><body>{content}</body></html>"""
         encoded = body.encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
