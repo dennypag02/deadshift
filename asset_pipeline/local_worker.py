@@ -139,10 +139,12 @@ def read_promotion_job(path: Path) -> dict:
     if not isinstance(data, dict):
         raise ValueError("promotion job file must contain a YAML mapping")
 
-    required = ("asset", "source", "target")
-    missing = [key for key in required if not str(data.get(key, "")).strip()]
-    if missing:
-        raise ValueError("missing required fields: " + ", ".join(missing))
+    if not str(data.get("asset", "")).strip():
+        raise ValueError("missing required field: asset")
+    if not str(data.get("target", "")).strip():
+        raise ValueError("missing required field: target")
+    if not str(data.get("source", "")).strip() and not str(data.get("seed", "")).strip():
+        raise ValueError("promotion job requires either source or seed")
 
     data["job_id"] = str(data.get("job_id") or path.stem)
     data["overwrite"] = bool(data.get("overwrite", False))
@@ -152,7 +154,32 @@ def read_promotion_job(path: Path) -> dict:
 def process_promotion_job(path: Path, job: dict) -> bool:
     job_id = str(job["job_id"])
     asset = str(job["asset"])
-    source = (REPO_ROOT / str(job["source"])).resolve()
+    source_value = str(job.get("source", "")).strip()
+    if not source_value:
+        seed = str(job.get("seed", "")).strip()
+        manifest = []
+        if MANIFEST_PATH.exists():
+            try:
+                loaded = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+                if isinstance(loaded, list):
+                    manifest = loaded
+            except Exception as exc:
+                raise ValueError(f"could not read manifest for seed lookup: {exc}") from exc
+        matches = [
+            item for item in manifest
+            if str(item.get("seed", "")).strip() == seed
+            and str(item.get("candidate_path", "")).strip()
+        ]
+        if not matches:
+            write_status(
+                state="promotion_waiting_for_source",
+                job_id=job_id,
+                asset=asset,
+                message=f"No local candidate found for seed {seed}.",
+            )
+            return False
+        source_value = str(matches[-1]["candidate_path"])
+    source = (HERE / source_value).resolve() if source_value.startswith("staging/") else (REPO_ROOT / source_value).resolve()
     target = (REPO_ROOT / str(job["target"])).resolve()
     repo_root = REPO_ROOT.resolve()
     godot_art = (REPO_ROOT / "godot" / "art").resolve()
