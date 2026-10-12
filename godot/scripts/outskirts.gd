@@ -1,0 +1,549 @@
+extends Node2D
+
+const TILE := 128.0
+const MAP_W := 32
+const MAP_H := 40
+const MAP_SIZE := Vector2(MAP_W * TILE, MAP_H * TILE)
+
+const SURVIVOR_ART := preload("res://art/survivor_wasteland.svg")
+const ZOMBIE_ART := preload("res://art/zombie_shambler.svg")
+const CAR_SUV_ART := preload("res://art/cars/car_suv.png")
+const CAR_SEDAN_ART := preload("res://art/cars/car_sedan.png")
+
+const PLAYER_RADIUS := 22.0
+const BULLET_RADIUS := 5.0
+const BASE_PLAYER_SPEED := 285.0
+const BASE_FIRE_PERIOD := 0.30
+const BULLET_SPEED := 680.0
+const PUMP_RADIUS := 34.0
+const PUMP_BLAST_RADIUS := 275.0
+
+const HIGHWAY_WEST := Vector2(80, 38.0 * TILE)
+const HIGHWAY_EAST := Vector2(MAP_SIZE.x - 80, 38.0 * TILE)
+const SCRUB_WEST := Vector2(7.0 * TILE, 80)
+const SCRUB_EAST := Vector2(24.0 * TILE, 80)
+const MOTEL_A := Vector2(24.0 * TILE, 15.0 * TILE)
+const MOTEL_B := Vector2(28.0 * TILE, 15.0 * TILE)
+const PLAYER_START := Vector2(16.0 * TILE, 22.0 * TILE)
+const DINER_HEALTH_POS := Vector2(6.0 * TILE, 14.0 * TILE)
+const NORTH_EXIT := Rect2(14.0 * TILE, 0, 3.0 * TILE, 5.0 * TILE)
+
+var wave_plan := {
+	1: {"shamblers": 8, "runners": 0, "trucker": 0},
+	2: {"shamblers": 12, "runners": 0, "trucker": 0},
+	3: {"shamblers": 15, "runners": 0, "trucker": 0},
+	4: {"shamblers": 18, "runners": 0, "trucker": 0},
+	5: {"shamblers": 12, "runners": 5, "trucker": 0},
+	6: {"shamblers": 14, "runners": 6, "trucker": 0},
+	7: {"shamblers": 18, "runners": 6, "trucker": 0},
+	8: {"shamblers": 20, "runners": 8, "trucker": 0},
+	9: {"shamblers": 24, "runners": 10, "trucker": 0},
+	10: {"shamblers": 28, "runners": 10, "trucker": 1},
+}
+
+var player_pos := PLAYER_START
+var player_hp := 100
+var score := 0
+var kills := 0
+var wave := 1
+var fire_period := BASE_FIRE_PERIOD
+var player_speed := BASE_PLAYER_SPEED
+var bullet_damage := 1
+var wave_active := true
+var wave_spawned := 0
+var wave_total := 0
+var runners_spawned := 0
+var trucker_spawned := false
+var spawn_clock := 0.0
+var fire_clock := 0.0
+var health_spawn_clock := 18.0
+var health_available := false
+var district_cleared := false
+var tanker_event := false
+var fire_hazard := false
+var touch_origin := Vector2.ZERO
+var touch_position := Vector2.ZERO
+var touch_active := false
+
+var enemies: Array[Dictionary] = []
+var bullets: Array[Dictionary] = []
+var pumps: Array[Dictionary] = []
+var impact_marks: Array[Dictionary] = []
+
+var camera: Camera2D
+var hud: Label
+var banner: Label
+var upgrade_panel: Panel
+var upgrade_title: Label
+var rng := RandomNumberGenerator.new()
+
+func _ready() -> void:
+	rng.seed = 20261012
+	_setup_pumps()
+	_setup_camera()
+	_setup_ui()
+	_start_wave(1)
+
+func _setup_camera() -> void:
+	camera = Camera2D.new()
+	camera.enabled = true
+	camera.zoom = Vector2(0.68, 0.68)
+	camera.position_smoothing_enabled = true
+	camera.position_smoothing_speed = 8.0
+	add_child(camera)
+	camera.position = player_pos
+
+func _setup_ui() -> void:
+	var ui := CanvasLayer.new()
+	add_child(ui)
+
+	var bar := ColorRect.new()
+	bar.color = Color(0.04, 0.04, 0.04, 0.82)
+	bar.position = Vector2(0, 0)
+	bar.size = Vector2(432, 82)
+	ui.add_child(bar)
+
+	hud = Label.new()
+	hud.position = Vector2(16, 12)
+	hud.add_theme_font_size_override("font_size", 20)
+	ui.add_child(hud)
+
+	banner = Label.new()
+	banner.position = Vector2(18, 92)
+	banner.size = Vector2(396, 84)
+	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	banner.add_theme_font_size_override("font_size", 18)
+	ui.add_child(banner)
+
+	upgrade_panel = Panel.new()
+	upgrade_panel.position = Vector2(24, 570)
+	upgrade_panel.size = Vector2(384, 310)
+	upgrade_panel.visible = false
+	ui.add_child(upgrade_panel)
+
+	upgrade_title = Label.new()
+	upgrade_title.position = Vector2(18, 18)
+	upgrade_title.size = Vector2(348, 50)
+	upgrade_title.text = "MINI-MART UPGRADE CRATE\nChoose 1 upgrade"
+	upgrade_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	upgrade_title.add_theme_font_size_override("font_size", 18)
+	upgrade_panel.add_child(upgrade_title)
+
+	var rapid := Button.new()
+	rapid.position = Vector2(32, 88)
+	rapid.size = Vector2(320, 52)
+	rapid.text = "Rapid Fire  -  fire 12% faster"
+	rapid.pressed.connect(_choose_rapid_fire)
+	upgrade_panel.add_child(rapid)
+
+	var heavy := Button.new()
+	heavy.position = Vector2(32, 154)
+	heavy.size = Vector2(320, 52)
+	heavy.text = "Heavy Rounds  -  +1 damage"
+	heavy.pressed.connect(_choose_heavy_rounds)
+	upgrade_panel.add_child(heavy)
+
+	var fleet := Button.new()
+	fleet.position = Vector2(32, 220)
+	fleet.size = Vector2(320, 52)
+	fleet.text = "Fleet Feet  -  move 10% faster"
+	fleet.pressed.connect(_choose_fleet_feet)
+	upgrade_panel.add_child(fleet)
+
+func _setup_pumps() -> void:
+	var positions := [
+		Vector2(14.5 * TILE, 18.0 * TILE),
+		Vector2(15.5 * TILE, 18.0 * TILE),
+		Vector2(16.5 * TILE, 18.0 * TILE),
+		Vector2(17.5 * TILE, 18.0 * TILE),
+	]
+	for p in positions:
+		pumps.append({"pos": p, "alive": true})
+
+func _reset_pumps() -> void:
+	for pump in pumps:
+		pump["alive"] = true
+
+func _start_wave(next_wave: int) -> void:
+	wave = next_wave
+	if wave > 10:
+		return
+	wave_active = true
+	wave_spawned = 0
+	runners_spawned = 0
+	trucker_spawned = false
+	var plan: Dictionary = wave_plan[wave]
+	wave_total = int(plan["shamblers"]) + int(plan["runners"]) + int(plan["trucker"])
+	spawn_clock = 0.3
+	_reset_pumps()
+	if wave == 10:
+		tanker_event = true
+		fire_hazard = true
+		banner.text = "WAVE 10: TANKER DOWN!\nTRUCKER INCOMING - SURVIVE!"
+	elif wave == 6:
+		banner.text = "WAVE 6: MOTEL DOORS ARE NOT SAFE"
+	elif wave == 5:
+		banner.text = "WAVE 5: RUNNERS - PRIORITIZE FAST TARGETS"
+	elif wave == 4:
+		banner.text = "WAVE 4: CHECK BEHIND YOU - SCRUBLAND ACTIVE"
+	elif wave == 3:
+		banner.text = "WAVE 3: SHOOT A GAS PUMP WHEN THEY CROWD IT"
+	elif wave == 2:
+		banner.text = "WAVE 2: WATCH BOTH HIGHWAY ENDS"
+	else:
+		banner.text = "WAVE 1: DRAG TO MOVE - AUTO-FIRE IS ACTIVE"
+	_update_hud()
+
+func _finish_wave() -> void:
+	wave_active = false
+	if wave == 10:
+		district_cleared = true
+		fire_hazard = false
+		banner.text = "OUTSKIRTS CLEARED!\nROAD NORTH TO DOWNTOWN UNLOCKED"
+		_update_hud()
+		return
+	banner.text = "WAVE %d CLEARED - RETURN TO THE MINI-MART" % wave
+	upgrade_panel.visible = true
+
+func _choose_rapid_fire() -> void:
+	fire_period = maxf(0.14, fire_period * 0.88)
+	_continue_after_upgrade("Rapid Fire")
+
+func _choose_heavy_rounds() -> void:
+	bullet_damage += 1
+	_continue_after_upgrade("Heavy Rounds")
+
+func _choose_fleet_feet() -> void:
+	player_speed *= 1.10
+	_continue_after_upgrade("Fleet Feet")
+
+func _continue_after_upgrade(choice: String) -> void:
+	upgrade_panel.visible = false
+	banner.text = "%s equipped" % choice
+	_start_wave(wave + 1)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			touch_origin = event.position
+			touch_position = event.position
+			touch_active = true
+		else:
+			touch_active = false
+	elif event is InputEventScreenDrag:
+		touch_position = event.position
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			touch_origin = event.position
+			touch_position = event.position
+			touch_active = true
+		else:
+			touch_active = false
+	elif event is InputEventMouseMotion and touch_active:
+		touch_position = event.position
+
+func _physics_process(delta: float) -> void:
+	if player_hp <= 0:
+		banner.text = "YOU DIED - RESTART THE APP TO RETRY"
+		return
+
+	var direction := Vector2.ZERO
+	if touch_active:
+		direction = (touch_position - touch_origin).limit_length(90.0) / 90.0
+	direction += Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	player_pos += direction.limit_length(1.0) * player_speed * delta
+	player_pos.x = clampf(player_pos.x, 40.0, MAP_SIZE.x - 40.0)
+	player_pos.y = clampf(player_pos.y, 40.0, MAP_SIZE.y - 40.0)
+	if not district_cleared and NORTH_EXIT.has_point(player_pos):
+		player_pos.y = 5.0 * TILE + 42.0
+	camera.position = player_pos
+
+	for i in range(impact_marks.size() - 1, -1, -1):
+		impact_marks[i]["life"] -= delta
+		if impact_marks[i]["life"] <= 0.0:
+			impact_marks.remove_at(i)
+
+	if wave_active:
+		spawn_clock -= delta
+		if spawn_clock <= 0.0 and wave_spawned < wave_total:
+			_spawn_next_enemy()
+			spawn_clock = maxf(0.30, 1.15 - float(wave) * 0.065)
+		if wave_spawned >= wave_total and enemies.is_empty():
+			_finish_wave()
+
+	fire_clock -= delta
+	if fire_clock <= 0.0 and not enemies.is_empty():
+		var nearest := 0
+		for i in range(1, enemies.size()):
+			if player_pos.distance_squared_to(enemies[i]["pos"]) < player_pos.distance_squared_to(enemies[nearest]["pos"]):
+				nearest = i
+		var heading: Vector2 = (enemies[nearest]["pos"] - player_pos).normalized()
+		bullets.append({"pos": player_pos, "dir": heading, "life": 1.6})
+		fire_clock = fire_period
+
+	_update_bullets(delta)
+	_update_enemies(delta)
+	_update_health(delta)
+	_update_hud()
+	queue_redraw()
+
+func _spawn_next_enemy() -> void:
+	var plan: Dictionary = wave_plan[wave]
+	var kind := "shambler"
+	if wave == 10 and int(plan["trucker"]) > 0 and not trucker_spawned and wave_spawned >= wave_total / 2:
+		kind = "trucker"
+		trucker_spawned = true
+	elif runners_spawned < int(plan["runners"]) and (wave_spawned % 3 == 1 or wave_spawned >= int(plan["shamblers"])):
+		kind = "runner"
+		runners_spawned += 1
+
+	var spawn := _pick_spawn_point()
+	var hp := 1
+	var speed := 76.0
+	var radius := 18.0
+	if kind == "runner":
+		speed = 155.0
+		radius = 15.0
+	elif kind == "trucker":
+		hp = 30
+		speed = 46.0
+		radius = 34.0
+	enemies.append({
+		"pos": spawn,
+		"kind": kind,
+		"hp": hp,
+		"speed": speed,
+		"radius": radius,
+		"charge": 0.0,
+	})
+	wave_spawned += 1
+
+func _pick_spawn_point() -> Vector2:
+	var points: Array[Vector2] = []
+	if wave == 1:
+		points = [HIGHWAY_WEST]
+	else:
+		points = [HIGHWAY_WEST, HIGHWAY_EAST]
+	if wave >= 4:
+		points.append(SCRUB_WEST)
+		points.append(SCRUB_EAST)
+	if wave >= 6 and rng.randf() < 0.34:
+		points.append(MOTEL_A)
+		points.append(MOTEL_B)
+	return points[rng.randi_range(0, points.size() - 1)]
+
+func _update_bullets(delta: float) -> void:
+	for i in range(bullets.size() - 1, -1, -1):
+		var bullet: Dictionary = bullets[i]
+		bullet["pos"] += bullet["dir"] * BULLET_SPEED * delta
+		bullet["life"] -= delta
+		var consumed := false
+
+		for pump in pumps:
+			if bool(pump["alive"]) and bullet["pos"].distance_to(pump["pos"]) <= PUMP_RADIUS + BULLET_RADIUS:
+				_explode_pump(pump)
+				consumed = true
+				break
+		if consumed:
+			bullets.remove_at(i)
+			continue
+
+		for j in range(enemies.size() - 1, -1, -1):
+			var enemy: Dictionary = enemies[j]
+			if bullet["pos"].distance_to(enemy["pos"]) <= float(enemy["radius"]) + BULLET_RADIUS:
+				enemy["hp"] = int(enemy["hp"]) - bullet_damage
+				if str(enemy["kind"]) == "trucker":
+					enemy["charge"] = 1.1
+				impact_marks.append({"pos": enemy["pos"], "life": 0.22})
+				if int(enemy["hp"]) <= 0:
+					kills += 1
+					score += 500 if str(enemy["kind"]) == "trucker" else 100
+					enemies.remove_at(j)
+				consumed = true
+				break
+		if consumed or float(bullet["life"]) <= 0.0:
+			bullets.remove_at(i)
+
+func _explode_pump(pump: Dictionary) -> void:
+	pump["alive"] = false
+	impact_marks.append({"pos": pump["pos"], "life": 0.55, "blast": true})
+	for i in range(enemies.size() - 1, -1, -1):
+		var enemy: Dictionary = enemies[i]
+		var distance := enemy["pos"].distance_to(pump["pos"])
+		if distance <= PUMP_BLAST_RADIUS:
+			var damage := 10 if str(enemy["kind"]) == "trucker" else 99
+			enemy["hp"] = int(enemy["hp"]) - damage
+			if int(enemy["hp"]) <= 0:
+				kills += 1
+				score += 500 if str(enemy["kind"]) == "trucker" else 100
+				enemies.remove_at(i)
+	banner.text = "PUMP DETONATED!"
+
+func _update_enemies(delta: float) -> void:
+	for i in range(enemies.size() - 1, -1, -1):
+		var enemy: Dictionary = enemies[i]
+		var to_player: Vector2 = player_pos - enemy["pos"]
+		var speed := float(enemy["speed"])
+		if str(enemy["kind"]) == "trucker" and float(enemy["charge"]) > 0.0:
+			enemy["charge"] = maxf(0.0, float(enemy["charge"]) - delta)
+			speed = 165.0
+		enemy["pos"] += to_player.normalized() * speed * delta
+		if to_player.length() < PLAYER_RADIUS + float(enemy["radius"]):
+			var damage := 18 if str(enemy["kind"]) == "trucker" else 7
+			player_hp = maxi(0, player_hp - damage)
+			enemies.remove_at(i)
+
+func _update_health(delta: float) -> void:
+	if health_available:
+		if player_pos.distance_to(DINER_HEALTH_POS) < 58.0:
+			player_hp = mini(100, player_hp + 35)
+			health_available = false
+			health_spawn_clock = 28.0
+			banner.text = "DINER MEDKIT: +35 HP"
+	else:
+		health_spawn_clock -= delta
+		if health_spawn_clock <= 0.0:
+			health_available = true
+
+func _update_hud() -> void:
+	var remaining := enemies.size() + maxi(0, wave_total - wave_spawned)
+	var state := "CLEAR" if district_cleared else ("FIGHT" if wave_active else "UPGRADE")
+	hud.text = "OUTSKIRTS  Wave %d/10  HP %d  Score %d\n%s  Threats %d" % [wave, player_hp, score, state, remaining]
+
+func _draw() -> void:
+	_draw_ground()
+	_draw_structures()
+	_draw_props()
+	_draw_spawn_markers()
+	_draw_combat()
+	_draw_dusk()
+
+func _draw_ground() -> void:
+	draw_rect(Rect2(Vector2.ZERO, MAP_SIZE), Color("#b99a61"))
+	draw_rect(Rect2(0, 0, MAP_SIZE.x, 5.0 * TILE), Color("#8f7a4d"))
+	draw_rect(Rect2(14.0 * TILE, 0, 3.0 * TILE, 11.0 * TILE), Color("#4b4942"))
+	draw_rect(Rect2(0, 36.0 * TILE, MAP_SIZE.x, 4.0 * TILE), Color("#2b2d2f"))
+	draw_rect(Rect2(22.0 * TILE, 24.0 * TILE, 9.0 * TILE, 10.0 * TILE), Color("#736f65"))
+	for lane in range(1, 32):
+		var x := float(lane) * TILE
+		draw_line(Vector2(x, 36.0 * TILE), Vector2(x, MAP_SIZE.y), Color(0.12,0.12,0.12,0.18), 1.0)
+	for stripe in range(0, 32, 2):
+		draw_rect(Rect2(stripe * TILE, 37.85 * TILE, TILE * 0.65, 10), Color("#d0b76f"))
+
+func _draw_structures() -> void:
+	_draw_building(Rect2(12.0 * TILE, 11.0 * TILE, 7.0 * TILE, 4.0 * TILE), Color("#c6b48e"), "MINI-MART / UPGRADES")
+	_draw_building(Rect2(3.0 * TILE, 8.0 * TILE, 6.0 * TILE, 5.0 * TILE), Color("#638f8b"), "DINER / HEALTH")
+	_draw_building(Rect2(2.0 * TILE, 25.0 * TILE, 7.0 * TILE, 6.0 * TILE), Color("#51545a"), "AUTO SHOP")
+	_draw_building(Rect2(22.0 * TILE, 7.0 * TILE, 9.0 * TILE, 8.0 * TILE), Color("#aa846e"), "MOTEL")
+	draw_rect(Rect2(13.0 * TILE, 16.0 * TILE, 6.0 * TILE, 5.0 * TILE), Color("#a54f3a"))
+	draw_rect(Rect2(13.4 * TILE, 16.4 * TILE, 5.2 * TILE, 4.2 * TILE), Color("#d9c28d"))
+	_label(Vector2(13.2 * TILE, 15.7 * TILE), "GAS STATION HUB", 28, Color("#2a211b"))
+
+	if not district_cleared:
+		draw_rect(Rect2(14.0 * TILE, 0, 3.0 * TILE, 18), Color("#a83232"))
+		_label(Vector2(14.05 * TILE, 40), "DOWNTOWN LOCKED", 24, Color("#f0d8c0"))
+	else:
+		draw_rect(Rect2(14.0 * TILE, 0, 3.0 * TILE, 18), Color("#4d9d55"))
+		_label(Vector2(14.05 * TILE, 40), "DOWNTOWN OPEN", 24, Color("#e5f5d9"))
+
+func _draw_building(rect: Rect2, color: Color, title: String) -> void:
+	draw_rect(rect.grow(12.0), Color(0.08,0.08,0.08,0.55))
+	draw_rect(rect, color)
+	draw_rect(rect.grow(-18.0), color.darkened(0.15), false, 6.0)
+	_label(rect.position + Vector2(16, 42), title, 24, Color("#1b1b1b"))
+
+func _draw_props() -> void:
+	for pump in pumps:
+		var p: Vector2 = pump["pos"]
+		if bool(pump["alive"]):
+			draw_rect(Rect2(p - Vector2(23, 38), Vector2(46, 76)), Color("#b34d37"))
+			draw_circle(p + Vector2(0, -22), 7, Color("#f4c36d"))
+		else:
+			draw_circle(p, 28, Color("#25211d"))
+
+	# Truck stop semi-trailer cover.
+	draw_rect(Rect2(23.2 * TILE, 26.2 * TILE, 1.4 * TILE, 5.2 * TILE), Color("#d5d1c6"))
+	draw_rect(Rect2(27.0 * TILE, 27.8 * TILE, 1.4 * TILE, 5.2 * TILE), Color("#b6b2aa"))
+
+	# Existing approved car art around the district.
+	_draw_car(CAR_SUV_ART, Vector2(10.0 * TILE, 23.0 * TILE), -0.18, Color(0.93,0.90,0.82))
+	_draw_car(CAR_SEDAN_ART, Vector2(21.0 * TILE, 19.5 * TILE), 0.16, Color(0.82,0.88,0.92))
+	_draw_car(CAR_SUV_ART, Vector2(7.5 * TILE, 34.0 * TILE), 0.08, Color(0.84,0.90,0.80))
+	_draw_car(CAR_SEDAN_ART, Vector2(26.0 * TILE, 35.0 * TILE), -0.12, Color(0.92,0.82,0.78))
+
+	if health_available:
+		draw_circle(DINER_HEALTH_POS, 30, Color("#d85454"))
+		draw_rect(Rect2(DINER_HEALTH_POS - Vector2(7, 23), Vector2(14, 46)), Color.WHITE)
+		draw_rect(Rect2(DINER_HEALTH_POS - Vector2(23, 7), Vector2(46, 14)), Color.WHITE)
+
+	if tanker_event:
+		var tanker_rect := Rect2(8.5 * TILE, 36.4 * TILE, 15.0 * TILE, 1.6 * TILE)
+		draw_rect(tanker_rect, Color("#88877f"))
+		draw_rect(tanker_rect.grow(-15), Color("#b0a99c"))
+	if fire_hazard:
+		for i in range(10):
+			var fire_pos := Vector2((7.0 + i * 1.8) * TILE, 36.8 * TILE)
+			draw_circle(fire_pos, 38, Color(1.0, 0.35, 0.08, 0.78))
+			draw_circle(fire_pos + Vector2(8,-16), 22, Color(1.0, 0.75, 0.15, 0.85))
+
+func _draw_car(texture: Texture2D, center: Vector2, rotation: float, tint: Color) -> void:
+	var texture_size := Vector2(texture.get_size())
+	var scale_factor := 150.0 / maxf(texture_size.x, texture_size.y)
+	var draw_size := texture_size * scale_factor
+	draw_circle(center + Vector2(7,12), 58, Color(0.05,0.05,0.05,0.38))
+	draw_set_transform(center, rotation, Vector2.ONE)
+	draw_texture_rect(texture, Rect2(-draw_size * 0.5, draw_size), false, tint)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+func _draw_spawn_markers() -> void:
+	if wave <= 2:
+		_spawn_marker(HIGHWAY_WEST, Color("#e6c04d"))
+		if wave >= 2:
+			_spawn_marker(HIGHWAY_EAST, Color("#e6c04d"))
+	if wave >= 4:
+		_spawn_marker(SCRUB_WEST, Color("#6ca45a"))
+		_spawn_marker(SCRUB_EAST, Color("#6ca45a"))
+	if wave >= 6:
+		_spawn_marker(MOTEL_A, Color("#c84f4f"))
+		_spawn_marker(MOTEL_B, Color("#c84f4f"))
+
+func _spawn_marker(pos: Vector2, color: Color) -> void:
+	draw_circle(pos, 22, color)
+	draw_circle(pos, 35, Color(color.r, color.g, color.b, 0.25))
+
+func _draw_combat() -> void:
+	for enemy in enemies:
+		var p: Vector2 = enemy["pos"]
+		var kind := str(enemy["kind"])
+		var radius := float(enemy["radius"])
+		if kind == "trucker":
+			draw_circle(p + Vector2(6,12), radius + 10, Color(0.05,0.05,0.05,0.55))
+			draw_circle(p, radius, Color("#7e392f"))
+			_label(p + Vector2(-42,-52), "TRUCKER", 20, Color("#ffdfbd"))
+		elif kind == "runner":
+			draw_circle(p, radius + 3, Color("#c98744"))
+			draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(23,23), Vector2(46,46)), false)
+		else:
+			draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(25,25), Vector2(50,50)), false)
+
+	for bullet in bullets:
+		draw_line(bullet["pos"] - bullet["dir"] * 12.0, bullet["pos"], Color("#ffcb65"), 4.0)
+		draw_circle(bullet["pos"], BULLET_RADIUS, Color("#fff2b8"))
+
+	for mark in impact_marks:
+		var life := float(mark["life"])
+		var is_blast := bool(mark.get("blast", false))
+		var radius := 28.0 if not is_blast else 115.0 * clampf(life / 0.55, 0.2, 1.0)
+		draw_circle(mark["pos"], radius, Color(1.0,0.35,0.08,0.42 if is_blast else 0.55))
+
+	draw_circle(player_pos + Vector2(6,14), 35, Color(0.02,0.02,0.02,0.58))
+	draw_texture_rect(SURVIVOR_ART, Rect2(player_pos - Vector2(48,48), Vector2(96,96)), false)
+
+func _draw_dusk() -> void:
+	if wave < 7:
+		return
+	var dusk := clampf(float(wave - 6) / 4.0, 0.0, 1.0)
+	draw_rect(Rect2(Vector2.ZERO, MAP_SIZE), Color(0.12,0.10,0.22,0.10 + dusk * 0.24))
+
+func _label(pos: Vector2, text: String, size: int, color: Color) -> void:
+	draw_string(ThemeDB.fallback_font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)

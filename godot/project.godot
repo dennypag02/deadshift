@@ -3,9 +3,9 @@ config_version=5
 
 [application]
 config/name="Deadshift V3"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/Outskirts.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
-config/description="Deadshift V3 scrolling-world acceptance prototype"
+config/description="Deadshift Gas Station Outskirts tutorial district prototype"
 
 [display]
 window/size/viewport_width=432
