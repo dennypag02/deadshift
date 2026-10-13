@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<defs><filter id="shadow"><feDropShadow dx="8" dy="12" stdDeviation="7" flood-color="#17130f" flood-opacity=".42"/></filter></defs>
+
+<g filter="url(#shadow)" stroke="#343331" stroke-width="9">
+<path d="M42 168l46-72h336l46 72-30 248H72Z" fill="#a69d86"/>
+<path d="M92 176H420M82 318H430" stroke="#77705f" stroke-width="11"/>
+<path d="M136 214l66 26M302 356l70-28" stroke="#8a533a" stroke-width="12"/>
+</g></svg>

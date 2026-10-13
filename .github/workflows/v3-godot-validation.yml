@@ -1,0 +1,59 @@
+name: Deadshift V3 Godot Validation
+on:
+  pull_request:
+    paths:
+      - 'godot/**'
+      - '.github/workflows/v3-godot-validation.yml'
+  push:
+    branches:
+      - feature/v3-godot-scrolling-world
+    paths:
+      - 'godot/**'
+      - '.github/workflows/v3-godot-validation.yml'
+permissions:
+  contents: read
+jobs:
+  godot-parse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot 4.4.1 headless
+        run: |
+          curl -fL --retry 3 -o godot.zip https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip -q godot.zip
+          chmod +x Godot_v4.4.1-stable_linux.x86_64
+      - name: Parse and import Godot project
+        shell: bash
+        run: |
+          set -o pipefail
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --editor --quit 2>&1 | tee godot-import.log
+          ! grep -E "SCRIPT ERROR:|Parse Error:|Failed to load script" godot-import.log
+      - name: Run headless smoke test
+        shell: bash
+        run: |
+          set -o pipefail
+          timeout 20s ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --quit-after 60 2>&1 | tee godot-smoke.log || test $? -eq 124
+          ! grep -E "SCRIPT ERROR:|Parse Error:|Failed to load script|Invalid call|Invalid access" godot-smoke.log
+      - name: Check HUD bounds at 1080x2340
+        shell: bash
+        run: |
+          set -o pipefail
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --resolution 1080x2340 --script res://scripts/hud_layout_check.gd 2>&1 | tee hud-layout.log
+          grep -q "HUD_LAYOUT_1080x2340_PASS" hud-layout.log
+          ! grep -E "HUD CLIPPED|SCORE OVERLAPS MINIMAP|SCRIPT ERROR:|Parse Error:" hud-layout.log
+      - name: Capture 1080x2340 HUD screenshot
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb libgl1-mesa-dri >/dev/null
+          mkdir -p hud-capture
+          HOME="$PWD/hud-capture" xvfb-run -a ./Godot_v4.4.1-stable_linux.x86_64 --path godot --resolution 1080x2340 --rendering-driver opengl3 --script res://scripts/hud_screenshot_check.gd 2>&1 | tee hud-screenshot.log
+          find hud-capture -name 'hud_1080x2340.png' -exec cp {} hud-capture/screenshot.png \;
+          test -s hud-capture/screenshot.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deadshift-hud-screenshot-1080x2340
+          path: hud-capture/screenshot.png
+          if-no-files-found: warn

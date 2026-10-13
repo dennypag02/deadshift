@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<defs><filter id="shadow"><feDropShadow dx="8" dy="12" stdDeviation="7" flood-color="#17130f" flood-opacity=".42"/></filter></defs>
+
+<g filter="url(#shadow)" stroke="#2d3030" stroke-width="10">
+<rect x="48" y="86" width="416" height="340" rx="12" fill="#62666a"/>
+<path d="M68 106H444V406H68Z" fill="#454a4c"/>
+<path d="M88 132H424M88 172H424M88 212H424M88 252H424M88 292H424M88 332H424" stroke="#717678" stroke-width="9"/>
+<rect x="292" y="118" width="116" height="92" fill="#252a2c"/>
+<circle cx="122" cy="352" r="35" fill="#242828"/><circle cx="185" cy="366" r="30" fill="#242828"/>
+<path d="M82 284l98-22 58 36" stroke="#7f4c35" stroke-width="18" fill="none"/>
+</g></svg>

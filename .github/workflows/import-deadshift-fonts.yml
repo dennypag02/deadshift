@@ -1,0 +1,31 @@
+name: Import DeadShift OFL Fonts
+on:
+  push:
+    paths:
+      - .github/workflows/import-deadshift-fonts.yml
+permissions:
+  contents: write
+jobs:
+  fonts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/v3-godot-scrolling-world
+          persist-credentials: true
+      - name: Fetch OFL font assets
+        run: |
+          set -euo pipefail
+          mkdir -p godot/art/fonts
+          curl --fail --location --retry 3 https://raw.githubusercontent.com/google/fonts/main/ofl/bebasneue/BebasNeue-Regular.ttf -o godot/art/fonts/BebasNeue-Regular.ttf
+          curl --fail --location --retry 3 https://raw.githubusercontent.com/google/fonts/main/ofl/barlowcondensed/BarlowCondensed-SemiBold.ttf -o godot/art/fonts/BarlowCondensed-SemiBold.ttf
+          curl --fail --location --retry 3 https://raw.githubusercontent.com/google/fonts/main/ofl/bebasneue/OFL.txt -o godot/art/fonts/BebasNeue-OFL.txt
+          curl --fail --location --retry 3 https://raw.githubusercontent.com/google/fonts/main/ofl/barlowcondensed/OFL.txt -o godot/art/fonts/BarlowCondensed-OFL.txt
+          test -s godot/art/fonts/BebasNeue-Regular.ttf
+          test -s godot/art/fonts/BarlowCondensed-SemiBold.ttf
+      - name: Commit font assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add godot/art/fonts
+          git diff --cached --quiet || (git commit -m "Import OFL Bebas Neue and Barlow Condensed fonts" && git push)
