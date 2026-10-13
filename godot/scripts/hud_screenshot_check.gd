@@ -10,16 +10,21 @@ func _capture() -> void:
 	root.add_child(game)
 	for i in range(35):
 		await process_frame
-	game.set("score", 4900)
-	game.set("player_hp", 86)
-	var caches: Array = game.get("supply_caches")
-	for i in range(mini(2, caches.size())):
-		caches[i]["collected"] = true
-	game.get("banner").text = "SUPPLIES RECOVERED\n2 of 3 - find the last crate"
+	game.score = 4900
+	game.player_hp = 86
+	game.progression.level = 2
+	game.progression.xp = 3
+	for i in range(mini(2, game.supply_caches.size())):
+		game.supply_caches[i]["collected"] = true
+	game.banner.text = "SUPPLIES RECOVERED\n2 of 3 - find the last crate"
 	for i in range(8):
 		await process_frame
-	var image := root.get_texture().get_image()
-	var output := "user://hud_1080x2340.png"
-	var result := image.save_png(output)
-	print("HUD_SCREENSHOT_RESULT: ", result, " ", ProjectSettings.globalize_path(output), " size ", image.get_size())
-	quit(0 if result == OK else 1)
+	var hud_image := root.get_texture().get_image()
+	var hud_result := hud_image.save_png("user://hud_1080x2340.png")
+	game.progression.add_xp(game.progression.xp_required(game.progression.level))
+	for i in range(8):
+		await process_frame
+	var level_image := root.get_texture().get_image()
+	var level_result := level_image.save_png("user://levelup_1080x2340.png")
+	print("HUD_SCREENSHOT_RESULT: ", hud_result, " LEVELUP_SCREENSHOT_RESULT: ", level_result)
+	quit(0 if hud_result == OK and level_result == OK else 1)
