@@ -34,6 +34,8 @@ const BARLOW_PATH := "res://art/fonts/BarlowCondensed-SemiBold.ttf"
 var bebas_font: Font
 var barlow_font: Font
 var vibration_enabled := true
+var debug_tap_count := 0
+var debug_tap_at := 0
 var edge_arrow_timer := 0.0
 
 func _label(text: String, size_px: int, parent: Node) -> Label:
@@ -236,6 +238,14 @@ func _ready() -> void:
 	menu.add_child(quit)
 
 func _toggle_pause() -> void:
+	var now := Time.get_ticks_msec()
+	debug_tap_count = debug_tap_count + 1 if now - debug_tap_at < 1000 else 1
+	debug_tap_at = now
+	if debug_tap_count >= 3 and game != null and game.phase_ui != null:
+		game.phase_ui.debug_tap()
+		game.phase_ui.debug_tap()
+		game.phase_ui.debug_tap()
+		debug_tap_count = 0
 	pause_menu.visible = not pause_menu.visible
 	get_tree().paused = pause_menu.visible
 	process_mode = Node.PROCESS_MODE_ALWAYS
