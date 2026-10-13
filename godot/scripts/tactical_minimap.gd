@@ -41,7 +41,7 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color("#7b969c"), false, 2.0)
 	draw_string(ThemeDB.fallback_font, Vector2(9, 17), "OUTSKIRTS - TAP TO %s" % ("CLOSE" if expanded else "EXPAND"), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#e4f0e9"))
 	var scale := minf(area.size.x / 4096.0, area.size.y / 5120.0) if expanded else 0.075
-	var origin := Vector2.ZERO if expanded else game.player_pos - area.size / (2.0 * scale)
+	var origin: Vector2 = Vector2.ZERO if expanded else Vector2(game.player_pos) - area.size / (2.0 * scale)
 	for y in range(40):
 		for x in range(32):
 			var p := Vector2(x * TILE, y * TILE)
