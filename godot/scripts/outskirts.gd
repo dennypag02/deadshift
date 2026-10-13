@@ -609,6 +609,7 @@ func _update_bullets(delta: float) -> void:
 func _explode_pump(pump: Dictionary) -> void:
 	pump["alive"] = false
 	impact_marks.append({"pos": pump["pos"], "life": 0.55, "blast": true})
+	var blast_kills := 0
 	for i in range(enemies.size() - 1, -1, -1):
 		var enemy: Dictionary = enemies[i]
 		var distance: float = Vector2(enemy["pos"]).distance_to(Vector2(pump["pos"]))
@@ -618,7 +619,12 @@ func _explode_pump(pump: Dictionary) -> void:
 			if int(enemy["hp"]) <= 0:
 				kills += 1
 				score += 500 if str(enemy["kind"]) == "trucker" else 100
+				blast_kills += 1
+				if juice_fx != null:
+					juice_fx.call("kill", Vector2(enemy["pos"]), 500 if str(enemy["kind"]) == "trucker" else 100)
 				enemies.remove_at(i)
+	if juice_fx != null:
+		juice_fx.call("explosion", Vector2(pump["pos"]), blast_kills)
 	banner.text = "PUMP DETONATED!"
 
 func _update_enemies(delta: float) -> void:
@@ -636,6 +642,8 @@ func _update_enemies(delta: float) -> void:
 		if to_player.length() < PLAYER_RADIUS + float(enemy["radius"]):
 			var damage := 18 if str(enemy["kind"]) == "trucker" else 7
 			player_hp = maxi(0, player_hp - damage)
+			if vibration_enabled:
+				Input.vibrate_handheld(30)
 			enemies.remove_at(i)
 
 func _update_health(delta: float) -> void:
