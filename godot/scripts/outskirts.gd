@@ -102,10 +102,10 @@ const NEST_WEST := Vector2(9.5 * TILE, 21.5 * TILE)
 const NEST_EAST := Vector2(30.5 * TILE, 20.0 * TILE)
 const NEST_NW := Vector2(5.0 * TILE, 3.2 * TILE)
 const NEST_NE := Vector2(27.0 * TILE, 3.2 * TILE)
-const PUZZLE_CENTER := Vector2(25.8 * TILE, 24.5 * TILE)
-const RELAY_RED := Vector2(23.2 * TILE, 25.0 * TILE)
-const RELAY_YELLOW := Vector2(25.7 * TILE, 28.0 * TILE)
-const RELAY_BLUE := Vector2(28.5 * TILE, 25.0 * TILE)
+const PUZZLE_CENTER := Vector2(26.5 * TILE, 27.5 * TILE)
+const RELAY_RED := Vector2(25.5 * TILE, 23.5 * TILE)
+const RELAY_YELLOW := Vector2(25.5 * TILE, 30.5 * TILE)
+const RELAY_BLUE := Vector2(27.5 * TILE, 27.5 * TILE)
 const PUZZLE_GUARD_RADIUS := 560.0
 const PUZZLE_CODE := ["RED", "BLUE", "YELLOW", "RED"]
 
@@ -643,12 +643,14 @@ func _spawn_puzzle_guard_surge(shamblers: int, runners: int) -> void:
 		spawn.x = clampf(spawn.x, 45.0, MAP_SIZE.x - 45.0)
 		spawn.y = clampf(spawn.y, 45.0, MAP_SIZE.y - 45.0)
 		var is_runner := i >= shamblers
+		var spawn_radius := 15.0 if is_runner else 18.0
+		spawn = _nearest_walkable_position(spawn, spawn_radius)
 		enemies.append({
 			"pos": spawn,
 			"kind": "runner" if is_runner else "shambler",
 			"hp": 1,
 			"speed": 205.0 if is_runner else 112.0,
-			"radius": 15.0 if is_runner else 18.0,
+			"radius": spawn_radius,
 			"charge": 0.0,
 		})
 
@@ -857,6 +859,21 @@ func _move_with_blockers(pos: Vector2, delta_pos: Vector2, radius: float) -> Vec
 	if not _circle_hits_blocker(try_y, radius):
 		result.y = try_y.y
 	return result
+func _nearest_walkable_position(pos: Vector2, radius: float) -> Vector2:
+	var origin_x := int(floor(pos.x / TILE))
+	var origin_y := int(floor(pos.y / TILE))
+	for ring in range(0, 6):
+		for y in range(origin_y - ring, origin_y + ring + 1):
+			for x in range(origin_x - ring, origin_x + ring + 1):
+				if x < 0 or x >= MAP_W or y < 0 or y >= MAP_H:
+					continue
+				if ring > 0 and x > origin_x - ring and x < origin_x + ring and y > origin_y - ring and y < origin_y + ring:
+					continue
+				var candidate := _tile_center(x, y)
+				if not _circle_hits_blocker(candidate, radius):
+					return candidate
+	return Vector2(16.0 * TILE, 32.0 * TILE)
+
 
 func _draw_objectives() -> void:
 	# Generator objective.
