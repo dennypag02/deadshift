@@ -343,8 +343,10 @@ func _draw() -> void:
 	var inset_min := Vector2(float(physical_safe.position.x) * sx, float(physical_safe.position.y) * sy)
 	var inset_max := Vector2(float(display_size.x - physical_safe.end.x) * sx, float(display_size.y - physical_safe.end.y) * sy)
 	var margin := 22.0 * view.x / 432.0
-	var safe_rect := Rect2(inset_min + Vector2.ONE * margin, view - inset_min - inset_max - Vector2.ONE * margin * 2.0)
-	var center := view * 0.5
+	var top_edge := maxf(inset_min.y + margin, (root.position.y + 234.0) * root.scale.y + margin)
+	var bottom_edge := view.y - inset_max.y - margin
+	var safe_rect := Rect2(Vector2(inset_min.x + margin, top_edge), Vector2(view.x - inset_min.x - inset_max.x - margin * 2.0, maxf(1.0, bottom_edge - top_edge)))
+	var center := safe_rect.get_center()
 	var target: Vector2 = game.GENERATOR_POS
 	var icon := "⚡"
 	var found: bool = not game.generator_active
