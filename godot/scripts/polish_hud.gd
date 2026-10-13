@@ -232,6 +232,14 @@ func _ready() -> void:
 	vibration.button_pressed = true
 	vibration.toggled.connect(func(value: bool) -> void: vibration_enabled = value; if game != null: game.set("vibration_enabled", value))
 	menu.add_child(vibration)
+	var dev := Button.new()
+	dev.text = "DEBUG (DEV BUILD)"
+	dev.pressed.connect(func() -> void:
+		if game != null and game.phase_ui != null:
+			game.phase_ui.debug_panel.visible = not game.phase_ui.debug_panel.visible
+			pause_menu.visible = false
+			get_tree().paused = false)
+	menu.add_child(dev)
 	var quit := Button.new()
 	quit.text = "QUIT"
 	quit.pressed.connect(func() -> void: get_tree().quit())
