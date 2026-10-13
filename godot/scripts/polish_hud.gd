@@ -144,10 +144,10 @@ func _ready() -> void:
 		var slot := _label("▣", 22, objective_panel)
 		slot.position = Vector2(78 + i * 32, 47)
 		crate_slots.append(slot)
-	var event_panel := _panel(root, Rect2(0, 200, 432, 82), PANEL)
+	var event_panel := _panel(root, Rect2(0, 200, 412, 82), PANEL)
 	var upper := ColorRect.new()
 	upper.color = AMBER
-	upper.size = Vector2(432, 3)
+	upper.size = Vector2(412, 3)
 	event_panel.add_child(upper)
 	var lower := ColorRect.new()
 	lower.color = AMBER
@@ -156,13 +156,13 @@ func _ready() -> void:
 	event_panel.add_child(lower)
 	banner_title = _label("", 27, event_panel)
 	banner_title.position = Vector2(8, 5)
-	banner_title.size = Vector2(416, 43)
+	banner_title.size = Vector2(396, 43)
 	banner_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	banner_title.add_theme_color_override("font_color", AMBER)
 	banner_title.add_theme_font_override("font", bebas_font if bebas_font != null else ThemeDB.fallback_font)
 	banner_subtitle = _label("", 15, event_panel)
 	banner_subtitle.position = Vector2(8, 49)
-	banner_subtitle.size = Vector2(416, 26)
+	banner_subtitle.size = Vector2(396, 26)
 	banner_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	banner_subtitle.add_theme_font_override("font", barlow_font if barlow_font != null else ThemeDB.fallback_font)
 	event_label = banner_title
@@ -172,7 +172,7 @@ func _ready() -> void:
 	pause_menu.visible = false
 	var menu := VBoxContainer.new()
 	pause_menu.add_child(menu)
-	menu.add_child(_label("PAUSED", 30, menu))
+	_label("PAUSED", 30, menu)
 	var resume := Button.new()
 	resume.text = "RESUME"
 	resume.pressed.connect(_toggle_pause)
