@@ -133,6 +133,7 @@ var bullet_damage := 1
 var juice_fx: Node2D
 var shake_enabled := true
 var vibration_enabled := true
+var recoil_vector := Vector2.ZERO
 var wave_active := true
 var wave_spawned := 0
 var wave_total := 0
@@ -490,6 +491,7 @@ func _physics_process(delta: float) -> void:
 		bullets.append({"pos": player_pos, "dir": heading, "life": 1.6})
 		if juice_fx != null:
 			juice_fx.call("shot", player_pos, heading)
+			recoil_vector = -heading * 3.0
 		fire_clock = fire_period
 
 	_update_bullets(delta)
@@ -1126,9 +1128,10 @@ func _draw_combat() -> void:
 		draw_circle(mark["pos"], radius, Color(1.0,0.35,0.08,0.42 if is_blast else 0.55))
 
 	draw_circle(player_pos + Vector2(6,14), 35, Color(0.02,0.02,0.02,0.58))
+	recoil_vector = recoil_vector.move_toward(Vector2.ZERO, 120.0 * get_physics_process_delta_time())
 	var bounce := sin(float(Time.get_ticks_msec()) * TAU / 250.0) * 0.05 if player_velocity.length() > 40.0 else 0.0
 	var visual_scale := Vector2(1.0, 0.99 + bounce)
-	draw_texture_rect(SURVIVOR_ART, Rect2(player_pos - Vector2(48,48) * visual_scale, Vector2(96,96) * visual_scale), false)
+	draw_texture_rect(SURVIVOR_ART, Rect2(player_pos + recoil_vector - Vector2(48,48) * visual_scale, Vector2(96,96) * visual_scale), false)
 
 func _draw_dusk() -> void:
 	if wave < 7:
