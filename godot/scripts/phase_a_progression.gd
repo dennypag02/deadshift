@@ -87,7 +87,7 @@ func _physics_process(delta: float) -> void:
 	if game == null or config.is_empty() or choosing:
 		return
 	invulnerability = maxf(0.0, invulnerability - delta)
-	var radius := float(config["xp"]["pickup_radius_tiles"]) * game.TILE * pow(1.3, int(passives.get("magnet", 0)))
+	var radius: float = float(config["xp"]["pickup_radius_tiles"]) * game.TILE * pow(1.3, int(passives.get("magnet", 0)))
 	for i in range(gems.size()-1, -1, -1):
 		var pos: Vector2 = gems[i]["pos"]
 		var dist := pos.distance_to(game.player_pos)
@@ -102,7 +102,7 @@ func _physics_process(delta: float) -> void:
 		var count := 1 + int(weapons["buzzsaw"]) / 2
 		for blade in range(count):
 			var theta := orbit_clock * 3.2 + TAU * float(blade) / float(count)
-			var blade_pos := game.player_pos + Vector2.from_angle(theta) * 125.0
+			var blade_pos: Vector2 = game.player_pos + Vector2.from_angle(theta) * 125.0
 			for i in range(game.enemies.size()-1,-1,-1):
 				if blade_pos.distance_to(game.enemies[i]["pos"]) < 30.0:
 					game.enemies[i]["hp"] -= delta * 4.0 * damage_multiplier()
@@ -120,7 +120,7 @@ func _draw() -> void:
 		var count := 1 + int(weapons["buzzsaw"]) / 2
 		for blade in range(count):
 			var theta := orbit_clock * 3.2 + TAU * float(blade) / float(count)
-			var p := game.player_pos + Vector2.from_angle(theta)*125.0
+			var p: Vector2 = game.player_pos + Vector2.from_angle(theta)*125.0
 			draw_circle(p,23.0,Color("#9eabb6"))
 			draw_arc(p,18.0,0.0,TAU,12,Color("#f3e9d8"),4.0)
 			draw_circle(p,5.0,Color("#3A322B"))
