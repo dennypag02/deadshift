@@ -13,7 +13,7 @@ func _check() -> void:
 	game.phase_a_debug_six_shambler_kills()
 	for i in range(30):
 		await process_frame
-	var ok := game.progression.level == 2
+	var ok: bool = int(game.progression.level) == 2
 	if ok:
 		print("PHASE_A_XP_6_KILL_PASS")
 	else:
