@@ -502,12 +502,20 @@ func _physics_process(delta: float) -> void:
 			if player_pos.distance_squared_to(enemies[i]["pos"]) < player_pos.distance_squared_to(enemies[nearest]["pos"]):
 				nearest = i
 		var heading: Vector2 = (enemies[nearest]["pos"] - player_pos).normalized()
-		bullets.append({"pos": player_pos, "dir": heading, "life": 1.6})
+		var shot_count := 1 + (int(progression.passives.get("ammo_belt",0)) + 1) / 2 if progression != null else 1
+		for shot in range(shot_count):
+			var spread := (float(shot) - float(shot_count - 1) * 0.5) * 0.12
+			bullets.append({"pos": player_pos, "dir": heading.rotated(spread), "life": 1.6})
+		if progression != null and progression.weapons.has("boomstick"):
+			var pellet_count := 3 + int(progression.weapons["boomstick"]) * 2
+			for pellet in range(pellet_count):
+				var angle := (float(pellet) - float(pellet_count-1)*0.5) * 0.14
+				bullets.append({"pos": player_pos, "dir": heading.rotated(angle), "life": 0.48})
 		if juice_fx != null:
 			juice_fx.call("shot", player_pos, heading)
 			recoil_vector = -heading * 3.0
 			last_aim = heading
-		fire_clock = fire_period
+		fire_clock = fire_period / (1.0 + 0.08 * int(progression.passives.get("trigger_finger",0))) if progression != null else fire_period
 
 	_update_bullets(delta)
 	_update_enemies(delta)
