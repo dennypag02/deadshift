@@ -591,6 +591,8 @@ func _update_bullets(delta: float) -> void:
 				if str(enemy["kind"]) == "trucker":
 					enemy["charge"] = 1.1
 				impact_marks.append({"pos": enemy["pos"], "life": 0.22})
+				enemy["visual_hit"] = 0.06
+				enemy["visual_dir"] = Vector2(bullet["dir"])
 				if juice_fx != null:
 					juice_fx.call("hit", Vector2(enemy["pos"]), Vector2(bullet["dir"]))
 				if int(enemy["hp"]) <= 0:
@@ -630,6 +632,7 @@ func _explode_pump(pump: Dictionary) -> void:
 func _update_enemies(delta: float) -> void:
 	for i in range(enemies.size() - 1, -1, -1):
 		var enemy: Dictionary = enemies[i]
+		enemy["visual_hit"] = maxf(0.0, float(enemy.get("visual_hit", 0.0)) - delta)
 		var to_player: Vector2 = player_pos - enemy["pos"]
 		var speed := float(enemy["speed"])
 		if str(enemy["kind"]) == "trucker" and float(enemy["charge"]) > 0.0:
@@ -1094,6 +1097,9 @@ func _spawn_marker(pos: Vector2, color: Color) -> void:
 func _draw_combat() -> void:
 	for enemy in enemies:
 		var p: Vector2 = enemy["pos"]
+		var flash_clock: float = float(enemy.get("visual_hit", 0.0))
+		if flash_clock > 0.0:
+			p += Vector2(enemy.get("visual_dir", Vector2.ZERO)) * 25.0 * (flash_clock / 0.06)
 		var kind := str(enemy["kind"])
 		var radius := float(enemy["radius"])
 		if kind == "trucker":
@@ -1105,6 +1111,8 @@ func _draw_combat() -> void:
 			draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(23,23), Vector2(46,46)), false)
 		else:
 			draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(25,25), Vector2(50,50)), false)
+		if flash_clock > 0.0:
+			draw_circle(p, radius + 5.0, Color(1,1,1,0.7 * flash_clock / 0.06))
 
 	for bullet in bullets:
 		draw_line(bullet["pos"] - bullet["dir"] * 22.0, bullet["pos"], Color("#F2A23A", 0.45), 7.0)
