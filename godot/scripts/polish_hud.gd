@@ -222,12 +222,12 @@ func _ready() -> void:
 	var shake := CheckButton.new()
 	shake.text = "Screen shake"
 	shake.button_pressed = true
-	shake.toggled.connect(func(value: bool) -> void: shake_enabled = value)
+	shake.toggled.connect(func(value: bool) -> void: shake_enabled = value; if game != null: game.set("shake_enabled", value))
 	menu.add_child(shake)
 	var vibration := CheckButton.new()
 	vibration.text = "Vibration"
 	vibration.button_pressed = true
-	vibration.toggled.connect(func(value: bool) -> void: vibration_enabled = value)
+	vibration.toggled.connect(func(value: bool) -> void: vibration_enabled = value; if game != null: game.set("vibration_enabled", value))
 	menu.add_child(vibration)
 	var quit := Button.new()
 	quit.text = "QUIT"
