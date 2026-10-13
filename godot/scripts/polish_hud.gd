@@ -136,9 +136,9 @@ func _ready() -> void:
 	score_label.custom_minimum_size = Vector2(84, 65)
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	score_label.add_theme_font_override("font", bebas_font if bebas_font != null else ThemeDB.fallback_font)
-	var objective_panel := _panel(root, Rect2(8, 118, 298, 116))
+	var objective_panel := _panel(root, Rect2(8, 118, 298, 128))
 	var card_style := StyleBoxFlat.new()
-	card_style.bg_color = PANEL
+	card_style.bg_color = Color("#14110F", 0.85)
 	card_style.border_color = Color("#3A322B")
 	card_style.set_border_width_all(3)
 	card_style.set_corner_radius_all(14)
@@ -148,7 +148,7 @@ func _ready() -> void:
 	var stripe := ColorRect.new()
 	stripe.color = AMBER
 	stripe.position = Vector2(3, 4)
-	stripe.size = Vector2(8, 108)
+	stripe.size = Vector2(8, 120)
 	card_layer.add_child(stripe)
 	var content := HBoxContainer.new()
 	content.position = Vector2(19, 9)
@@ -162,7 +162,7 @@ func _ready() -> void:
 	stack.custom_minimum_size = Vector2(194, 96)
 	stack.add_theme_constant_override("separation", 3)
 	content.add_child(stack)
-	objective_label = _label("POWER THE MINI-MART GENERATOR", 15, stack)
+	objective_label = _label("POWER THE MINI-MART GENERATOR", 32, stack)
 	objective_label.custom_minimum_size = Vector2(194, 52)
 	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var crates := HBoxContainer.new()
@@ -174,7 +174,7 @@ func _ready() -> void:
 		crate.custom_minimum_size = Vector2(40, 34)
 		crates.add_child(crate)
 		crate_slots.append(crate)
-	supplies_label = _label("SUPPLIES 0/3", 12, crates)
+	supplies_label = _label("SUPPLIES 0/3", 26, crates)
 	supplies_label.custom_minimum_size = Vector2(70, 34)
 	var event_panel := _panel(root, Rect2(0, 245, 412, 125), PANEL)
 	var banner_style := StyleBoxFlat.new()
