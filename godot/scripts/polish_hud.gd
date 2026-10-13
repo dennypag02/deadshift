@@ -172,27 +172,32 @@ func _ready() -> void:
 		crate_slots.append(crate)
 	supplies_label = _label("SUPPLIES 0/3", 12, crates)
 	supplies_label.custom_minimum_size = Vector2(70, 34)
-	var event_panel := _panel(root, Rect2(0, 200, 412, 82), PANEL)
-	var upper := ColorRect.new()
-	upper.color = AMBER
-	upper.size = Vector2(412, 3)
-	event_panel.add_child(upper)
-	var lower := ColorRect.new()
-	lower.color = AMBER
-	lower.position = Vector2(0, 79)
-	lower.size = Vector2(432, 3)
-	event_panel.add_child(lower)
-	banner_title = _label("", 27, event_panel)
-	banner_title.position = Vector2(8, 5)
-	banner_title.size = Vector2(396, 43)
+	var event_panel := _panel(root, Rect2(0, 245, 412, 125), PANEL)
+	var banner_style := StyleBoxFlat.new()
+	banner_style.bg_color = PANEL
+	banner_style.border_color = Color("#3A322B")
+	banner_style.set_border_width_all(3)
+	banner_style.set_corner_radius_all(14)
+	event_panel.add_theme_stylebox_override("panel", banner_style)
+	for y in [3, 117]:
+		var edge := ColorRect.new()
+		edge.color = AMBER
+		edge.position = Vector2(3, y)
+		edge.size = Vector2(406, 5)
+		event_panel.add_child(edge)
+	var banner_stack := VBoxContainer.new()
+	banner_stack.position = Vector2(8, 11)
+	banner_stack.size = Vector2(396, 104)
+	banner_stack.add_theme_constant_override("separation", 0)
+	event_panel.add_child(banner_stack)
+	banner_title = _label("", 64, banner_stack)
+	banner_title.custom_minimum_size = Vector2(396, 68)
 	banner_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	banner_title.add_theme_color_override("font_color", AMBER)
 	banner_title.add_theme_font_override("font", bebas_font if bebas_font != null else ThemeDB.fallback_font)
-	banner_subtitle = _label("", 15, event_panel)
-	banner_subtitle.position = Vector2(8, 49)
-	banner_subtitle.size = Vector2(396, 26)
+	banner_subtitle = _label("", 30, banner_stack)
+	banner_subtitle.custom_minimum_size = Vector2(396, 36)
 	banner_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	banner_subtitle.add_theme_font_override("font", barlow_font if barlow_font != null else ThemeDB.fallback_font)
 	event_label = banner_title
 	event_panel.visible = false
 	backdrop = event_panel
@@ -286,7 +291,11 @@ func _process(delta: float) -> void:
 			detail = headline.substr(split_at).strip_edges() + (" · " + detail if detail != "" else "")
 			headline = headline.substr(0, split_at).strip_edges()
 		banner_title.text = headline
-		banner_title.add_theme_font_size_override("font_size", 27 if headline.length() <= 20 else maxi(16, int(27.0 * 20.0 / float(headline.length()))))
+		var font_for_title: Font = bebas_font if bebas_font != null else ThemeDB.fallback_font
+		var title_size := 64
+		while title_size > 40 and font_for_title.get_string_size(headline, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size).x > 390.0:
+			title_size -= 2
+		banner_title.add_theme_font_size_override("font_size", title_size)
 		banner_subtitle.text = detail
 		event_time = 2.1
 		banner_age = 0.0
