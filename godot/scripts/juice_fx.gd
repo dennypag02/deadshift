@@ -10,6 +10,9 @@ var zoom_clock := 0.0
 var dust_clock := 0.0
 var last_wave := 0
 var last_hp := 100
+var last_wave_active := false
+var clear_slow_clock := 0.0
+var hitstop_clock := 0.0
 var base_zoom := Vector2.ONE
 var rng := RandomNumberGenerator.new()
 
@@ -19,6 +22,7 @@ func _ready() -> void:
 		base_zoom = game.camera.zoom
 		last_wave = game.wave
 		last_hp = game.player_hp
+		last_wave_active = game.wave_active
 	z_index = 5
 
 func emit(kind: String, position: Vector2, direction: Vector2, duration: float) -> void:
@@ -60,7 +64,7 @@ func explosion(position: Vector2, count: int) -> void:
 	shake_clock = J.EXPLOSION_SHAKE_LIFE
 	shake_strength = J.EXPLOSION_SHAKE_PX
 	if count >= J.HITSTOP_MIN_KILLS:
-		emit("hitstop",position,Vector2.ZERO,J.HITSTOP_LIFE)
+		hitstop_clock = J.HITSTOP_LIFE
 
 func hurt() -> void:
 	shake_clock = J.HURT_SHAKE_LIFE
@@ -85,10 +89,16 @@ func _process(delta: float) -> void:
 	if game.player_hp < last_hp:
 		hurt()
 	last_hp = game.player_hp
+	if last_wave_active and not game.wave_active:
+		clear_slow_clock = J.WAVE_CLEAR_SLOW_LIFE
+	last_wave_active = game.wave_active
 	if game.wave != last_wave:
 		last_wave = game.wave
 		zoom_clock = J.WAVE_ZOOM_LIFE
 	zoom_clock = maxf(0.0,zoom_clock-delta)
+	clear_slow_clock = maxf(0.0,clear_slow_clock-delta)
+	hitstop_clock = maxf(0.0,hitstop_clock-delta)
+	Engine.time_scale = 0.02 if hitstop_clock > 0.0 else (0.5 if clear_slow_clock > 0.0 else 1.0)
 	game.camera.zoom = base_zoom*(1.0+J.WAVE_ZOOM_PCT*zoom_clock/J.WAVE_ZOOM_LIFE)
 	shake_clock = maxf(0.0,shake_clock-delta)
 	var velocity: Vector2 = game.player_velocity
