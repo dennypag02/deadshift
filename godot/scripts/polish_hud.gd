@@ -2,8 +2,20 @@ extends Control
 # Presentation-only overlay: gameplay values are read, never modified.
 var game: Node2D
 var health_label: Label
+var hp_fill: ColorRect
+var hp_ghost: ColorRect
+var hp_flash: ColorRect
+var previous_hp := 100
+var ghost_hp := 100.0
+var damage_flash := 0.0
+var crate_slots: Array[Label] = []
+var banner_queue: Array[String] = []
+var banner_age := 0.0
+var banner_title: Label
+var banner_subtitle: Label
 var wave_label: Label
 var score_label: Label
+var score_title: Label
 var objective_label: Label
 var event_label: Label
 var event_time := 0.0
@@ -12,6 +24,8 @@ var score_display := 0.0
 var backdrop: PanelContainer
 var pause_menu: PanelContainer
 var shake_enabled := true
+const AMBER := Color("#F2A23A")
+const PANEL := Color(0.08, 0.07, 0.06, 0.82)
 var vibration_enabled := true
 
 func _label(text: String, size_px: int, parent: Node) -> Label:
@@ -56,19 +70,80 @@ func _ready() -> void:
 	pause.size = Vector2(43, 43)
 	pause.pressed.connect(_toggle_pause)
 	root.add_child(pause)
-	var hp_panel := _panel(root, Rect2(62, 12, 160, 43))
-	health_label = _label("♥ 100 / 100", 19, hp_panel)
-	var wave_panel := _panel(root, Rect2(62, 62, 160, 34))
+	var hp_panel := _panel(root, Rect2(58, 12, 155, 44))
+	var hp_bg := ColorRect.new()
+	hp_bg.position = Vector2(28, 12)
+	hp_bg.size = Vector2(118, 20)
+	hp_bg.color = Color("#3A322B")
+	hp_panel.add_child(hp_bg)
+	hp_ghost = ColorRect.new()
+	hp_ghost.color = Color("#F2A23A")
+	hp_ghost.position = hp_bg.position
+	hp_ghost.size = hp_bg.size
+	hp_panel.add_child(hp_ghost)
+	hp_fill = ColorRect.new()
+	hp_fill.color = Color("#D93A2E")
+	hp_fill.position = hp_bg.position
+	hp_fill.size = hp_bg.size
+	hp_panel.add_child(hp_fill)
+	hp_flash = ColorRect.new()
+	hp_flash.color = Color(1,1,1,0)
+	hp_flash.position = hp_bg.position
+	hp_flash.size = hp_bg.size
+	hp_panel.add_child(hp_flash)
+	health_label = _label("100 / 100", 16, hp_panel)
+	health_label.position = Vector2(38, 11)
+	var heart := _label("♥", 22, hp_panel)
+	heart.position = Vector2(3, 7)
+	heart.add_theme_color_override("font_color", Color("#D93A2E"))
+	var wave_panel := _panel(root, Rect2(58, 61, 155, 34))
 	wave_label = _label("WAVE 1/10", 17, wave_panel)
-	var score_panel := _panel(root, Rect2(225, 12, 80, 84))
-	score_label = _label("SCORE\n0", 16, score_panel)
-	var objective_panel := _panel(root, Rect2(12, 110, 263, 74))
-	objective_label = _label("⚡ POWER THE GENERATOR", 15, objective_panel)
+	wave_label.add_theme_color_override("font_color", AMBER)
+	var score_panel := _panel(root, Rect2(216, 12, 90, 84), Color(0.08,0.07,0.06,0.35))
+	score_title = _label("SCORE", 12, score_panel)
+	score_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	score_title.position = Vector2(4, 3)
+	score_title.size = Vector2(82, 19)
+	score_label = _label("0", 25, score_panel)
+	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	score_label.position = Vector2(0, 25)
+	score_label.size = Vector2(90, 43)
+	var objective_panel := _panel(root, Rect2(12, 110, 286, 77))
+	var stripe := ColorRect.new()
+	stripe.color = AMBER
+	stripe.position = Vector2(0, 3)
+	stripe.size = Vector2(5, 71)
+	objective_panel.add_child(stripe)
+	var bolt := _label("⚡", 29, objective_panel)
+	bolt.position = Vector2(12, 10)
+	objective_label = _label("POWER THE MINI-MART GENERATOR", 15, objective_panel)
+	objective_label.position = Vector2(50, 8)
+	objective_label.size = Vector2(225, 40)
 	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var event_panel := _panel(root, Rect2(12, 197, 408, 68), Color(0.08, 0.07, 0.06, 0.91))
-	event_label = _label("", 21, event_panel)
-	event_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	event_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	for i in range(3):
+		var slot := _label("▣", 22, objective_panel)
+		slot.position = Vector2(53 + i * 32, 47)
+		crate_slots.append(slot)
+	var event_panel := _panel(root, Rect2(0, 200, 432, 82), Color(0.08,0.07,0.06,0.93))
+	var upper := ColorRect.new()
+	upper.color = AMBER
+	upper.size = Vector2(432, 3)
+	event_panel.add_child(upper)
+	var lower := ColorRect.new()
+	lower.color = AMBER
+	lower.position = Vector2(0, 79)
+	lower.size = Vector2(432, 3)
+	event_panel.add_child(lower)
+	banner_title = _label("", 27, event_panel)
+	banner_title.position = Vector2(8, 5)
+	banner_title.size = Vector2(416, 43)
+	banner_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	banner_title.add_theme_color_override("font_color", AMBER)
+	banner_subtitle = _label("", 15, event_panel)
+	banner_subtitle.position = Vector2(8, 49)
+	banner_subtitle.size = Vector2(416, 26)
+	banner_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	event_label = banner_title
 	event_panel.visible = false
 	backdrop = event_panel
 	pause_menu = _panel(root, Rect2(68, 290, 296, 280))
@@ -100,33 +175,65 @@ func _toggle_pause() -> void:
 	get_tree().paused = pause_menu.visible
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
+func _comma(value: int) -> String:
+	var digits := str(value)
+	var result := ""
+	for i in range(digits.length()):
+		if i > 0 and (digits.length() - i) % 3 == 0:
+			result += ","
+		result += digits[i]
+	return result
+
 func _process(delta: float) -> void:
 	if game == null:
 		return
-	health_label.text = "♥ %d / 100" % game.player_hp
-	wave_label.text = "WAVE %d/10    ☠ %d" % [game.wave, game.enemies.size()]
+	var hp: int = game.player_hp
+	if hp != previous_hp:
+		if hp < previous_hp:
+			damage_flash = 0.1
+		else:
+			ghost_hp = float(hp)
+		previous_hp = hp
+	ghost_hp = move_toward(ghost_hp, float(hp), 120.0 * delta)
+	hp_fill.size.x = 118.0 * clampf(float(hp) / 100.0, 0.0, 1.0)
+	hp_ghost.size.x = 118.0 * clampf(ghost_hp / 100.0, 0.0, 1.0)
+	damage_flash = maxf(0.0, damage_flash - delta)
+	hp_flash.color.a = 0.65 if damage_flash > 0.0 else 0.0
+	health_label.text = "%d / 100" % hp
+	var remaining: int = game.enemies.size() + maxi(0, game.wave_total - game.wave_spawned)
+	wave_label.text = "WAVE %d/10  ☠ %d" % [game.wave, remaining]
 	score_display = move_toward(score_display, float(game.score), maxf(1.0, absf(float(game.score) - score_display) * delta / 0.3))
-	score_label.text = "SCORE\n%s" % str(int(score_display))
+	score_label.text = _comma(int(score_display))
 	var supplies := 0
 	for cache in game.supply_caches:
-		if cache["collected"]:
+		if bool(cache["collected"]):
 			supplies += 1
+	for i in range(crate_slots.size()):
+		crate_slots[i].add_theme_color_override("font_color", Color("#6FBF4A") if i < supplies else Color("#71695E"))
 	if not game.generator_active:
-		objective_label.text = "⚡ POWER THE MINI-MART GENERATOR\nSUPPLIES %d/3" % supplies
+		objective_label.text = "POWER THE MINI-MART GENERATOR"
 	elif supplies < 3:
-		objective_label.text = "▣ RECOVER SUPPLIES %d/3" % supplies
+		objective_label.text = "RECOVER THE SUPPLY CRATES"
 	elif not game.puzzle_complete:
-		objective_label.text = "⚠ RELAY TRAPS %d/4" % game.puzzle_step
+		objective_label.text = "SURVIVE THE RELAY TRAPS"
 	else:
-		objective_label.text = "◆ DETONATOR CORE SECURED"
+		objective_label.text = "DETONATOR CORE SECURED"
 	var message: String = game.banner.text
 	if message != previous_event:
 		previous_event = message
 		if message != "":
-			event_label.text = message
-			event_time = 2.1
+			banner_queue.append(message)
+	if event_time <= 0.0 and not banner_queue.is_empty():
+		var next: String = banner_queue.pop_front()
+		var parts := next.split("\n", false, 1)
+		banner_title.text = parts[0]
+		banner_subtitle.text = parts[1] if parts.size() > 1 else ""
+		event_time = 2.1
+		banner_age = 0.0
 	if event_time > 0.0:
 		event_time -= delta
+		banner_age += delta
 		backdrop.visible = true
+		backdrop.modulate.a = clampf(minf(banner_age / 0.2, event_time / 0.3), 0.0, 1.0)
 	else:
 		backdrop.visible = false
