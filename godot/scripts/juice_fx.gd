@@ -96,8 +96,9 @@ func _process(delta: float) -> void:
 		last_wave = game.wave
 		zoom_clock = J.WAVE_ZOOM_LIFE
 	zoom_clock = maxf(0.0,zoom_clock-delta)
-	clear_slow_clock = maxf(0.0,clear_slow_clock-delta)
-	hitstop_clock = maxf(0.0,hitstop_clock-delta)
+	var real_delta := delta / maxf(0.02, Engine.time_scale)
+	clear_slow_clock = maxf(0.0,clear_slow_clock-real_delta)
+	hitstop_clock = maxf(0.0,hitstop_clock-real_delta)
 	Engine.time_scale = 0.02 if hitstop_clock > 0.0 else (0.5 if clear_slow_clock > 0.0 else 1.0)
 	game.camera.zoom = base_zoom*(1.0+J.WAVE_ZOOM_PCT*zoom_clock/J.WAVE_ZOOM_LIFE)
 	shake_clock = maxf(0.0,shake_clock-delta)
