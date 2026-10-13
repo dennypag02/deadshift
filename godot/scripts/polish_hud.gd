@@ -278,11 +278,12 @@ func _process(delta: float) -> void:
 			ghost_hp = float(hp)
 		previous_hp = hp
 	ghost_hp = move_toward(ghost_hp, float(hp), 120.0 * delta)
-	hp_fill.size.x = hp_bar_width * clampf(float(hp) / 100.0, 0.0, 1.0)
-	hp_ghost.size.x = hp_bar_width * clampf(ghost_hp / 100.0, 0.0, 1.0)
+	var max_hp := maxi(1, int(game.player_max_hp))
+	hp_fill.size.x = hp_bar_width * clampf(float(hp) / float(max_hp), 0.0, 1.0)
+	hp_ghost.size.x = hp_bar_width * clampf(ghost_hp / float(max_hp), 0.0, 1.0)
 	damage_flash = maxf(0.0, damage_flash - delta)
 	hp_flash.color.a = 0.65 if damage_flash > 0.0 else 0.0
-	health_label.text = "%d / 100" % hp
+	health_label.text = "%d / %d" % [hp, max_hp]
 	var remaining: int = game.enemies.size() + maxi(0, game.wave_total - game.wave_spawned)
 	wave_label.text = "WAVE %d/10  ☠ %d" % [game.wave, remaining]
 	score_display = move_toward(score_display, float(game.score), maxf(1.0, absf(float(game.score) - score_display) * delta / 0.3))

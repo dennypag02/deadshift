@@ -124,6 +124,8 @@ var wave_plan := {
 
 var player_pos := PLAYER_START
 var player_hp := 100
+var player_max_hp := 100
+var player_armor := 0
 var score := 0
 var kills := 0
 var wave := 1
@@ -502,7 +504,8 @@ func _physics_process(delta: float) -> void:
 			if player_pos.distance_squared_to(enemies[i]["pos"]) < player_pos.distance_squared_to(enemies[nearest]["pos"]):
 				nearest = i
 		var heading: Vector2 = (enemies[nearest]["pos"] - player_pos).normalized()
-		var shot_count := 1 + (int(progression.passives.get("ammo_belt",0)) + 1) / 2 if progression != null else 1
+		var ammo_level := int(progression.passives.get("ammo_belt", 0)) if progression != null else 0
+		var shot_count := 1 + int(float(ammo_level + 1) / 2.0)
 		for shot in range(shot_count):
 			var spread := (float(shot) - float(shot_count - 1) * 0.5) * 0.12
 			bullets.append({"pos": player_pos, "dir": heading.rotated(spread), "life": 1.6})
@@ -673,8 +676,10 @@ func _update_enemies(delta: float) -> void:
 		enemy["pos"] = _move_with_blockers(Vector2(enemy["pos"]), enemy_step, float(enemy["radius"]))
 		if to_player.length() < PLAYER_RADIUS + float(enemy["radius"]):
 			var damage := 18 if str(enemy["kind"]) == "trucker" else 7
-			if progression == null or progression.invulnerability <= 0.0:
-				player_hp = maxi(0, player_hp - damage)
+			var god_mode := phase_ui != null and bool(phase_ui.god_mode)
+			if not god_mode and (progression == null or progression.invulnerability <= 0.0):
+				var effective_damage := maxi(1, damage - player_armor)
+				player_hp = maxi(0, player_hp - effective_damage)
 			if vibration_enabled:
 				Input.vibrate_handheld(30)
 			enemies.remove_at(i)
@@ -682,7 +687,7 @@ func _update_enemies(delta: float) -> void:
 func _update_health(delta: float) -> void:
 	if health_available:
 		if player_pos.distance_to(DINER_HEALTH_POS) < 58.0:
-			player_hp = mini(100, player_hp + 35)
+			player_hp = mini(player_max_hp, player_hp + 35)
 			health_available = false
 			health_spawn_clock = 28.0
 			banner.text = "DINER MEDKIT: +35 HP"

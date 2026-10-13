@@ -57,14 +57,18 @@ func finish_choice() -> void:
 func available_choices() -> Array[String]:
 	var options: Array[String] = []
 	for id in config.get("weapons", {}):
+		var weapon_data: Dictionary = config.get("weapons", {}).get(id, {})
+		var weapon_max := int(weapon_data.get("max_level", 5))
 		if weapons.has(id):
-			if int(weapons[id]) < 5:
+			if int(weapons[id]) < weapon_max:
 				options.append(id)
 		elif weapons.size() < int(config.get("limits", {}).get("weapons", 6)):
 			options.append(id)
 	for id in config.get("passives", {}):
+		var passive_data: Dictionary = config.get("passives", {}).get(id, {})
+		var passive_max := int(passive_data.get("max_level", 5))
 		if passives.has(id):
-			if int(passives[id]) < 5:
+			if int(passives[id]) < passive_max:
 				options.append(id)
 		elif passives.size() < int(config.get("limits", {}).get("passives", 6)):
 			options.append(id)
@@ -73,11 +77,17 @@ func available_choices() -> Array[String]:
 
 func choose(id: String) -> void:
 	if config.get("weapons", {}).has(id):
-		weapons[id] = mini(5, int(weapons.get(id, 0)) + 1)
+		var weapon_data: Dictionary = config.get("weapons", {}).get(id, {})
+		var weapon_max := int(weapon_data.get("max_level", 5))
+		weapons[id] = mini(weapon_max, int(weapons.get(id, 0)) + 1)
 	elif config.get("passives", {}).has(id):
-		passives[id] = mini(5, int(passives.get(id, 0)) + 1)
-		if id == "thick_hide":
-			game.player_hp += 15
+		var passive_data: Dictionary = config.get("passives", {}).get(id, {})
+		var passive_max := int(passive_data.get("max_level", 5))
+		passives[id] = mini(passive_max, int(passives.get(id, 0)) + 1)
+		if id == "thick_hide" and game != null:
+			game.player_max_hp += 15
+			game.player_armor += 1
+			game.player_hp = mini(game.player_max_hp, game.player_hp + 15)
 	finish_choice()
 
 func damage_multiplier() -> float:
