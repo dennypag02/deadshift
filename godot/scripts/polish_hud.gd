@@ -132,22 +132,44 @@ func _ready() -> void:
 	score_label.add_theme_font_override("font", bebas_font if bebas_font != null else ThemeDB.fallback_font)
 	score_label.position = Vector2(0, 25)
 	score_label.size = Vector2(90, 43)
-	var objective_panel := _panel(root, Rect2(12, 110, 286, 77))
+	var objective_panel := _panel(root, Rect2(12, 118, 286, 116))
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = PANEL
+	card_style.border_color = Color("#3A322B")
+	card_style.set_border_width_all(3)
+	card_style.set_corner_radius_all(14)
+	objective_panel.add_theme_stylebox_override("panel", card_style)
 	var stripe := ColorRect.new()
 	stripe.color = AMBER
-	stripe.position = Vector2(0, 3)
-	stripe.size = Vector2(5, 71)
+	stripe.position = Vector2(3, 4)
+	stripe.size = Vector2(8, 108)
 	objective_panel.add_child(stripe)
-	var bolt := _label("⚡", 29, objective_panel)
-	bolt.position = Vector2(12, 10)
-	objective_label = _label("POWER THE MINI-MART GENERATOR", 15, objective_panel)
-	objective_label.position = Vector2(76, 8)
-	objective_label.size = Vector2(197, 40)
+	var content := HBoxContainer.new()
+	content.position = Vector2(20, 9)
+	content.size = Vector2(258, 98)
+	content.add_theme_constant_override("separation", 16)
+	objective_panel.add_child(content)
+	objective_icon = _label("⚡", 30, content)
+	objective_icon.custom_minimum_size = Vector2(48, 48)
+	objective_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var stack := VBoxContainer.new()
+	stack.custom_minimum_size = Vector2(194, 96)
+	stack.add_theme_constant_override("separation", 3)
+	content.add_child(stack)
+	objective_label = _label("POWER THE MINI-MART GENERATOR", 15, stack)
+	objective_label.custom_minimum_size = Vector2(194, 52)
 	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var crates := HBoxContainer.new()
+	crates.add_theme_constant_override("separation", 1)
+	stack.add_child(crates)
 	for i in range(3):
-		var slot := _label("▣", 22, objective_panel)
-		slot.position = Vector2(78 + i * 32, 47)
-		crate_slots.append(slot)
+		var crate := ColorRect.new()
+		crate.custom_minimum_size = Vector2(40, 34)
+		crate.color = Color("#3C342C")
+		crates.add_child(crate)
+		crate_slots.append(crate)
+	supplies_label = _label("SUPPLIES 0/3", 12, crates)
+	supplies_label.custom_minimum_size = Vector2(70, 34)
 	var event_panel := _panel(root, Rect2(0, 200, 412, 82), PANEL)
 	var upper := ColorRect.new()
 	upper.color = AMBER
@@ -235,7 +257,8 @@ func _process(delta: float) -> void:
 		if bool(cache["collected"]):
 			supplies += 1
 	for i in range(crate_slots.size()):
-		crate_slots[i].add_theme_color_override("font_color", Color("#6FBF4A") if i < supplies else Color("#71695E"))
+		crate_slots[i].color = Color("#6FBF4A") if i < supplies else Color("#3C342C")
+	supplies_label.text = "SUPPLIES %d/3" % supplies
 	if not game.generator_active:
 		objective_label.text = "POWER THE MINI-MART GENERATOR"
 	elif supplies < 3:
