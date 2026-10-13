@@ -309,7 +309,7 @@ func _draw() -> void:
 	var center := view * 0.5
 	var target: Vector2 = game.GENERATOR_POS
 	var icon := "⚡"
-	var found := not game.generator_active
+	var found: bool = not game.generator_active
 	if not found:
 		for cache in game.supply_caches:
 			if not bool(cache["collected"]):
