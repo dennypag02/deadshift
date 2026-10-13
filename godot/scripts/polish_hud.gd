@@ -282,12 +282,16 @@ func _process(delta: float) -> void:
 		crate_slots[i].queue_redraw()
 	supplies_label.text = "SUPPLIES %d/3" % supplies
 	if not game.generator_active:
+		objective_icon.text = "⚡"
 		objective_label.text = "POWER THE MINI-MART GENERATOR"
 	elif supplies < 3:
+		objective_icon.text = "▣"
 		objective_label.text = "RECOVER THE SUPPLY CRATES"
 	elif not game.puzzle_complete:
+		objective_icon.text = "⚠"
 		objective_label.text = "SURVIVE THE RELAY TRAPS"
 	else:
+		objective_icon.text = "◆"
 		objective_label.text = "DETONATOR CORE SECURED"
 	var message: String = game.banner.text
 	if message != previous_event:
