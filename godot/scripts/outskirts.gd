@@ -213,7 +213,7 @@ func _setup_ui() -> void:
 
 	var tactical_map := Control.new()
 	tactical_map.set_script(load("res://scripts/tactical_minimap.gd"))
-	tactical_map.game = self
+	tactical_map.set("game", self)
 	tactical_map.position = Vector2(280, 124)
 	tactical_map.size = Vector2(140, 176)
 	ui.add_child(tactical_map)
