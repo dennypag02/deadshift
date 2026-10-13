@@ -122,13 +122,17 @@ func _physics_process(delta: float) -> void:
 				gems.remove_at(i)
 	orbit_clock += delta
 	if weapons.has("buzzsaw"):
-		var count := 1 + int(weapons["buzzsaw"]) / 2
+		var saw_level := int(weapons["buzzsaw"])
+		var count := 1 + (1 if saw_level >= 2 else 0) + (1 if saw_level >= 5 else 0)
+		var orbit_radius := 125.0 * (1.25 if saw_level >= 4 else 1.0)
+		var orbit_speed := 3.2 * (1.30 if saw_level >= 5 else 1.0)
+		var saw_damage := 4.0 * (1.20 if saw_level >= 3 else 1.0) * damage_multiplier()
 		for blade in range(count):
-			var theta := orbit_clock * 3.2 + TAU * float(blade) / float(count)
-			var blade_pos: Vector2 = game.player_pos + Vector2.from_angle(theta) * 125.0
+			var theta := orbit_clock * orbit_speed + TAU * float(blade) / float(count)
+			var blade_pos: Vector2 = game.player_pos + Vector2.from_angle(theta) * orbit_radius
 			for i in range(game.enemies.size()-1,-1,-1):
 				if blade_pos.distance_to(game.enemies[i]["pos"]) < 30.0:
-					game.enemies[i]["hp"] -= delta * 4.0 * damage_multiplier()
+					game.enemies[i]["hp"] -= delta * saw_damage
 					if game.enemies[i]["hp"] <= 0:
 						game._phase_a_kill_enemy(i)
 	queue_redraw()
@@ -140,10 +144,13 @@ func _draw() -> void:
 		var tint := Color("#9c6cff") if v >= 10 else (Color("#6FBF4A") if v >= 2 else Color("#5bceff"))
 		draw_colored_polygon(PackedVector2Array([p+Vector2(0,-9),p+Vector2(7,0),p+Vector2(0,9),p+Vector2(-7,0)]),tint)
 	if weapons.has("buzzsaw") and game != null:
-		var count := 1 + int(weapons["buzzsaw"]) / 2
+		var saw_level := int(weapons["buzzsaw"])
+		var count := 1 + (1 if saw_level >= 2 else 0) + (1 if saw_level >= 5 else 0)
+		var orbit_radius := 125.0 * (1.25 if saw_level >= 4 else 1.0)
+		var orbit_speed := 3.2 * (1.30 if saw_level >= 5 else 1.0)
 		for blade in range(count):
-			var theta := orbit_clock * 3.2 + TAU * float(blade) / float(count)
-			var p: Vector2 = game.player_pos + Vector2.from_angle(theta)*125.0
+			var theta := orbit_clock * orbit_speed + TAU * float(blade) / float(count)
+			var p: Vector2 = game.player_pos + Vector2.from_angle(theta)*orbit_radius
 			draw_circle(p,23.0,Color("#9eabb6"))
 			draw_arc(p,18.0,0.0,TAU,12,Color("#f3e9d8"),4.0)
 			draw_circle(p,5.0,Color("#3A322B"))
