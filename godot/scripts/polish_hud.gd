@@ -8,7 +8,10 @@ var hp_flash: ColorRect
 var previous_hp := 100
 var ghost_hp := 100.0
 var damage_flash := 0.0
-var crate_slots: Array[Label] = []
+var crate_slots: Array[ColorRect] = []
+var supplies_label: Label
+var objective_icon: Label
+var hp_bar_width := 118.0
 var banner_queue: Array[String] = []
 var banner_age := 0.0
 var banner_title: Label
@@ -25,7 +28,7 @@ var backdrop: PanelContainer
 var pause_menu: PanelContainer
 var shake_enabled := true
 const AMBER := Color("#F2A23A")
-const PANEL := Color(0.0784, 0.0667, 0.0588, 0.75)
+const PANEL := Color("#14110F", 0.75)
 const BEBAS_PATH := "res://art/fonts/BebasNeue-Regular.ttf"
 const BARLOW_PATH := "res://art/fonts/BarlowCondensed-SemiBold.ttf"
 var bebas_font: Font
@@ -90,6 +93,7 @@ func _ready() -> void:
 	hp_bg.size = Vector2(118, 20)
 	hp_bg.color = Color("#3A322B")
 	hp_panel.add_child(hp_bg)
+	hp_bar_width = hp_bg.size.x
 	hp_ghost = ColorRect.new()
 	hp_ghost.color = Color("#F2A23A")
 	hp_ghost.position = hp_bg.position
@@ -217,8 +221,8 @@ func _process(delta: float) -> void:
 			ghost_hp = float(hp)
 		previous_hp = hp
 	ghost_hp = move_toward(ghost_hp, float(hp), 120.0 * delta)
-	hp_fill.size.x = 118.0 * clampf(float(hp) / 100.0, 0.0, 1.0)
-	hp_ghost.size.x = 118.0 * clampf(ghost_hp / 100.0, 0.0, 1.0)
+	hp_fill.size.x = hp_bar_width * clampf(float(hp) / 100.0, 0.0, 1.0)
+	hp_ghost.size.x = hp_bar_width * clampf(ghost_hp / 100.0, 0.0, 1.0)
 	damage_flash = maxf(0.0, damage_flash - delta)
 	hp_flash.color.a = 0.65 if damage_flash > 0.0 else 0.0
 	health_label.text = "%d / 100" % hp
