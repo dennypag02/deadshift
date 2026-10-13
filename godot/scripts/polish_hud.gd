@@ -152,18 +152,18 @@ func _ready() -> void:
 	card_layer.add_child(stripe)
 	var content := HBoxContainer.new()
 	content.position = Vector2(19, 9)
-	content.size = Vector2(258, 98)
+	content.size = Vector2(270, 114)
 	content.add_theme_constant_override("separation", 16)
 	card_layer.add_child(content)
 	objective_icon = _label("⚡", 30, content)
 	objective_icon.custom_minimum_size = Vector2(48, 48)
 	objective_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var stack := VBoxContainer.new()
-	stack.custom_minimum_size = Vector2(194, 96)
+	stack.custom_minimum_size = Vector2(194, 114)
 	stack.add_theme_constant_override("separation", 3)
 	content.add_child(stack)
 	objective_label = _label("POWER THE MINI-MART GENERATOR", 32, stack)
-	objective_label.custom_minimum_size = Vector2(194, 52)
+	objective_label.custom_minimum_size = Vector2(194, 70)
 	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var crates := HBoxContainer.new()
 	crates.add_theme_constant_override("separation", 1)
@@ -175,7 +175,7 @@ func _ready() -> void:
 		crates.add_child(crate)
 		crate_slots.append(crate)
 	supplies_label = _label("SUPPLIES 0/3", 26, crates)
-	supplies_label.custom_minimum_size = Vector2(70, 34)
+	supplies_label.custom_minimum_size = Vector2(125, 34)
 	var event_panel := _panel(root, Rect2(0, 245, 412, 125), PANEL)
 	var banner_style := StyleBoxFlat.new()
 	banner_style.bg_color = PANEL
@@ -203,6 +203,9 @@ func _ready() -> void:
 	banner_title.add_theme_font_override("font", bebas_font if bebas_font != null else ThemeDB.fallback_font)
 	banner_subtitle = _label("", 30, banner_stack)
 	banner_subtitle.custom_minimum_size = Vector2(396, 36)
+	var bottom_padding := Control.new()
+	bottom_padding.custom_minimum_size = Vector2(396, 12)
+	banner_stack.add_child(bottom_padding)
 	banner_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	event_label = banner_title
 	event_panel.visible = false
