@@ -186,7 +186,7 @@ func _ready() -> void:
 func _generate_outskirts_layout() -> void:
 	generated_map_rows = MAP_ROWS.duplicate()
 	generated_cars.clear()
-	var car_sites := [Vector2i(19,6), Vector2i(1,14), Vector2i(4,14), Vector2i(21,17), Vector2i(11,23), Vector2i(17,25), Vector2i(1,27), Vector2i(6,27), Vector2i(12,28), Vector2i(6,34), Vector2i(27,34), Vector2i(9,36), Vector2i(24,37)]
+	var car_sites: Array[Vector2i] = [Vector2i(19,6), Vector2i(1,14), Vector2i(4,14), Vector2i(21,17), Vector2i(11,23), Vector2i(17,25), Vector2i(1,27), Vector2i(6,27), Vector2i(12,28), Vector2i(6,34), Vector2i(27,34), Vector2i(9,36), Vector2i(24,37)]
 	for site in car_sites:
 		for dx in range(2):
 			_set_generated_tile(site.x + dx, site.y, ".")
@@ -194,10 +194,10 @@ func _generate_outskirts_layout() -> void:
 		var candidates: Array[Vector2i] = []
 		for dy in range(-3, 4):
 			for dx in range(-3, 4):
-				var candidate := site + Vector2i(dx, dy)
+				var candidate: Vector2i = site + Vector2i(dx, dy)
 				if _can_place_generated_car(candidate):
 					candidates.append(candidate)
-		var chosen := site
+		var chosen: Vector2i = site
 		if not candidates.is_empty():
 			chosen = candidates[rng.randi_range(0, candidates.size() - 1)]
 		_set_generated_tile(chosen.x, chosen.y, "C")
