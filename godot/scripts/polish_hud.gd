@@ -27,6 +27,7 @@ var shake_enabled := true
 const AMBER := Color("#F2A23A")
 const PANEL := Color(0.08, 0.07, 0.06, 0.82)
 var vibration_enabled := true
+var edge_arrow_timer := 0.0
 
 func _label(text: String, size_px: int, parent: Node) -> Label:
 	var label := Label.new()
@@ -237,3 +238,39 @@ func _process(delta: float) -> void:
 		backdrop.modulate.a = clampf(minf(banner_age / 0.2, event_time / 0.3), 0.0, 1.0)
 	else:
 		backdrop.visible = false
+	queue_redraw()
+
+func _draw() -> void:
+	if game == null:
+		return
+	var view := get_viewport_rect().size
+	var scale_factor := view.x / 432.0
+	var center := view * 0.5
+	var targets: Array[Vector2] = []
+	if not game.generator_active:
+		targets.append(game.GENERATOR_POS)
+	for cache in game.supply_caches:
+		if not bool(cache["collected"]):
+			targets.append(Vector2(cache["pos"]))
+	if not game.puzzle_complete:
+		for color in ["RED", "BLUE", "YELLOW"]:
+			if not game.trap_finished.has(color):
+				targets.append(game._relay_position(color))
+	for nest in game.infestation_nests:
+		if not bool(nest["destroyed"]):
+			targets.append(Vector2(nest["pos"]))
+	if game.district_cleared:
+		targets.append(game.NORTH_EXIT.get_center())
+	for target in targets:
+		var offset: Vector2 = (target - game.player_pos) * game.camera.zoom
+		var screen_pos := center + offset
+		var margin := 32.0 * scale_factor
+		var safe_rect := Rect2(Vector2(margin, 300.0 * scale_factor), view - Vector2(margin * 2.0, 360.0 * scale_factor))
+		if safe_rect.has_point(screen_pos):
+			continue
+		var direction := offset.normalized()
+		if direction.length_squared() < 0.01:
+			continue
+		var edge := Vector2(clampf(screen_pos.x, safe_rect.position.x, safe_rect.end.x), clampf(screen_pos.y, safe_rect.position.y, safe_rect.end.y))
+		var side := direction.orthogonal()
+		draw_colored_polygon(PackedVector2Array([edge + direction * 12.0 * scale_factor, edge - direction * 8.0 * scale_factor + side * 8.0 * scale_factor, edge - direction * 8.0 * scale_factor - side * 8.0 * scale_factor]), AMBER)
