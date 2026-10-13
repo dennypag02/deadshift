@@ -169,7 +169,8 @@ var trap_clock := 0.0
 var trap_switches := 0
 var trap_guard_kills := 0
 var trap_required_kills := 0
-var trap_triggered: Array[String] = []
+var blue_switch_a := false
+var blue_switch_b := false
 var trap_finished: Array[String] = []
 
 var camera: Camera2D
@@ -664,6 +665,14 @@ func _update_puzzle(delta: float) -> void:
 			if trap_clock <= 0.0:
 				_finish_trap()
 		elif trap_color == "BLUE":
+			if not blue_switch_a and player_pos.distance_to(RELAY_BLUE + Vector2(-320, 0)) < 95.0:
+				blue_switch_a = true
+				trap_switches += 1
+				banner.text = "BLUE SWITCH 1/2 ACTIVATED"
+			if not blue_switch_b and player_pos.distance_to(RELAY_BLUE + Vector2(0, 350)) < 95.0:
+				blue_switch_b = true
+				trap_switches += 1
+				banner.text = "BLUE SWITCH 2/2 ACTIVATED"
 			if trap_clock <= 0.0 and trap_switches >= 2:
 				_finish_trap()
 		elif trap_color == "YELLOW":
@@ -696,6 +705,8 @@ func _start_trap(color: String) -> void:
 	trap_color = color
 	trap_clock = 16.0 if color == "RED" else (12.0 if color == "BLUE" else 0.0)
 	trap_switches = 0
+	blue_switch_a = false
+	blue_switch_b = false
 	trap_guard_kills = 0
 	trap_required_kills = 12 if color == "YELLOW" else 0
 	var center := _relay_position(color)
@@ -1020,6 +1031,9 @@ func _draw_objectives() -> void:
 			_label(pos + Vector2(-72, -78), color + " TRAP", 19, Color.WHITE)
 			if trap_finished.has(color):
 				_label(pos + Vector2(-44, 85), "CLEARED", 18, Color("#a0ffc0"))
+		if trap_active and trap_color == "BLUE":
+			for switch_pos in [RELAY_BLUE + Vector2(-320, 0), RELAY_BLUE + Vector2(0, 350)]:
+				draw_circle(switch_pos, 32, Color("#6cefff"))
 		if trap_active:
 			_label(_relay_position(trap_color) + Vector2(-100, 105), "TRAP ACTIVE", 21, Color("#fff0a8"))
 		_label(PUZZLE_CENTER + Vector2(-125, -80), "DETONATOR CORE", 20, Color("#fff0c5"))
