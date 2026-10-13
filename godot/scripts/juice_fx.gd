@@ -66,3 +66,38 @@ func hurt() -> void:
 	shake_clock = J.HURT_SHAKE_LIFE
 	shake_strength = J.HURT_SHAKE_PX
 	emit("hurt",game.player_pos,Vector2.ZERO,J.HURT_FLASH_LIFE)
+
+func _process(delta: float) -> void:
+	if game == null:
+		return
+	for i in range(effects.size()-1,-1,-1):
+		effects[i]["life"] -= delta
+		if effects[i]["life"] <= 0.0:
+			effects.remove_at(i)
+	for i in range(decals.size()-1,-1,-1):
+		decals[i]["life"] -= delta
+		if decals[i]["life"] <= 0.0:
+			decals.remove_at(i)
+	for i in range(popups.size()-1,-1,-1):
+		popups[i]["age"] += delta
+		if popups[i]["age"] >= J.SCORE_POPUP_LIFE:
+			popups.remove_at(i)
+	if game.player_hp < last_hp:
+		hurt()
+	last_hp = game.player_hp
+	if game.wave != last_wave:
+		last_wave = game.wave
+		zoom_clock = J.WAVE_ZOOM_LIFE
+	zoom_clock = maxf(0.0,zoom_clock-delta)
+	game.camera.zoom = base_zoom*(1.0+J.WAVE_ZOOM_PCT*zoom_clock/J.WAVE_ZOOM_LIFE)
+	shake_clock = maxf(0.0,shake_clock-delta)
+	var velocity: Vector2 = game.player_velocity
+	var lookahead := velocity.normalized()*J.CAMERA_LOOKAHEAD_PX
+	game.camera.offset = game.camera.offset.lerp(lookahead,minf(1.0,delta*J.CAMERA_SMOOTHING))
+	if shake_clock > 0.0 and game.get("shake_enabled") == true:
+		game.camera.offset += Vector2(rng.randf_range(-1,1),rng.randf_range(-1,1))*shake_strength*shake_clock/J.EXPLOSION_SHAKE_LIFE
+	dust_clock -= delta
+	if velocity.length() > 40.0 and dust_clock <= 0.0:
+		dust_clock = J.FOOTSTEP_LIFE
+		emit("dust",game.player_pos+Vector2(0,35),-velocity.normalized(),0.4)
+	queue_redraw()
