@@ -101,3 +101,34 @@ func _process(delta: float) -> void:
 		dust_clock = J.FOOTSTEP_LIFE
 		emit("dust",game.player_pos+Vector2(0,35),-velocity.normalized(),0.4)
 	queue_redraw()
+
+func _draw() -> void:
+	for decal in decals:
+		var tint := Color(0.08,0.05,0.04,0.35) if decal["scorch"] else Color(0.32,0.015,0.025,0.35*minf(1.0,float(decal["life"])/2.0))
+		draw_circle(decal["pos"],42.0 if decal["scorch"] else 20.0,tint)
+	for fx in effects:
+		var p: Vector2 = fx["pos"]
+		var d: Vector2 = fx["dir"]
+		var t: float = fx["life"]/fx["total"]
+		match fx["kind"]:
+			"muzzle":
+				draw_colored_polygon(PackedVector2Array([p+d*26,p+d.rotated(0.7)*12,p-d*7,p+d.rotated(-0.7)*12]),Color(1,0.86,0.3,t))
+			"casing":
+				draw_rect(Rect2(p+d*30.0*(1.0-t),Vector2(7,3)),Color(0.92,0.7,0.25,t))
+			"hit":
+				draw_circle(p,19.0,Color(1,1,1,t*0.8))
+			"blood":
+				draw_circle(p+d*42.0*(1.0-t),3.5,Color(0.38,0.02,0.04,t))
+			"death":
+				draw_circle(p,20.0,Color(0.36,0.04,0.04,t*0.7))
+			"blast":
+				draw_arc(p,10.0+145.0*(1.0-t),0.0,TAU,48,Color(1,0.62,0.22,t),9.0)
+			"debris":
+				draw_circle(p+d*155.0*(1.0-t),5.0,Color(0.38,0.25,0.15,t))
+			"dust":
+				draw_circle(p+d*20.0*(1.0-t),11.0,Color(0.57,0.48,0.36,t*0.25))
+			"hurt":
+				draw_circle(p,56.0,Color(0.9,0.08,0.04,t*0.2))
+	for popup in popups:
+		var t := float(popup["age"])/J.SCORE_POPUP_LIFE
+		draw_string(ThemeDB.fallback_font,popup["pos"]+Vector2(-20,-60.0*t),"+%d"%popup["value"],HORIZONTAL_ALIGNMENT_LEFT,-1,24,Color(1.0,0.63,0.2,1.0-t))
