@@ -48,7 +48,7 @@ func _draw() -> void:
 			var rect := Rect2(_point(p, area, origin, scale), Vector2(TILE * scale, TILE * scale))
 			if not rect.intersects(area):
 				continue
-			var ch: String = game.MAP_ROWS[y].substr(x, 1)
+			var ch: String = game.generated_map_rows[y].substr(x, 1)
 			var color := Color("#3c474b")
 			if ch in "BCTPbJF":
 				color = Color("#151e24")
