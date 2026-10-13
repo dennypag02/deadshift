@@ -8,7 +8,7 @@ var hp_flash: ColorRect
 var previous_hp := 100
 var ghost_hp := 100.0
 var damage_flash := 0.0
-var crate_slots: Array[ColorRect] = []
+var crate_slots: Array[Control] = []
 var supplies_label: Label
 var objective_icon: Label
 var hp_bar_width := 118.0
@@ -169,9 +169,9 @@ func _ready() -> void:
 	crates.add_theme_constant_override("separation", 1)
 	stack.add_child(crates)
 	for i in range(3):
-		var crate := ColorRect.new()
+		var crate := Control.new()
+		crate.set_script(load("res://scripts/hud_crate_icon.gd"))
 		crate.custom_minimum_size = Vector2(40, 34)
-		crate.color = Color("#3C342C")
 		crates.add_child(crate)
 		crate_slots.append(crate)
 	supplies_label = _label("SUPPLIES 0/3", 12, crates)
@@ -265,12 +265,18 @@ func _process(delta: float) -> void:
 	wave_label.text = "WAVE %d/10  ☠ %d" % [game.wave, remaining]
 	score_display = move_toward(score_display, float(game.score), maxf(1.0, absf(float(game.score) - score_display) * delta / 0.3))
 	score_label.text = _comma(int(score_display))
+	var score_font: Font = bebas_font if bebas_font != null else ThemeDB.fallback_font
+	var score_size := 56
+	while score_size > 26 and score_font.get_string_size(score_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, score_size).x > 84.0:
+		score_size -= 2
+	score_label.add_theme_font_size_override("font_size", score_size)
 	var supplies := 0
 	for cache in game.supply_caches:
 		if bool(cache["collected"]):
 			supplies += 1
 	for i in range(crate_slots.size()):
-		crate_slots[i].color = Color("#6FBF4A") if i < supplies else Color("#3C342C")
+		crate_slots[i].set("collected", i < supplies)
+		crate_slots[i].queue_redraw()
 	supplies_label.text = "SUPPLIES %d/3" % supplies
 	if not game.generator_active:
 		objective_label.text = "POWER THE MINI-MART GENERATOR"
