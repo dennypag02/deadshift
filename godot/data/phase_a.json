@@ -21,9 +21,9 @@
       "level_adds": [
         "Auto-fire at nearest zombie",
         "+1 bullet per burst",
-        "+1 bullet per burst",
-        "+1 bullet per burst",
-        "+1 bullet per burst"
+        "+20% fire rate",
+        "Pierce 1 enemy",
+        "+1 bullet and +25% damage"
       ]
     },
     "boomstick": {
@@ -34,9 +34,9 @@
       "level_adds": [
         "Unlock shotgun cone",
         "+2 pellets per blast",
-        "+2 pellets per blast",
-        "+2 pellets per blast",
-        "+2 pellets per blast"
+        "+20% damage",
+        "Wider blast cone",
+        "+2 pellets and 2x knockback"
       ]
     },
     "buzzsaw": {
@@ -47,9 +47,9 @@
       "level_adds": [
         "Unlock orbiting blade",
         "+1 orbiting blade",
-        "Increase saw pressure",
-        "+1 orbiting blade",
-        "Maximum saw pressure"
+        "+20% damage",
+        "+25% orbit radius",
+        "+1 blade and +30% orbit speed"
       ]
     }
   },
