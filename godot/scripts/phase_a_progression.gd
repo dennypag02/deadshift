@@ -13,6 +13,7 @@ var orbit_clock := 0.0
 var boom_clock := 0.0
 var pending_levels := 0
 var choosing := false
+var banished: Array[String] = []
 var rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
@@ -48,15 +49,25 @@ func add_xp(amount: int) -> void:
 
 func finish_choice() -> void:
 	pending_levels = maxi(0, pending_levels - 1)
-	invulnerability = float(config.get("ui", {}).get("level_invulnerability", 0.5))
 	choosing = false
 	if pending_levels > 0:
 		choosing = true
 		level_up_requested.emit()
 
+func resume_after_levelup() -> void:
+	invulnerability = float(config.get("ui", {}).get("level_invulnerability", 0.5))
+	if game != null:
+		game.phase_a_resume_shockwave()
+
+func banish(id: String) -> void:
+	if not banished.has(id):
+		banished.append(id)
+
 func available_choices() -> Array[String]:
 	var options: Array[String] = []
 	for id in config.get("weapons", {}):
+		if banished.has(str(id)):
+			continue
 		var weapon_data: Dictionary = config.get("weapons", {}).get(id, {})
 		var weapon_max := int(weapon_data.get("max_level", 5))
 		if weapons.has(id):
@@ -65,6 +76,8 @@ func available_choices() -> Array[String]:
 		elif weapons.size() < int(config.get("limits", {}).get("weapons", 6)):
 			options.append(id)
 	for id in config.get("passives", {}):
+		if banished.has(str(id)):
+			continue
 		var passive_data: Dictionary = config.get("passives", {}).get(id, {})
 		var passive_max := int(passive_data.get("max_level", 5))
 		if passives.has(id):
