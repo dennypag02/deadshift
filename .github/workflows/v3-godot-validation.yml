@@ -36,6 +36,13 @@ jobs:
           set -o pipefail
           timeout 20s ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --quit-after 60 2>&1 | tee godot-smoke.log || test $? -eq 124
           ! grep -E "SCRIPT ERROR:|Parse Error:|Failed to load script|Invalid call|Invalid access" godot-smoke.log
+      - name: Verify six shambler kills reach level 2
+        shell: bash
+        run: |
+          set -o pipefail
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --script res://scripts/phase_a_xp_check.gd 2>&1 | tee phase-a-xp.log
+          grep -q "PHASE_A_XP_6_KILL_PASS" phase-a-xp.log
+          ! grep -E "SCRIPT ERROR:|Parse Error:|PHASE_A_XP_6_KILL_FAIL" phase-a-xp.log
       - name: Check HUD bounds at 1080x2340
         shell: bash
         run: |
@@ -50,11 +57,15 @@ jobs:
           sudo apt-get install -y xvfb libgl1-mesa-dri >/dev/null
           mkdir -p hud-capture
           HOME="$PWD/hud-capture" xvfb-run -a ./Godot_v4.4.1-stable_linux.x86_64 --path godot --resolution 1080x2340 --rendering-driver opengl3 --script res://scripts/hud_screenshot_check.gd 2>&1 | tee hud-screenshot.log
-          find hud-capture -name 'hud_1080x2340.png' -exec cp {} hud-capture/screenshot.png \;
-          test -s hud-capture/screenshot.png
+          find hud-capture -name 'hud_1080x2340.png' -exec cp {} hud-capture/hud.png \;
+          find hud-capture -name 'levelup_1080x2340.png' -exec cp {} hud-capture/levelup.png \;
+          test -s hud-capture/hud.png
+          test -s hud-capture/levelup.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: deadshift-hud-screenshot-1080x2340
-          path: hud-capture/screenshot.png
+          path: |
+            hud-capture/hud.png
+            hud-capture/levelup.png
           if-no-files-found: warn
