@@ -171,11 +171,12 @@ func _ready() -> void:
 	for i in range(3):
 		var crate := Control.new()
 		crate.set_script(load("res://scripts/hud_crate_icon.gd"))
-		crate.custom_minimum_size = Vector2(40, 34)
+		crate.custom_minimum_size = Vector2(24, 26)
+		crate.scale = Vector2(0.6, 0.75)
 		crates.add_child(crate)
 		crate_slots.append(crate)
 	supplies_label = _label("SUPPLIES 0/3", 26, crates)
-	supplies_label.custom_minimum_size = Vector2(125, 34)
+	supplies_label.custom_minimum_size = Vector2(115, 34)
 	var event_panel := _panel(root, Rect2(0, 245, 412, 125), PANEL)
 	var banner_style := StyleBoxFlat.new()
 	banner_style.bg_color = PANEL
