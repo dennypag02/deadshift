@@ -22,6 +22,9 @@ const COMMON := Color("#8FA7B3")
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	mouse_filter = Control.MOUSE_FILTER_PASS
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	var scale_factor := get_viewport_rect().size.x / 432.0
+	scale = Vector2.ONE * scale_factor
 	font = load("res://art/fonts/BarlowCondensed-SemiBold.ttf")
 	_build_xp_bar()
 	_build_levelup()
