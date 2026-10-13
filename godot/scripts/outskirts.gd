@@ -256,7 +256,7 @@ func _setup_ui() -> void:
 	add_child(ui)
 
 	var bar := ColorRect.new()
-	bar.color = Color(0.04, 0.04, 0.04, 0.82)
+	bar.color = Color(0.04, 0.04, 0.04, 0.0)
 	bar.position = Vector2(0, 0)
 	bar.size = Vector2(432, 118)
 	ui.add_child(bar)
@@ -265,6 +265,7 @@ func _setup_ui() -> void:
 	hud.position = Vector2(16, 12)
 	hud.add_theme_font_size_override("font_size", 20)
 	ui.add_child(hud)
+	hud.visible = false
 
 	banner = Label.new()
 	banner.position = Vector2(18, 128)
@@ -272,6 +273,7 @@ func _setup_ui() -> void:
 	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	banner.add_theme_font_size_override("font_size", 18)
 	ui.add_child(banner)
+	banner.visible = false
 
 	var tactical_map := Control.new()
 	tactical_map.set_script(load("res://scripts/tactical_minimap.gd"))
@@ -279,6 +281,11 @@ func _setup_ui() -> void:
 	tactical_map.position = Vector2(280, 124)
 	tactical_map.size = Vector2(140, 176)
 	ui.add_child(tactical_map)
+
+	var polish_hud := Control.new()
+	polish_hud.set_script(load("res://scripts/polish_hud.gd"))
+	polish_hud.set("game", self)
+	ui.add_child(polish_hud)
 
 	upgrade_panel = Panel.new()
 	upgrade_panel.position = Vector2(24, 570)
