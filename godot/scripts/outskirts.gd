@@ -506,20 +506,30 @@ func _physics_process(delta: float) -> void:
 		var heading: Vector2 = (enemies[nearest]["pos"] - player_pos).normalized()
 		var ammo_level := int(progression.passives.get("ammo_belt", 0)) if progression != null else 0
 		var smg_level := int(progression.weapons.get("scrap_smg", 1)) if progression != null else 1
-		var shot_count := smg_level + int(float(ammo_level + 1) / 2.0)
+		var ammo_bonus := int(float(ammo_level + 1) / 2.0)
+		var smg_burst := 1 + (1 if smg_level >= 2 else 0) + (1 if smg_level >= 5 else 0)
+		var shot_count := smg_burst + ammo_bonus
+		var smg_hits := 2 if smg_level >= 4 else 1
+		var smg_damage_mult := 1.25 if smg_level >= 5 else 1.0
 		for shot in range(shot_count):
 			var spread := (float(shot) - float(shot_count - 1) * 0.5) * 0.12
-			bullets.append({"pos": player_pos, "dir": heading.rotated(spread), "life": 1.6})
+			bullets.append({"pos": player_pos, "dir": heading.rotated(spread), "life": 1.6, "hits_left": smg_hits, "damage_mult": smg_damage_mult, "knockback": 0.0})
 		if progression != null and progression.weapons.has("boomstick"):
-			var pellet_count := 3 + int(progression.weapons["boomstick"]) * 2
+			var boom_level := int(progression.weapons["boomstick"])
+			var pellet_count := 3 + (2 if boom_level >= 2 else 0) + (2 if boom_level >= 5 else 0) + ammo_bonus
+			var boom_damage_mult := 1.20 if boom_level >= 3 else 1.0
+			var cone_step := 0.18 if boom_level >= 4 else 0.14
+			var boom_knockback := 72.0 if boom_level >= 5 else 36.0
 			for pellet in range(pellet_count):
-				var angle := (float(pellet) - float(pellet_count-1)*0.5) * 0.14
-				bullets.append({"pos": player_pos, "dir": heading.rotated(angle), "life": 0.48})
+				var angle := (float(pellet) - float(pellet_count-1)*0.5) * cone_step
+				bullets.append({"pos": player_pos, "dir": heading.rotated(angle), "life": 0.48, "hits_left": 1, "damage_mult": boom_damage_mult, "knockback": boom_knockback})
 		if juice_fx != null:
 			juice_fx.call("shot", player_pos, heading)
 			recoil_vector = -heading * 3.0
 			last_aim = heading
-		fire_clock = fire_period / (1.0 + 0.08 * int(progression.passives.get("trigger_finger",0))) if progression != null else fire_period
+		var trigger_bonus := 1.0 + 0.08 * int(progression.passives.get("trigger_finger",0)) if progression != null else 1.0
+		var smg_rate_bonus := 1.20 if smg_level >= 3 else 1.0
+		fire_clock = fire_period / (trigger_bonus * smg_rate_bonus)
 
 	_update_bullets(delta)
 	_update_enemies(delta)
@@ -616,9 +626,14 @@ func _update_bullets(delta: float) -> void:
 		for j in range(enemies.size() - 1, -1, -1):
 			var enemy: Dictionary = enemies[j]
 			if bullet["pos"].distance_to(enemy["pos"]) <= float(enemy["radius"]) + BULLET_RADIUS:
-				enemy["hp"] = float(enemy["hp"]) - float(bullet_damage) * (progression.damage_multiplier() if progression != null else 1.0)
+				var bullet_mult := float(bullet.get("damage_mult", 1.0))
+				enemy["hp"] = float(enemy["hp"]) - float(bullet_damage) * bullet_mult * (progression.damage_multiplier() if progression != null else 1.0)
 				if str(enemy["kind"]) == "trucker":
 					enemy["charge"] = 1.1
+				var knockback := float(bullet.get("knockback", 0.0))
+				if knockback > 0.0:
+					var pushed := Vector2(enemy["pos"]) + Vector2(bullet["dir"]).normalized() * knockback
+					enemy["pos"] = _move_with_blockers(Vector2(enemy["pos"]), pushed - Vector2(enemy["pos"]), float(enemy["radius"]))
 				impact_marks.append({"pos": enemy["pos"], "life": 0.22})
 				enemy["visual_hit"] = 0.06
 				enemy["visual_dir"] = Vector2(bullet["dir"])
@@ -626,7 +641,12 @@ func _update_bullets(delta: float) -> void:
 					juice_fx.call("hit", Vector2(enemy["pos"]), Vector2(bullet["dir"]))
 				if float(enemy["hp"]) <= 0:
 					_phase_a_kill_enemy(j)
-				consumed = true
+				var hits_left := int(bullet.get("hits_left", 1)) - 1
+				bullet["hits_left"] = hits_left
+				if hits_left <= 0:
+					consumed = true
+				else:
+					bullet["pos"] += Vector2(bullet["dir"]).normalized() * (float(enemy["radius"]) * 2.0 + 18.0)
 				break
 		if consumed or float(bullet["life"]) <= 0.0:
 			bullets.remove_at(i)
