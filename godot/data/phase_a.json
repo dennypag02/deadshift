@@ -16,44 +16,108 @@
     "scrap_smg": {
       "name": "Scrap SMG",
       "max_level": 5,
-      "description": "Auto-fire at nearest zombie"
+      "description": "Auto-fire at nearest zombie",
+      "rarity": "COMMON",
+      "level_adds": [
+        "Auto-fire at nearest zombie",
+        "+1 bullet per burst",
+        "+1 bullet per burst",
+        "+1 bullet per burst",
+        "+1 bullet per burst"
+      ]
     },
     "boomstick": {
       "name": "Boomstick",
       "max_level": 5,
-      "description": "Shotgun cone and knockback"
+      "description": "Shotgun cone and knockback",
+      "rarity": "COMMON",
+      "level_adds": [
+        "Unlock shotgun cone",
+        "+2 pellets per blast",
+        "+2 pellets per blast",
+        "+2 pellets per blast",
+        "+2 pellets per blast"
+      ]
     },
     "buzzsaw": {
       "name": "Buzzsaw Orbit",
       "max_level": 5,
-      "description": "Orbiting blades damage zombies"
+      "description": "Orbiting blades damage zombies",
+      "rarity": "COMMON",
+      "level_adds": [
+        "Unlock orbiting blade",
+        "+1 orbiting blade",
+        "Increase saw pressure",
+        "+1 orbiting blade",
+        "Maximum saw pressure"
+      ]
     }
   },
   "passives": {
     "muscle": {
       "name": "Muscle",
       "max_level": 5,
-      "description": "+10% damage per level"
+      "description": "+10% damage per level",
+      "rarity": "COMMON",
+      "level_adds": [
+        "+10% damage",
+        "+10% damage",
+        "+10% damage",
+        "+10% damage",
+        "+10% damage"
+      ]
     },
     "ammo_belt": {
       "name": "Ammo Belt",
       "max_level": 5,
-      "description": "Extra projectiles at L1/L3/L5"
+      "description": "Extra projectiles at L1/L3/L5",
+      "rarity": "COMMON",
+      "level_adds": [
+        "+1 projectile per volley",
+        "Capacity upgrade",
+        "+1 projectile per volley",
+        "Capacity upgrade",
+        "+1 projectile per volley"
+      ]
     },
     "trigger_finger": {
       "name": "Trigger Finger",
       "max_level": 5,
-      "description": "+8% attack speed per level"
+      "description": "+8% attack speed per level",
+      "rarity": "COMMON",
+      "level_adds": [
+        "+8% attack speed",
+        "+8% attack speed",
+        "+8% attack speed",
+        "+8% attack speed",
+        "+8% attack speed"
+      ]
     },
     "magnet": {
       "name": "Magnet",
       "max_level": 5,
-      "description": "+30% pickup range per level"
+      "description": "+30% pickup range per level",
+      "rarity": "COMMON",
+      "level_adds": [
+        "+30% pickup radius",
+        "+30% pickup radius",
+        "+30% pickup radius",
+        "+30% pickup radius",
+        "+30% pickup radius"
+      ]
     },
     "thick_hide": {
       "name": "Thick Hide",
       "max_level": 5,
-      "description": "+15% HP and +1 armor per level"
+      "description": "+15% HP and +1 armor per level",
+      "rarity": "COMMON",
+      "level_adds": [
+        "+15 max HP, +1 armor",
+        "+15 max HP, +1 armor",
+        "+15 max HP, +1 armor",
+        "+15 max HP, +1 armor",
+        "+15 max HP, +1 armor"
+      ]
     }
   },
   "enemy_xp": {
