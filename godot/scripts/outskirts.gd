@@ -211,6 +211,13 @@ func _setup_ui() -> void:
 	banner.add_theme_font_size_override("font_size", 18)
 	ui.add_child(banner)
 
+	var tactical_map := Control.new()
+	tactical_map.set_script(load("res://scripts/tactical_minimap.gd"))
+	tactical_map.game = self
+	tactical_map.position = Vector2(280, 124)
+	tactical_map.size = Vector2(140, 176)
+	ui.add_child(tactical_map)
+
 	upgrade_panel = Panel.new()
 	upgrade_panel.position = Vector2(24, 570)
 	upgrade_panel.size = Vector2(384, 310)
