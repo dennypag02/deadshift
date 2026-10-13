@@ -8,6 +8,7 @@ var shake_clock := 0.0
 var shake_strength := 0.0
 var zoom_clock := 0.0
 var dust_clock := 0.0
+var terrain_clock := 0.0
 var last_wave := 0
 var last_hp := 100
 var last_wave_active := false
@@ -108,6 +109,12 @@ func _process(delta: float) -> void:
 	if shake_clock > 0.0 and game.get("shake_enabled") == true:
 		game.camera.offset += Vector2(rng.randf_range(-1,1),rng.randf_range(-1,1))*shake_strength*shake_clock/J.EXPLOSION_SHAKE_LIFE
 	dust_clock -= delta
+	terrain_clock -= delta
+	if velocity.length() > 40.0 and terrain_clock <= 0.0:
+		var terrain: Dictionary = game._hazard_at(game.player_pos)
+		if bool(terrain.get("slippery", false)):
+			emit("dust", game.player_pos + Vector2(0,35), -velocity.normalized(), 0.3)
+			terrain_clock = 0.15
 	if velocity.length() > 40.0 and dust_clock <= 0.0:
 		dust_clock = J.FOOTSTEP_LIFE
 		emit("dust",game.player_pos+Vector2(0,35),-velocity.normalized(),0.4)
