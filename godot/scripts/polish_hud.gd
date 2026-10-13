@@ -88,27 +88,29 @@ func _ready() -> void:
 	pause.pressed.connect(_toggle_pause)
 	root.add_child(pause)
 	var hp_panel := _panel(root, Rect2(58, 12, 155, 44))
+	var hp_layer := Node2D.new()
+	hp_panel.add_child(hp_layer)
 	var hp_bg := ColorRect.new()
 	hp_bg.position = Vector2(28, 12)
 	hp_bg.size = Vector2(118, 20)
 	hp_bg.color = Color("#3A322B")
-	hp_panel.add_child(hp_bg)
+	hp_layer.add_child(hp_bg)
 	hp_bar_width = hp_bg.size.x
 	hp_ghost = ColorRect.new()
 	hp_ghost.color = Color("#F2A23A")
 	hp_ghost.position = hp_bg.position
 	hp_ghost.size = hp_bg.size
-	hp_panel.add_child(hp_ghost)
+	hp_layer.add_child(hp_ghost)
 	hp_fill = ColorRect.new()
 	hp_fill.color = Color("#D93A2E")
 	hp_fill.position = hp_bg.position
 	hp_fill.size = hp_bg.size
-	hp_panel.add_child(hp_fill)
+	hp_layer.add_child(hp_fill)
 	hp_flash = ColorRect.new()
 	hp_flash.color = Color(1,1,1,0)
 	hp_flash.position = hp_bg.position
 	hp_flash.size = hp_bg.size
-	hp_panel.add_child(hp_flash)
+	hp_layer.add_child(hp_flash)
 	health_label = _label("100 / 100", 16, hp_panel)
 	health_label.position = Vector2(28, 9)
 	health_label.size = Vector2(118, 24)
@@ -141,16 +143,18 @@ func _ready() -> void:
 	card_style.set_border_width_all(3)
 	card_style.set_corner_radius_all(14)
 	objective_panel.add_theme_stylebox_override("panel", card_style)
+	var card_layer := Node2D.new()
+	objective_panel.add_child(card_layer)
 	var stripe := ColorRect.new()
 	stripe.color = AMBER
 	stripe.position = Vector2(3, 4)
 	stripe.size = Vector2(8, 108)
-	objective_panel.add_child(stripe)
+	card_layer.add_child(stripe)
 	var content := HBoxContainer.new()
 	content.position = Vector2(19, 9)
 	content.size = Vector2(258, 98)
 	content.add_theme_constant_override("separation", 16)
-	objective_panel.add_child(content)
+	card_layer.add_child(content)
 	objective_icon = _label("⚡", 30, content)
 	objective_icon.custom_minimum_size = Vector2(48, 48)
 	objective_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -179,17 +183,19 @@ func _ready() -> void:
 	banner_style.set_border_width_all(3)
 	banner_style.set_corner_radius_all(14)
 	event_panel.add_theme_stylebox_override("panel", banner_style)
+	var banner_layer := Node2D.new()
+	event_panel.add_child(banner_layer)
 	for y in [3, 117]:
 		var edge := ColorRect.new()
 		edge.color = AMBER
 		edge.position = Vector2(3, y)
 		edge.size = Vector2(406, 5)
-		event_panel.add_child(edge)
+		banner_layer.add_child(edge)
 	var banner_stack := VBoxContainer.new()
 	banner_stack.position = Vector2(8, 11)
 	banner_stack.size = Vector2(396, 104)
 	banner_stack.add_theme_constant_override("separation", 0)
-	event_panel.add_child(banner_stack)
+	banner_layer.add_child(banner_stack)
 	banner_title = _label("", 64, banner_stack)
 	banner_title.custom_minimum_size = Vector2(396, 68)
 	banner_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
