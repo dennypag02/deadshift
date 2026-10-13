@@ -1107,7 +1107,8 @@ func _draw_combat() -> void:
 			draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(25,25), Vector2(50,50)), false)
 
 	for bullet in bullets:
-		draw_line(bullet["pos"] - bullet["dir"] * 12.0, bullet["pos"], Color("#ffcb65"), 4.0)
+		draw_line(bullet["pos"] - bullet["dir"] * 22.0, bullet["pos"], Color("#F2A23A", 0.45), 7.0)
+		draw_line(bullet["pos"] - bullet["dir"] * 22.0, bullet["pos"], Color("#fff2b8"), 4.0)
 		draw_circle(bullet["pos"], BULLET_RADIUS, Color("#fff2b8"))
 
 	for mark in impact_marks:
@@ -1117,7 +1118,9 @@ func _draw_combat() -> void:
 		draw_circle(mark["pos"], radius, Color(1.0,0.35,0.08,0.42 if is_blast else 0.55))
 
 	draw_circle(player_pos + Vector2(6,14), 35, Color(0.02,0.02,0.02,0.58))
-	draw_texture_rect(SURVIVOR_ART, Rect2(player_pos - Vector2(48,48), Vector2(96,96)), false)
+	var bounce := sin(float(Time.get_ticks_msec()) * TAU / 250.0) * 0.05 if player_velocity.length() > 40.0 else 0.0
+	var visual_scale := Vector2(1.0, 0.99 + bounce)
+	draw_texture_rect(SURVIVOR_ART, Rect2(player_pos - Vector2(48,48) * visual_scale, Vector2(96,96) * visual_scale), false)
 
 func _draw_dusk() -> void:
 	if wave < 7:
