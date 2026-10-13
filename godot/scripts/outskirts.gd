@@ -102,18 +102,24 @@ const NEST_WEST := Vector2(9.5 * TILE, 21.5 * TILE)
 const NEST_EAST := Vector2(30.5 * TILE, 20.0 * TILE)
 const NEST_NW := Vector2(5.0 * TILE, 3.2 * TILE)
 const NEST_NE := Vector2(27.0 * TILE, 3.2 * TILE)
+const PUZZLE_CENTER := Vector2(25.8 * TILE, 24.5 * TILE)
+const RELAY_RED := Vector2(23.2 * TILE, 25.0 * TILE)
+const RELAY_YELLOW := Vector2(25.7 * TILE, 28.0 * TILE)
+const RELAY_BLUE := Vector2(28.5 * TILE, 25.0 * TILE)
+const PUZZLE_GUARD_RADIUS := 560.0
+const PUZZLE_CODE := ["RED", "BLUE", "YELLOW", "RED"]
 
 var wave_plan := {
-	1: {"shamblers": 180, "runners": 0, "trucker": 0},
-	2: {"shamblers": 230, "runners": 0, "trucker": 0},
-	3: {"shamblers": 280, "runners": 0, "trucker": 0},
-	4: {"shamblers": 330, "runners": 0, "trucker": 0},
-	5: {"shamblers": 320, "runners": 40, "trucker": 0},
-	6: {"shamblers": 370, "runners": 50, "trucker": 0},
-	7: {"shamblers": 420, "runners": 65, "trucker": 0},
-	8: {"shamblers": 480, "runners": 80, "trucker": 0},
-	9: {"shamblers": 540, "runners": 95, "trucker": 0},
-	10: {"shamblers": 600, "runners": 110, "trucker": 1},
+	1: {"shamblers": 180, "runners": 12, "trucker": 0},
+	2: {"shamblers": 240, "runners": 20, "trucker": 0},
+	3: {"shamblers": 300, "runners": 30, "trucker": 0},
+	4: {"shamblers": 360, "runners": 42, "trucker": 0},
+	5: {"shamblers": 420, "runners": 58, "trucker": 0},
+	6: {"shamblers": 480, "runners": 72, "trucker": 0},
+	7: {"shamblers": 540, "runners": 88, "trucker": 0},
+	8: {"shamblers": 610, "runners": 108, "trucker": 0},
+	9: {"shamblers": 680, "runners": 130, "trucker": 0},
+	10: {"shamblers": 760, "runners": 155, "trucker": 1},
 }
 
 var player_pos := PLAYER_START
@@ -151,6 +157,12 @@ var wave10_survived := false
 var objective_flash_clock := 0.0
 var player_velocity := Vector2.ZERO
 var hazard_debug := false
+var puzzle_started := false
+var puzzle_complete := false
+var puzzle_step := 0
+var puzzle_guard_wave := 0
+var puzzle_pad_lock := 0.0
+var detonator_core := false
 
 var camera: Camera2D
 var hud: Label
@@ -377,10 +389,10 @@ func _physics_process(delta: float) -> void:
 		var active_target := _active_horde_target()
 		if spawn_clock <= 0.0 and wave_spawned < wave_total and enemies.size() < active_target:
 			var room := active_target - enemies.size()
-			var burst_size := mini(mini(18 + wave * 2, room), wave_total - wave_spawned)
+			var burst_size := mini(mini(26 + wave * 3, room), wave_total - wave_spawned)
 			for _n in range(burst_size):
 				_spawn_next_enemy()
-			spawn_clock = maxf(0.22, 0.32 - float(wave) * 0.008)
+			spawn_clock = maxf(0.14, 0.22 - float(wave) * 0.006)
 		if wave_spawned >= wave_total and enemies.is_empty():
 			_finish_wave()
 
@@ -398,11 +410,12 @@ func _physics_process(delta: float) -> void:
 	_update_enemies(delta)
 	_update_health(delta)
 	_update_objectives(delta)
+	_update_puzzle(delta)
 	_update_hud()
 	queue_redraw()
 
 func _active_horde_target() -> int:
-	return mini(115, 50 + wave * 6)
+	return mini(170, 90 + wave * 8)
 
 func _spawn_next_enemy() -> void:
 	var plan: Dictionary = wave_plan[wave]
@@ -410,16 +423,16 @@ func _spawn_next_enemy() -> void:
 	if wave == 10 and int(plan["trucker"]) > 0 and not trucker_spawned and wave_spawned >= wave_total / 2:
 		kind = "trucker"
 		trucker_spawned = true
-	elif runners_spawned < int(plan["runners"]) and (wave_spawned % 3 == 1 or wave_spawned >= int(plan["shamblers"])):
+	elif runners_spawned < int(plan["runners"]) and (wave_spawned % 4 == 1 or wave_spawned >= int(plan["shamblers"])):
 		kind = "runner"
 		runners_spawned += 1
 
 	var spawn := _pick_spawn_point()
 	var hp := 1
-	var speed := 86.0
+	var speed := 108.0
 	var radius := 18.0
 	if kind == "runner":
-		speed = 155.0
+		speed = 195.0
 		radius = 15.0
 	elif kind == "trucker":
 		hp = 30
@@ -573,6 +586,72 @@ func _update_objectives(delta: float) -> void:
 			banner.text = "INFESTATION NEST DESTROYED!"
 			_try_unlock_district()
 
+func _update_puzzle(delta: float) -> void:
+	puzzle_pad_lock = maxf(0.0, puzzle_pad_lock - delta)
+
+	if not puzzle_started and player_pos.distance_to(PUZZLE_CENTER) < PUZZLE_GUARD_RADIUS:
+		puzzle_started = true
+		puzzle_guard_wave = 1
+		_spawn_puzzle_guard_surge(28, 14)
+		banner.text = "FORTIFIED RELAY SITE\nCODE: RED > BLUE > YELLOW > RED"
+
+	if not puzzle_started or puzzle_complete or puzzle_pad_lock > 0.0:
+		return
+
+	var touched := ""
+	if player_pos.distance_to(RELAY_RED) < 70.0:
+		touched = "RED"
+	elif player_pos.distance_to(RELAY_BLUE) < 70.0:
+		touched = "BLUE"
+	elif player_pos.distance_to(RELAY_YELLOW) < 70.0:
+		touched = "YELLOW"
+
+	if touched == "":
+		return
+
+	puzzle_pad_lock = 0.75
+	var expected := str(PUZZLE_CODE[puzzle_step])
+	if touched == expected:
+		puzzle_step += 1
+		score += 250
+		if puzzle_step >= PUZZLE_CODE.size():
+			puzzle_complete = true
+			detonator_core = true
+			score += 2500
+			banner.text = "RELAY PUZZLE SOLVED!\nDETONATOR CORE ACQUIRED"
+			impact_marks.append({"pos": PUZZLE_CENTER, "life": 0.75, "blast": true})
+			_try_unlock_district()
+		else:
+			banner.text = "RELAY %d/4 CORRECT - KEEP MOVING!" % puzzle_step
+	else:
+		puzzle_step = 0
+		puzzle_guard_wave += 1
+		_spawn_puzzle_guard_surge(18 + puzzle_guard_wave * 4, 10 + puzzle_guard_wave * 3)
+		banner.text = "WRONG RELAY! CODE RESET\nREINFORCEMENTS INBOUND"
+
+func _spawn_puzzle_guard_surge(shamblers: int, runners: int) -> void:
+	var guard_points := [
+		PUZZLE_CENTER + Vector2(-420, -260),
+		PUZZLE_CENTER + Vector2(410, -230),
+		PUZZLE_CENTER + Vector2(-390, 300),
+		PUZZLE_CENTER + Vector2(390, 320),
+		PUZZLE_CENTER + Vector2(0, -430),
+	]
+	for i in range(shamblers + runners):
+		var base: Vector2 = guard_points[i % guard_points.size()]
+		var spawn := base + Vector2(rng.randf_range(-100.0, 100.0), rng.randf_range(-100.0, 100.0))
+		spawn.x = clampf(spawn.x, 45.0, MAP_SIZE.x - 45.0)
+		spawn.y = clampf(spawn.y, 45.0, MAP_SIZE.y - 45.0)
+		var is_runner := i >= shamblers
+		enemies.append({
+			"pos": spawn,
+			"kind": "runner" if is_runner else "shambler",
+			"hp": 1,
+			"speed": 205.0 if is_runner else 112.0,
+			"radius": 15.0 if is_runner else 18.0,
+			"charge": 0.0,
+		})
+
 func _kill_enemies_near(center: Vector2, radius: float) -> void:
 	for i in range(enemies.size() - 1, -1, -1):
 		if Vector2(enemies[i]["pos"]).distance_to(center) <= radius:
@@ -593,7 +672,7 @@ func _objective_counts() -> Dictionary:
 
 func _objectives_complete() -> bool:
 	var counts := _objective_counts()
-	return generator_active and int(counts["supplies"]) == 3 and int(counts["nests"]) == 4
+	return generator_active and int(counts["supplies"]) == 3 and int(counts["nests"]) == 4 and detonator_core
 
 func _try_unlock_district() -> void:
 	if wave10_survived and _objectives_complete():
@@ -605,8 +684,9 @@ func _update_hud() -> void:
 	var state := "CLEAR" if district_cleared else ("FIGHT" if wave_active else "UPGRADE")
 	var counts := _objective_counts()
 	var gen_mark := "ON" if generator_active else "OFF"
-	hud.text = "OUTSKIRTS  W%d/10  HP %d  Score %d  %s\nThreats %d | Generator %s | Supplies %d/3 | Nests %d/4" % [
-		wave, player_hp, score, state, remaining, gen_mark, int(counts["supplies"]), int(counts["nests"])
+	var core_mark := "YES" if detonator_core else "NO"
+	hud.text = "OUTSKIRTS  W%d/10  HP %d  Score %d  %s\nThreats %d | Gen %s | Supplies %d/3 | Nests %d/4 | Core %s" % [
+		wave, player_hp, score, state, remaining, gen_mark, int(counts["supplies"]), int(counts["nests"]), core_mark
 	]
 
 func _draw() -> void:
@@ -803,6 +883,21 @@ func _draw_objectives() -> void:
 				var angle := float(a) * TAU / 8.0
 				draw_line(p + Vector2.RIGHT.rotated(angle) * 22.0, p + Vector2.RIGHT.rotated(angle) * 54.0, Color("#a83a2f"), 7.0)
 			_label(p + Vector2(-34, -62), "NEST", 18, Color("#ffd0c4"))
+
+	# Fortified relay puzzle and boss-progression reward.
+	if not puzzle_complete:
+		draw_circle(PUZZLE_CENTER, 150, Color(0.18, 0.18, 0.20, 0.28))
+		draw_circle(PUZZLE_CENTER, 58, Color("#343943"))
+		draw_circle(RELAY_RED, 38, Color("#b83a32"))
+		draw_circle(RELAY_BLUE, 38, Color("#3f6fa6"))
+		draw_circle(RELAY_YELLOW, 38, Color("#d7ae35"))
+		_label(PUZZLE_CENTER + Vector2(-130,-95), "FORTIFIED RELAY", 22, Color("#fff0c5"))
+		_label(PUZZLE_CENTER + Vector2(-160,-65), "R > B > Y > R", 22, Color("#f3df9f"))
+		if puzzle_started:
+			_label(PUZZLE_CENTER + Vector2(-130,105), "STEP %d / 4" % puzzle_step, 20, Color.WHITE)
+	else:
+		draw_circle(PUZZLE_CENTER, 54, Color(0.20, 0.75, 0.42, 0.45))
+		_label(PUZZLE_CENTER + Vector2(-122,-72), "CORE RECOVERED", 22, Color("#d8ffdf"))
 
 func _draw_spawn_markers() -> void:
 	_spawn_marker(HIGHWAY_WEST, Color("#e6c04d"))
