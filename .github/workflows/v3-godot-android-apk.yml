@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/v3-godot-scrolling-world
+      - feature/phase-a-progression
     paths:
       - 'godot/**'
       - '.github/workflows/v3-godot-android-apk.yml'
