@@ -42,3 +42,18 @@ jobs:
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --resolution 1080x2340 --script res://scripts/hud_layout_check.gd 2>&1 | tee hud-layout.log
           grep -q "HUD_LAYOUT_1080x2340_PASS" hud-layout.log
           ! grep -E "HUD CLIPPED|SCORE OVERLAPS MINIMAP|SCRIPT ERROR:|Parse Error:" hud-layout.log
+      - name: Capture 1080x2340 HUD screenshot
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb libgl1-mesa-dri >/dev/null
+          mkdir -p hud-capture
+          HOME="$PWD/hud-capture" xvfb-run -a ./Godot_v4.4.1-stable_linux.x86_64 --path godot --resolution 1080x2340 --rendering-driver opengl3 --script res://scripts/hud_screenshot_check.gd 2>&1 | tee hud-screenshot.log
+          find hud-capture -name 'hud_1080x2340.png' -exec cp {} hud-capture/screenshot.png \;
+          test -s hud-capture/screenshot.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deadshift-hud-screenshot-1080x2340
+          path: hud-capture/screenshot.png
+          if-no-files-found: warn
