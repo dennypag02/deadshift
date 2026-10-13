@@ -138,7 +138,7 @@ func _ready() -> void:
 	score_label.custom_minimum_size = Vector2(84, 65)
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	score_label.add_theme_font_override("font", bebas_font if bebas_font != null else ThemeDB.fallback_font)
-	var objective_panel := _panel(root, Rect2(8, 118, 298, 128))
+	var objective_panel := _panel(root, Rect2(8, 158, 298, 128))
 	var card_style := StyleBoxFlat.new()
 	card_style.bg_color = Color("#14110F", 0.85)
 	card_style.border_color = Color("#3A322B")
@@ -164,9 +164,10 @@ func _ready() -> void:
 	stack.custom_minimum_size = Vector2(194, 114)
 	stack.add_theme_constant_override("separation", 3)
 	content.add_child(stack)
-	objective_label = _label("POWER THE MINI-MART GENERATOR", 32, stack)
+	objective_label = _label("POWER THE MINI-MART GENERATOR", 30, stack)
 	objective_label.custom_minimum_size = Vector2(194, 70)
 	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	objective_label.max_lines_visible = 2
 	var crates := HBoxContainer.new()
 	crates.add_theme_constant_override("separation", 1)
 	stack.add_child(crates)
@@ -179,7 +180,7 @@ func _ready() -> void:
 		crate_slots.append(crate)
 	supplies_label = _label("SUPPLIES 0/3", 26, crates)
 	supplies_label.custom_minimum_size = Vector2(115, 34)
-	var event_panel := _panel(root, Rect2(0, 245, 412, 125), PANEL)
+	var event_panel := _panel(root, Rect2(0, 296, 412, 125), PANEL)
 	var banner_style := StyleBoxFlat.new()
 	banner_style.bg_color = PANEL
 	banner_style.border_color = Color("#3A322B")
@@ -382,7 +383,7 @@ func _draw() -> void:
 	var inset_min := Vector2(float(physical_safe.position.x) * sx, float(physical_safe.position.y) * sy)
 	var inset_max := Vector2(float(display_size.x - physical_safe.end.x) * sx, float(display_size.y - physical_safe.end.y) * sy)
 	var margin := 22.0 * view.x / 432.0
-	var top_edge := maxf(inset_min.y + margin, (10.0 + 234.0) * view.x / 432.0 + margin)
+	var top_edge := maxf(inset_min.y + margin, (10.0 + 285.0) * view.x / 432.0 + margin)
 	var bottom_edge := view.y - inset_max.y - margin
 	var safe_rect := Rect2(Vector2(inset_min.x + margin, top_edge), Vector2(view.x - inset_min.x - inset_max.x - margin * 2.0, maxf(1.0, bottom_edge - top_edge)))
 	var center := safe_rect.get_center()
