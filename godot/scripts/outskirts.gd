@@ -130,6 +130,9 @@ var wave := 1
 var fire_period := BASE_FIRE_PERIOD
 var player_speed := BASE_PLAYER_SPEED
 var bullet_damage := 1
+var juice_fx: Node2D
+var shake_enabled := true
+var vibration_enabled := true
 var wave_active := true
 var wave_spawned := 0
 var wave_total := 0
@@ -286,6 +289,11 @@ func _setup_ui() -> void:
 	polish_hud.set_script(load("res://scripts/polish_hud.gd"))
 	polish_hud.set("game", self)
 	ui.add_child(polish_hud)
+	var fx := Node2D.new()
+	fx.set_script(load("res://scripts/juice_fx.gd"))
+	fx.set("game", self)
+	add_child(fx)
+	juice_fx = fx
 
 	upgrade_panel = Panel.new()
 	upgrade_panel.position = Vector2(24, 570)
@@ -480,6 +488,8 @@ func _physics_process(delta: float) -> void:
 				nearest = i
 		var heading: Vector2 = (enemies[nearest]["pos"] - player_pos).normalized()
 		bullets.append({"pos": player_pos, "dir": heading, "life": 1.6})
+		if juice_fx != null:
+			juice_fx.call("shot", player_pos, heading)
 		fire_clock = fire_period
 
 	_update_bullets(delta)
@@ -581,11 +591,15 @@ func _update_bullets(delta: float) -> void:
 				if str(enemy["kind"]) == "trucker":
 					enemy["charge"] = 1.1
 				impact_marks.append({"pos": enemy["pos"], "life": 0.22})
+				if juice_fx != null:
+					juice_fx.call("hit", Vector2(enemy["pos"]), Vector2(bullet["dir"]))
 				if int(enemy["hp"]) <= 0:
 					kills += 1
 					if trap_active and str(enemy.get("trap_guard", "")) == "YELLOW":
 						trap_guard_kills += 1
 					score += 500 if str(enemy["kind"]) == "trucker" else 100
+					if juice_fx != null:
+						juice_fx.call("kill", Vector2(enemy["pos"]), 500 if str(enemy["kind"]) == "trucker" else 100)
 					enemies.remove_at(j)
 				consumed = true
 				break
