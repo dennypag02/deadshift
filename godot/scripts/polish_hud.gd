@@ -266,37 +266,78 @@ func _process(delta: float) -> void:
 		backdrop.visible = false
 	queue_redraw()
 
+func _draw_edge_arrow(target: Vector2, color: Color, symbol: String, safe_rect: Rect2, center: Vector2, zoom: Vector2) -> void:
+	var offset: Vector2 = (target - game.player_pos) * zoom
+	var screen_pos := center + offset
+	if safe_rect.has_point(screen_pos):
+		return
+	if offset.length_squared() < 0.001:
+		return
+	var direction := offset.normalized()
+	var t := INF
+	if direction.x > 0.001:
+		t = minf(t, (safe_rect.end.x - center.x) / direction.x)
+	elif direction.x < -0.001:
+		t = minf(t, (safe_rect.position.x - center.x) / direction.x)
+	if direction.y > 0.001:
+		t = minf(t, (safe_rect.end.y - center.y) / direction.y)
+	elif direction.y < -0.001:
+		t = minf(t, (safe_rect.position.y - center.y) / direction.y)
+	var edge: Vector2 = center + direction * maxf(0.0, t)
+	edge = edge.clamp(safe_rect.position, safe_rect.end)
+	var side := direction.orthogonal()
+	draw_colored_polygon(PackedVector2Array([edge + direction * 12.0, edge - direction * 9.0 + side * 8.0, edge - direction * 9.0 - side * 8.0]), color)
+	draw_circle(edge - direction * 17.0, 9.0, Color("#14110F"))
+	draw_string(barlow_font if barlow_font != null else ThemeDB.fallback_font, edge - direction * 17.0 + Vector2(-5, 5), symbol, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, color)
+
 func _draw() -> void:
 	if game == null:
 		return
 	var view := get_viewport_rect().size
-	var scale_factor := view.x / 432.0
+	var display_size := DisplayServer.screen_get_size()
+	var physical_safe := DisplayServer.get_display_safe_area()
+	var sx := view.x / maxf(1.0, float(display_size.x))
+	var sy := view.y / maxf(1.0, float(display_size.y))
+	var inset_min := Vector2(float(physical_safe.position.x) * sx, float(physical_safe.position.y) * sy)
+	var inset_max := Vector2(float(display_size.x - physical_safe.end.x) * sx, float(display_size.y - physical_safe.end.y) * sy)
+	var margin := 22.0 * view.x / 432.0
+	var safe_rect := Rect2(inset_min + Vector2.ONE * margin, view - inset_min - inset_max - Vector2.ONE * margin * 2.0)
 	var center := view * 0.5
-	var targets: Array[Vector2] = []
-	if not game.generator_active:
-		targets.append(game.GENERATOR_POS)
-	for cache in game.supply_caches:
-		if not bool(cache["collected"]):
-			targets.append(Vector2(cache["pos"]))
-	if not game.puzzle_complete:
+	var target: Vector2 = game.GENERATOR_POS
+	var icon := "⚡"
+	var found := not game.generator_active
+	if not found:
+		for cache in game.supply_caches:
+			if not bool(cache["collected"]):
+				target = Vector2(cache["pos"])
+				icon = "▣"
+				found = true
+				break
+	if not found:
+		for nest in game.infestation_nests:
+			if not bool(nest["destroyed"]):
+				target = Vector2(nest["pos"])
+				icon = "!"
+				found = true
+				break
+	if not found and not game.puzzle_complete:
 		for color in ["RED", "BLUE", "YELLOW"]:
 			if not game.trap_finished.has(color):
-				targets.append(game._relay_position(color))
-	for nest in game.infestation_nests:
-		if not bool(nest["destroyed"]):
-			targets.append(Vector2(nest["pos"]))
-	if game.district_cleared:
-		targets.append(game.NORTH_EXIT.get_center())
-	for target in targets:
-		var offset: Vector2 = (target - game.player_pos) * game.camera.zoom
-		var screen_pos := center + offset
-		var margin := 32.0 * scale_factor
-		var safe_rect := Rect2(Vector2(margin, 300.0 * scale_factor), view - Vector2(margin * 2.0, 360.0 * scale_factor))
-		if safe_rect.has_point(screen_pos):
+				target = game._relay_position(color)
+				icon = "!"
+				found = true
+				break
+	if not found and game.district_cleared:
+		target = game.NORTH_EXIT.get_center()
+		icon = "◆"
+		found = true
+	if found:
+		_draw_edge_arrow(target, AMBER, icon, safe_rect, center, game.camera.zoom)
+	var runner_arrows := 0
+	for enemy in game.enemies:
+		if str(enemy["kind"]) != "runner":
 			continue
-		var direction := offset.normalized()
-		if direction.length_squared() < 0.01:
-			continue
-		var edge := Vector2(clampf(screen_pos.x, safe_rect.position.x, safe_rect.end.x), clampf(screen_pos.y, safe_rect.position.y, safe_rect.end.y))
-		var side := direction.orthogonal()
-		draw_colored_polygon(PackedVector2Array([edge + direction * 12.0 * scale_factor, edge - direction * 8.0 * scale_factor + side * 8.0 * scale_factor, edge - direction * 8.0 * scale_factor - side * 8.0 * scale_factor]), AMBER)
+		_draw_edge_arrow(Vector2(enemy["pos"]), Color("#D93A2E"), "!", safe_rect, center, game.camera.zoom)
+		runner_arrows += 1
+		if runner_arrows >= 3:
+			break
