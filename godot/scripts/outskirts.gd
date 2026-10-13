@@ -103,9 +103,9 @@ const NEST_EAST := Vector2(30.5 * TILE, 20.0 * TILE)
 const NEST_NW := Vector2(5.0 * TILE, 3.2 * TILE)
 const NEST_NE := Vector2(27.0 * TILE, 3.2 * TILE)
 const PUZZLE_CENTER := Vector2(26.5 * TILE, 27.5 * TILE)
-const RELAY_RED := Vector2(25.5 * TILE, 23.5 * TILE)
-const RELAY_YELLOW := Vector2(25.5 * TILE, 30.5 * TILE)
-const RELAY_BLUE := Vector2(27.5 * TILE, 27.5 * TILE)
+const RELAY_RED := Vector2(10.5 * TILE, 16.5 * TILE)
+const RELAY_YELLOW := Vector2(12.5 * TILE, 31.5 * TILE)
+const RELAY_BLUE := Vector2(26.5 * TILE, 18.5 * TILE)
 const PUZZLE_GUARD_RADIUS := 560.0
 const PUZZLE_CODE := ["RED", "BLUE", "YELLOW", "RED"]
 
@@ -163,6 +163,14 @@ var puzzle_step := 0
 var puzzle_guard_wave := 0
 var puzzle_pad_lock := 0.0
 var detonator_core := false
+var trap_active := false
+var trap_color := ""
+var trap_clock := 0.0
+var trap_switches := 0
+var trap_guard_kills := 0
+var trap_required_kills := 0
+var trap_triggered: Array[String] = []
+var trap_finished: Array[String] = []
 
 var camera: Camera2D
 var hud: Label
@@ -567,6 +575,8 @@ func _update_bullets(delta: float) -> void:
 				impact_marks.append({"pos": enemy["pos"], "life": 0.22})
 				if int(enemy["hp"]) <= 0:
 					kills += 1
+					if trap_active and str(enemy.get("trap_guard", "")) == "YELLOW":
+						trap_guard_kills += 1
 					score += 500 if str(enemy["kind"]) == "trucker" else 100
 					enemies.remove_at(j)
 				consumed = true
@@ -648,16 +658,20 @@ func _update_objectives(delta: float) -> void:
 
 func _update_puzzle(delta: float) -> void:
 	puzzle_pad_lock = maxf(0.0, puzzle_pad_lock - delta)
-
-	if not puzzle_started and player_pos.distance_to(PUZZLE_CENTER) < PUZZLE_GUARD_RADIUS:
-		puzzle_started = true
-		puzzle_guard_wave = 1
-		_spawn_puzzle_guard_surge(28, 14)
-		banner.text = "FORTIFIED RELAY SITE\nCODE: RED > BLUE > YELLOW > RED"
-
-	if not puzzle_started or puzzle_complete or puzzle_pad_lock > 0.0:
+	if trap_active:
+		trap_clock = maxf(0.0, trap_clock - delta)
+		if trap_color == "RED":
+			if trap_clock <= 0.0:
+				_finish_trap()
+		elif trap_color == "BLUE":
+			if trap_clock <= 0.0 and trap_switches >= 2:
+				_finish_trap()
+		elif trap_color == "YELLOW":
+			if trap_guard_kills >= trap_required_kills:
+				_finish_trap()
 		return
-
+	if puzzle_complete or puzzle_pad_lock > 0.0:
+		return
 	var touched := ""
 	if player_pos.distance_to(RELAY_RED) < 70.0:
 		touched = "RED"
@@ -665,29 +679,70 @@ func _update_puzzle(delta: float) -> void:
 		touched = "BLUE"
 	elif player_pos.distance_to(RELAY_YELLOW) < 70.0:
 		touched = "YELLOW"
-
 	if touched == "":
 		return
-
-	puzzle_pad_lock = 0.75
+	puzzle_pad_lock = 1.2
 	var expected := str(PUZZLE_CODE[puzzle_step])
-	if touched == expected:
-		puzzle_step += 1
-		score += 250
-		if puzzle_step >= PUZZLE_CODE.size():
-			puzzle_complete = true
-			detonator_core = true
-			score += 2500
-			banner.text = "RELAY PUZZLE SOLVED!\nDETONATOR CORE ACQUIRED"
-			impact_marks.append({"pos": PUZZLE_CENTER, "life": 0.75, "blast": true})
-			_try_unlock_district()
-		else:
-			banner.text = "RELAY %d/4 CORRECT - KEEP MOVING!" % puzzle_step
+	if touched != expected:
+		banner.text = "RELAY ORDER: RED > BLUE > YELLOW > RED"
+		return
+	if trap_finished.has(touched):
+		_complete_relay_step()
+		return
+	_start_trap(touched)
+
+func _start_trap(color: String) -> void:
+	trap_active = true
+	trap_color = color
+	trap_clock = 16.0 if color == "RED" else (12.0 if color == "BLUE" else 0.0)
+	trap_switches = 0
+	trap_guard_kills = 0
+	trap_required_kills = 12 if color == "YELLOW" else 0
+	var center := _relay_position(color)
+	var shambler_count := 20 if color == "RED" else (8 if color == "BLUE" else 12)
+	var runner_count := 12 if color == "RED" else (16 if color == "BLUE" else 8)
+	for i in range(shambler_count + runner_count):
+		var angle := TAU * float(i) / float(shambler_count + runner_count)
+		var candidate := center + Vector2.RIGHT.rotated(angle) * rng.randf_range(290.0, 460.0)
+		var is_runner := i >= shambler_count
+		var spawn := _nearest_walkable_position(candidate, 15.0 if is_runner else 18.0)
+		enemies.append({"pos": spawn, "kind": "runner" if is_runner else "shambler", "hp": 2 if is_runner else 1, "speed": 205.0 if is_runner else 108.0, "radius": 15.0 if is_runner else 18.0, "charge": 0.0, "trap_guard": color})
+	if color == "RED":
+		banner.text = "RED AMBUSH! SURVIVE 16 SECONDS"
+	elif color == "BLUE":
+		banner.text = "BLUE LOCKDOWN! ACTIVATE 2 SWITCHES"
 	else:
-		puzzle_step = 0
-		puzzle_guard_wave += 1
-		_spawn_puzzle_guard_surge(18 + puzzle_guard_wave * 4, 10 + puzzle_guard_wave * 3)
-		banner.text = "WRONG RELAY! CODE RESET\nREINFORCEMENTS INBOUND"
+		banner.text = "YELLOW GUARDIAN! ELIMINATE 12 GUARDS"
+
+func _relay_position(color: String) -> Vector2:
+	if color == "RED":
+		return RELAY_RED
+	if color == "BLUE":
+		return RELAY_BLUE
+	return RELAY_YELLOW
+
+func _finish_trap() -> void:
+	trap_active = false
+	if not trap_finished.has(trap_color):
+		trap_finished.append(trap_color)
+	player_hp = mini(100, player_hp + 12)
+	score += 600
+	banner.text = "%s TRAP CLEARED! +12 HP" % trap_color
+	_complete_relay_step()
+
+func _complete_relay_step() -> void:
+	puzzle_step += 1
+	score += 250
+	puzzle_pad_lock = 2.0
+	if puzzle_step >= PUZZLE_CODE.size():
+		puzzle_complete = true
+		detonator_core = true
+		score += 2500
+		impact_marks.append({"pos": PUZZLE_CENTER, "life": 0.75, "blast": true})
+		banner.text = "DETONATOR CORE SECURED! BOSS KEY ACQUIRED"
+		_try_unlock_district()
+	else:
+		banner.text = "RELAY %d/4 CLEARED - FIND NEXT SIGNAL" % puzzle_step
 
 func _spawn_puzzle_guard_surge(shamblers: int, runners: int) -> void:
 	var guard_points := [
@@ -955,17 +1010,20 @@ func _draw_objectives() -> void:
 				draw_line(p + Vector2.RIGHT.rotated(angle) * 22.0, p + Vector2.RIGHT.rotated(angle) * 54.0, Color("#a83a2f"), 7.0)
 			_label(p + Vector2(-34, -62), "NEST", 18, Color("#ffd0c4"))
 
-	# Fortified relay puzzle and boss-progression reward.
+	# Three distant ambush sites. All markers use the original relay colors.
 	if not puzzle_complete:
-		draw_circle(PUZZLE_CENTER, 150, Color(0.18, 0.18, 0.20, 0.28))
-		draw_circle(PUZZLE_CENTER, 58, Color("#343943"))
-		draw_circle(RELAY_RED, 38, Color("#b83a32"))
-		draw_circle(RELAY_BLUE, 38, Color("#3f6fa6"))
-		draw_circle(RELAY_YELLOW, 38, Color("#d7ae35"))
-		_label(PUZZLE_CENTER + Vector2(-130,-95), "FORTIFIED RELAY", 22, Color("#fff0c5"))
-		_label(PUZZLE_CENTER + Vector2(-160,-65), "R > B > Y > R", 22, Color("#f3df9f"))
-		if puzzle_started:
-			_label(PUZZLE_CENTER + Vector2(-130,105), "STEP %d / 4" % puzzle_step, 20, Color.WHITE)
+		for color in ["RED", "BLUE", "YELLOW"]:
+			var pos := _relay_position(color)
+			var tint := Color("#b83a32") if color == "RED" else (Color("#3f6fa6") if color == "BLUE" else Color("#d7ae35"))
+			draw_circle(pos, 72, Color(tint.r, tint.g, tint.b, 0.20))
+			draw_circle(pos, 38, tint)
+			_label(pos + Vector2(-72, -78), color + " TRAP", 19, Color.WHITE)
+			if trap_finished.has(color):
+				_label(pos + Vector2(-44, 85), "CLEARED", 18, Color("#a0ffc0"))
+		if trap_active:
+			_label(_relay_position(trap_color) + Vector2(-100, 105), "TRAP ACTIVE", 21, Color("#fff0a8"))
+		_label(PUZZLE_CENTER + Vector2(-125, -80), "DETONATOR CORE", 20, Color("#fff0c5"))
+		_label(PUZZLE_CENTER + Vector2(-115, -50), "R > B > Y > R", 19, Color.WHITE)
 	else:
 		draw_circle(PUZZLE_CENTER, 54, Color(0.20, 0.75, 0.42, 0.45))
 		_label(PUZZLE_CENTER + Vector2(-122,-72), "CORE RECOVERED", 22, Color("#d8ffdf"))
