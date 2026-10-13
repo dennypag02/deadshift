@@ -1133,7 +1133,7 @@ func _draw_combat() -> void:
 	recoil_vector = recoil_vector.move_toward(Vector2.ZERO, 120.0 * get_physics_process_delta_time())
 	var bounce := sin(float(Time.get_ticks_msec()) * TAU / 250.0) * 0.05 if player_velocity.length() > 40.0 else 0.0
 	var visual_scale := Vector2(1.0, 0.99 + bounce)
-	draw_texture_rect(SURVIVOR_ART, Rect2(player_pos + recoil_vector - Vector2(48,48) * visual_scale, Vector2(96,96) * visual_scale), false, Color.WHITE, last_aim.x < 0.0)
+	draw_texture_rect(SURVIVOR_ART, Rect2(player_pos + recoil_vector - Vector2(48,48) * visual_scale, Vector2(96,96) * visual_scale), false, Color.WHITE)
 
 func _draw_dusk() -> void:
 	if wave < 7:
