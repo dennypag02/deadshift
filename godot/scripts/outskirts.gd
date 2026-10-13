@@ -505,7 +505,8 @@ func _physics_process(delta: float) -> void:
 				nearest = i
 		var heading: Vector2 = (enemies[nearest]["pos"] - player_pos).normalized()
 		var ammo_level := int(progression.passives.get("ammo_belt", 0)) if progression != null else 0
-		var shot_count := 1 + int(float(ammo_level + 1) / 2.0)
+		var smg_level := int(progression.weapons.get("scrap_smg", 1)) if progression != null else 1
+		var shot_count := smg_level + int(float(ammo_level + 1) / 2.0)
 		for shot in range(shot_count):
 			var spread := (float(shot) - float(shot_count - 1) * 0.5) * 0.12
 			bullets.append({"pos": player_pos, "dir": heading.rotated(spread), "life": 1.6})
@@ -624,15 +625,7 @@ func _update_bullets(delta: float) -> void:
 				if juice_fx != null:
 					juice_fx.call("hit", Vector2(enemy["pos"]), Vector2(bullet["dir"]))
 				if float(enemy["hp"]) <= 0:
-					if progression != null:
-						progression.drop_xp(Vector2(enemy["pos"]), str(enemy["kind"]))
-					kills += 1
-					if trap_active and str(enemy.get("trap_guard", "")) == "YELLOW":
-						trap_guard_kills += 1
-					score += 500 if str(enemy["kind"]) == "trucker" else 100
-					if juice_fx != null:
-						juice_fx.call("kill", Vector2(enemy["pos"]), 500 if str(enemy["kind"]) == "trucker" else 100)
-					enemies.remove_at(j)
+					_phase_a_kill_enemy(j)
 				consumed = true
 				break
 		if consumed or float(bullet["life"]) <= 0.0:
@@ -649,14 +642,8 @@ func _explode_pump(pump: Dictionary) -> void:
 			var damage := 10 if str(enemy["kind"]) == "trucker" else 99
 			enemy["hp"] = int(enemy["hp"]) - damage
 			if int(enemy["hp"]) <= 0:
-				kills += 1
-				score += 500 if str(enemy["kind"]) == "trucker" else 100
 				blast_kills += 1
-				if progression != null:
-					progression.drop_xp(Vector2(enemy["pos"]), str(enemy["kind"]))
-				if juice_fx != null:
-					juice_fx.call("kill", Vector2(enemy["pos"]), 500 if str(enemy["kind"]) == "trucker" else 100)
-				enemies.remove_at(i)
+				_phase_a_kill_enemy(i)
 	if juice_fx != null:
 		juice_fx.call("explosion", Vector2(pump["pos"]), blast_kills)
 	banner.text = "PUMP DETONATED!"
@@ -850,9 +837,7 @@ func _spawn_puzzle_guard_surge(shamblers: int, runners: int) -> void:
 func _kill_enemies_near(center: Vector2, radius: float) -> void:
 	for i in range(enemies.size() - 1, -1, -1):
 		if Vector2(enemies[i]["pos"]).distance_to(center) <= radius:
-			kills += 1
-			score += 100
-			enemies.remove_at(i)
+			_phase_a_kill_enemy(i)
 
 func _objective_counts() -> Dictionary:
 	var supplies := 0
@@ -1211,10 +1196,38 @@ func _phase_a_kill_enemy(index: int) -> void:
 	if index < 0 or index >= enemies.size():
 		return
 	var enemy: Dictionary = enemies[index]
+	var kind := str(enemy["kind"])
 	if progression != null:
-		progression.drop_xp(Vector2(enemy["pos"]), str(enemy["kind"]))
+		progression.drop_xp(Vector2(enemy["pos"]), kind)
 	kills += 1
-	score += 100
+	if trap_active and str(enemy.get("trap_guard", "")) == "YELLOW":
+		trap_guard_kills += 1
+	var points := 500 if kind == "trucker" else 100
+	score += points
 	if juice_fx != null:
-		juice_fx.call("kill", Vector2(enemy["pos"]), 100)
+		juice_fx.call("kill", Vector2(enemy["pos"]), points)
 	enemies.remove_at(index)
+
+func phase_a_resume_shockwave() -> void:
+	var radius := 260.0
+	var push := 145.0
+	impact_marks.append({"pos": player_pos, "life": 0.45, "blast": true})
+	for enemy in enemies:
+		var enemy_pos := Vector2(enemy["pos"])
+		var offset := enemy_pos - player_pos
+		if offset.length() <= radius:
+			var direction := offset.normalized() if offset.length_squared() > 0.01 else Vector2.RIGHT
+			enemy["pos"] = _move_with_blockers(enemy_pos, direction * push, float(enemy["radius"]))
+	queue_redraw()
+
+func phase_a_debug_six_shambler_kills() -> void:
+	if progression == null:
+		return
+	progression.level = 1
+	progression.xp = 0
+	progression.pending_levels = 0
+	progression.choosing = false
+	progression.gems.clear()
+	for i in range(6):
+		enemies.append({"pos": player_pos + Vector2(10.0 * float(i % 3), 10.0 * float(i / 3)), "kind":"shambler", "hp":1, "speed":0.0, "radius":18.0, "charge":0.0})
+		_phase_a_kill_enemy(enemies.size() - 1)
