@@ -170,15 +170,68 @@ var banner: Label
 var upgrade_panel: Panel
 var upgrade_title: Label
 var rng := RandomNumberGenerator.new()
+var generated_map_rows: Array[String] = []
+var generated_cars: Array[Dictionary] = []
 
 func _ready() -> void:
-	rng.seed = 20261012
+	rng.randomize()
+	_generate_outskirts_layout()
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_setup_pumps()
 	_setup_objectives()
 	_setup_camera()
 	_setup_ui()
 	_start_wave(1)
+
+func _generate_outskirts_layout() -> void:
+	generated_map_rows = MAP_ROWS.duplicate()
+	generated_cars.clear()
+	var car_sites := [Vector2i(19,6), Vector2i(1,14), Vector2i(4,14), Vector2i(21,17), Vector2i(11,23), Vector2i(17,25), Vector2i(1,27), Vector2i(6,27), Vector2i(12,28), Vector2i(6,34), Vector2i(27,34), Vector2i(9,36), Vector2i(24,37)]
+	for site in car_sites:
+		for dx in range(2):
+			_set_generated_tile(site.x + dx, site.y, ".")
+	for site in car_sites:
+		var candidates: Array[Vector2i] = []
+		for dy in range(-3, 4):
+			for dx in range(-3, 4):
+				var candidate := site + Vector2i(dx, dy)
+				if _can_place_generated_car(candidate):
+					candidates.append(candidate)
+		var chosen := site
+		if not candidates.is_empty():
+			chosen = candidates[rng.randi_range(0, candidates.size() - 1)]
+		_set_generated_tile(chosen.x, chosen.y, "C")
+		_set_generated_tile(chosen.x + 1, chosen.y, "C")
+		generated_cars.append({"tile": chosen, "suv": rng.randf() < 0.5})
+	for i in range(175):
+		var x := rng.randi_range(1, MAP_W - 2)
+		var y := rng.randi_range(4, MAP_H - 5)
+		var at := Vector2(float(x) + 0.5, float(y) + 0.5) * TILE
+		if at.distance_to(PLAYER_START) < 350.0 or at.distance_to(PUZZLE_CENTER) < 430.0 or at.distance_to(GENERATOR_POS) < 250.0:
+			continue
+		var ch := _tile_char(x, y)
+		if ch == "." or ch == "x" or ch == "o" or ch == ":":
+			var roll := rng.randf()
+			_set_generated_tile(x, y, "x" if roll < 0.42 else ("o" if roll < 0.65 else ("." if roll < 0.85 else ":")))
+
+func _set_generated_tile(x: int, y: int, ch: String) -> void:
+	if x < 0 or x >= MAP_W or y < 0 or y >= MAP_H:
+		return
+	var line := generated_map_rows[y]
+	generated_map_rows[y] = line.substr(0, x) + ch + line.substr(x + 1)
+
+func _can_place_generated_car(tile: Vector2i) -> bool:
+	if tile.x < 1 or tile.x + 1 >= MAP_W - 1 or tile.y < 4 or tile.y >= MAP_H - 3:
+		return false
+	for dx in range(2):
+		var ch := _tile_char(tile.x + dx, tile.y)
+		if ch != "." and ch != "x" and ch != "o" and ch != ":":
+			return false
+		var pos := _tile_center(tile.x + dx, tile.y)
+		for objective in [PLAYER_START, GENERATOR_POS, SUPPLY_DINER, SUPPLY_AUTOSHOP, SUPPLY_MOTEL, NEST_WEST, NEST_EAST, NEST_NW, NEST_NE, PUZZLE_CENTER, RELAY_RED, RELAY_BLUE, RELAY_YELLOW]:
+			if pos.distance_to(objective) < 200.0:
+				return false
+	return true
 
 func _setup_camera() -> void:
 	camera = Camera2D.new()
@@ -770,16 +823,10 @@ func _draw_map_art() -> void:
 	_draw_art_rect(OUT_FENCE_ART, _tiles_rect(3,2,6,1))
 	_draw_art_rect(OUT_FENCE_ART, _tiles_rect(23,2,6,1))
 
-	# Cars occupy every 2-tile C run in the design sheet.
-	var cars := [
-		[19,6, CAR_SEDAN_ART], [1,14, CAR_SUV_ART], [4,14, CAR_SEDAN_ART],
-		[21,17, CAR_SUV_ART], [11,23, CAR_SEDAN_ART], [17,25, CAR_SUV_ART],
-		[1,27, CAR_SEDAN_ART], [6,27, CAR_SUV_ART], [12,28, CAR_SEDAN_ART],
-		[6,34, CAR_SUV_ART], [27,34, CAR_SEDAN_ART], [9,36, CAR_SUV_ART],
-		[24,37, CAR_SEDAN_ART]
-	]
-	for car in cars:
-		_draw_art_rect(car[2], _tiles_rect(int(car[0]), int(car[1]), 2, 1))
+	# Approved wreck art follows procedurally placed collision footprints.
+	for car in generated_cars:
+		var tile: Vector2i = car["tile"]
+		_draw_art_rect(CAR_SUV_ART if car["suv"] else CAR_SEDAN_ART, _tiles_rect(tile.x, tile.y, 2, 1))
 
 	# Jersey barriers use one tile each.
 	for p in [Vector2i(24,18), Vector2i(25,18), Vector2i(16,30), Vector2i(17,30), Vector2i(18,30),
@@ -808,7 +855,7 @@ func _draw_hazard_debug() -> void:
 func _tile_char(x: int, y: int) -> String:
 	if x < 0 or x >= MAP_W or y < 0 or y >= MAP_H:
 		return "B"
-	return MAP_ROWS[y].substr(x, 1)
+	return generated_map_rows[y].substr(x, 1) if not generated_map_rows.is_empty() else MAP_ROWS[y].substr(x, 1)
 
 func _char_at_world(pos: Vector2) -> String:
 	return _tile_char(int(floor(pos.x / TILE)), int(floor(pos.y / TILE)))
