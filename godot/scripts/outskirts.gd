@@ -131,6 +131,8 @@ var fire_period := BASE_FIRE_PERIOD
 var player_speed := BASE_PLAYER_SPEED
 var bullet_damage := 1
 var juice_fx: Node2D
+var progression: Node2D
+var phase_ui: Control
 var shake_enabled := true
 var vibration_enabled := true
 var recoil_vector := Vector2.ZERO
@@ -296,6 +298,17 @@ func _setup_ui() -> void:
 	fx.set("game", self)
 	add_child(fx)
 	juice_fx = fx
+	var prog := Node2D.new()
+	prog.set_script(load("res://scripts/phase_a_progression.gd"))
+	prog.set("game", self)
+	add_child(prog)
+	progression = prog
+	var phase_overlay := Control.new()
+	phase_overlay.set_script(load("res://scripts/phase_a_ui.gd"))
+	phase_overlay.set("game", self)
+	phase_overlay.set("progression", prog)
+	ui.add_child(phase_overlay)
+	phase_ui = phase_overlay
 
 	upgrade_panel = Panel.new()
 	upgrade_panel.position = Vector2(24, 570)
@@ -591,7 +604,7 @@ func _update_bullets(delta: float) -> void:
 		for j in range(enemies.size() - 1, -1, -1):
 			var enemy: Dictionary = enemies[j]
 			if bullet["pos"].distance_to(enemy["pos"]) <= float(enemy["radius"]) + BULLET_RADIUS:
-				enemy["hp"] = int(enemy["hp"]) - bullet_damage
+				enemy["hp"] = float(enemy["hp"]) - float(bullet_damage) * (progression.damage_multiplier() if progression != null else 1.0)
 				if str(enemy["kind"]) == "trucker":
 					enemy["charge"] = 1.1
 				impact_marks.append({"pos": enemy["pos"], "life": 0.22})
@@ -599,7 +612,9 @@ func _update_bullets(delta: float) -> void:
 				enemy["visual_dir"] = Vector2(bullet["dir"])
 				if juice_fx != null:
 					juice_fx.call("hit", Vector2(enemy["pos"]), Vector2(bullet["dir"]))
-				if int(enemy["hp"]) <= 0:
+				if float(enemy["hp"]) <= 0:
+					if progression != null:
+						progression.drop_xp(Vector2(enemy["pos"]), str(enemy["kind"]))
 					kills += 1
 					if trap_active and str(enemy.get("trap_guard", "")) == "YELLOW":
 						trap_guard_kills += 1
@@ -626,6 +641,8 @@ func _explode_pump(pump: Dictionary) -> void:
 				kills += 1
 				score += 500 if str(enemy["kind"]) == "trucker" else 100
 				blast_kills += 1
+				if progression != null:
+					progression.drop_xp(Vector2(enemy["pos"]), str(enemy["kind"]))
 				if juice_fx != null:
 					juice_fx.call("kill", Vector2(enemy["pos"]), 500 if str(enemy["kind"]) == "trucker" else 100)
 				enemies.remove_at(i)
@@ -648,7 +665,8 @@ func _update_enemies(delta: float) -> void:
 		enemy["pos"] = _move_with_blockers(Vector2(enemy["pos"]), enemy_step, float(enemy["radius"]))
 		if to_player.length() < PLAYER_RADIUS + float(enemy["radius"]):
 			var damage := 18 if str(enemy["kind"]) == "trucker" else 7
-			player_hp = maxi(0, player_hp - damage)
+			if progression == null or progression.invulnerability <= 0.0:
+				player_hp = maxi(0, player_hp - damage)
 			if vibration_enabled:
 				Input.vibrate_handheld(30)
 			enemies.remove_at(i)
@@ -1175,3 +1193,15 @@ func _draw_trap_countdown(p: Vector2) -> void:
 		remaining = float(maxi(0, trap_required_kills - trap_guard_kills))
 	draw_arc(p, 72.0, -PI / 2.0, -PI / 2.0 + TAU * clampf(remaining / total, 0.0, 1.0), 40, Color("#F2A23A"), 8.0)
 	_label(p + Vector2(-15, 8), str(ceili(remaining)), 26, Color("#F2E8D8"))
+
+func _phase_a_kill_enemy(index: int) -> void:
+	if index < 0 or index >= enemies.size():
+		return
+	var enemy: Dictionary = enemies[index]
+	if progression != null:
+		progression.drop_xp(Vector2(enemy["pos"]), str(enemy["kind"]))
+	kills += 1
+	score += 100
+	if juice_fx != null:
+		juice_fx.call("kill", Vector2(enemy["pos"]), 100)
+	enemies.remove_at(index)
