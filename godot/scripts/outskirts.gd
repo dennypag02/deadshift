@@ -134,6 +134,7 @@ var juice_fx: Node2D
 var shake_enabled := true
 var vibration_enabled := true
 var recoil_vector := Vector2.ZERO
+var last_aim := Vector2.RIGHT
 var wave_active := true
 var wave_spawned := 0
 var wave_total := 0
@@ -492,6 +493,7 @@ func _physics_process(delta: float) -> void:
 		if juice_fx != null:
 			juice_fx.call("shot", player_pos, heading)
 			recoil_vector = -heading * 3.0
+			last_aim = heading
 		fire_clock = fire_period
 
 	_update_bullets(delta)
@@ -1131,7 +1133,7 @@ func _draw_combat() -> void:
 	recoil_vector = recoil_vector.move_toward(Vector2.ZERO, 120.0 * get_physics_process_delta_time())
 	var bounce := sin(float(Time.get_ticks_msec()) * TAU / 250.0) * 0.05 if player_velocity.length() > 40.0 else 0.0
 	var visual_scale := Vector2(1.0, 0.99 + bounce)
-	draw_texture_rect(SURVIVOR_ART, Rect2(player_pos + recoil_vector - Vector2(48,48) * visual_scale, Vector2(96,96) * visual_scale), false)
+	draw_texture_rect(SURVIVOR_ART, Rect2(player_pos + recoil_vector - Vector2(48,48) * visual_scale, Vector2(96,96) * visual_scale), false, Color.WHITE, last_aim.x < 0.0)
 
 func _draw_dusk() -> void:
 	if wave < 7:
