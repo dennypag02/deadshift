@@ -73,6 +73,10 @@ func _ready() -> void:
 	root.position = Vector2(left, top)
 	root.scale = Vector2.ONE * scale_factor
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var hud_theme := Theme.new()
+	if barlow_font != null:
+		hud_theme.default_font = barlow_font
+	root.theme = hud_theme
 	add_child(root)
 	var pause := Button.new()
 	pause.text = "Ⅱ"
