@@ -25,7 +25,11 @@ var backdrop: PanelContainer
 var pause_menu: PanelContainer
 var shake_enabled := true
 const AMBER := Color("#F2A23A")
-const PANEL := Color(0.08, 0.07, 0.06, 0.82)
+const PANEL := Color(0.0784, 0.0667, 0.0588, 0.75)
+const BEBAS_PATH := "res://art/fonts/BebasNeue-Regular.ttf"
+const BARLOW_PATH := "res://art/fonts/BarlowCondensed-SemiBold.ttf"
+var bebas_font: Font
+var barlow_font: Font
 var vibration_enabled := true
 var edge_arrow_timer := 0.0
 
@@ -33,26 +37,31 @@ func _label(text: String, size_px: int, parent: Node) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_size_override("font_size", size_px)
+	label.add_theme_font_override("font", barlow_font if barlow_font != null else ThemeDB.fallback_font)
 	label.add_theme_color_override("font_color", Color("#F2E8D8"))
 	label.add_theme_color_override("font_outline_color", Color("#0A0806"))
 	label.add_theme_constant_override("outline_size", 4)
 	parent.add_child(label)
 	return label
 
-func _panel(parent: Node, rect: Rect2, color: Color = Color(0.08, 0.07, 0.06, 0.86)) -> PanelContainer:
+func _panel(parent: Node, rect: Rect2, color: Color = PANEL) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.position = rect.position
 	panel.size = rect.size
 	var style := StyleBoxFlat.new()
 	style.bg_color = color
 	style.border_color = Color("#3A322B")
-	style.set_border_width_all(2)
+	style.set_border_width_all(3)
 	style.set_corner_radius_all(14)
 	panel.add_theme_stylebox_override("panel", style)
 	parent.add_child(panel)
 	return panel
 
 func _ready() -> void:
+	if ResourceLoader.exists(BEBAS_PATH):
+		bebas_font = load(BEBAS_PATH)
+	if ResourceLoader.exists(BARLOW_PATH):
+		barlow_font = load(BARLOW_PATH)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var safe := DisplayServer.get_display_safe_area()
@@ -93,20 +102,26 @@ func _ready() -> void:
 	hp_flash.size = hp_bg.size
 	hp_panel.add_child(hp_flash)
 	health_label = _label("100 / 100", 16, hp_panel)
-	health_label.position = Vector2(38, 11)
+	health_label.position = Vector2(28, 9)
+	health_label.size = Vector2(118, 24)
+	health_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	health_label.add_theme_font_override("font", bebas_font if bebas_font != null else ThemeDB.fallback_font)
 	var heart := _label("♥", 22, hp_panel)
-	heart.position = Vector2(3, 7)
+	heart.position = Vector2(0, 7)
 	heart.add_theme_color_override("font_color", Color("#D93A2E"))
 	var wave_panel := _panel(root, Rect2(58, 61, 155, 34))
 	wave_label = _label("WAVE 1/10", 17, wave_panel)
 	wave_label.add_theme_color_override("font_color", AMBER)
+	wave_label.add_theme_font_override("font", bebas_font if bebas_font != null else ThemeDB.fallback_font)
 	var score_panel := _panel(root, Rect2(216, 12, 90, 84), Color(0.08,0.07,0.06,0.35))
 	score_title = _label("SCORE", 12, score_panel)
 	score_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	score_title.add_theme_font_override("font", barlow_font if barlow_font != null else ThemeDB.fallback_font)
 	score_title.position = Vector2(4, 3)
 	score_title.size = Vector2(82, 19)
 	score_label = _label("0", 25, score_panel)
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	score_label.add_theme_font_override("font", bebas_font if bebas_font != null else ThemeDB.fallback_font)
 	score_label.position = Vector2(0, 25)
 	score_label.size = Vector2(90, 43)
 	var objective_panel := _panel(root, Rect2(12, 110, 286, 77))
@@ -118,14 +133,14 @@ func _ready() -> void:
 	var bolt := _label("⚡", 29, objective_panel)
 	bolt.position = Vector2(12, 10)
 	objective_label = _label("POWER THE MINI-MART GENERATOR", 15, objective_panel)
-	objective_label.position = Vector2(50, 8)
-	objective_label.size = Vector2(225, 40)
+	objective_label.position = Vector2(76, 8)
+	objective_label.size = Vector2(197, 40)
 	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	for i in range(3):
 		var slot := _label("▣", 22, objective_panel)
-		slot.position = Vector2(53 + i * 32, 47)
+		slot.position = Vector2(78 + i * 32, 47)
 		crate_slots.append(slot)
-	var event_panel := _panel(root, Rect2(0, 200, 432, 82), Color(0.08,0.07,0.06,0.93))
+	var event_panel := _panel(root, Rect2(0, 200, 432, 82), PANEL)
 	var upper := ColorRect.new()
 	upper.color = AMBER
 	upper.size = Vector2(432, 3)
@@ -140,10 +155,12 @@ func _ready() -> void:
 	banner_title.size = Vector2(416, 43)
 	banner_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	banner_title.add_theme_color_override("font_color", AMBER)
+	banner_title.add_theme_font_override("font", bebas_font if bebas_font != null else ThemeDB.fallback_font)
 	banner_subtitle = _label("", 15, event_panel)
 	banner_subtitle.position = Vector2(8, 49)
 	banner_subtitle.size = Vector2(416, 26)
 	banner_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	banner_subtitle.add_theme_font_override("font", barlow_font if barlow_font != null else ThemeDB.fallback_font)
 	event_label = banner_title
 	event_panel.visible = false
 	backdrop = event_panel
@@ -227,8 +244,17 @@ func _process(delta: float) -> void:
 	if event_time <= 0.0 and not banner_queue.is_empty():
 		var next: String = banner_queue.pop_front()
 		var parts := next.split("\n", false, 1)
-		banner_title.text = parts[0]
-		banner_subtitle.text = parts[1] if parts.size() > 1 else ""
+		var headline: String = parts[0]
+		var detail: String = parts[1] if parts.size() > 1 else ""
+		if headline.length() > 28:
+			var split_at := headline.rfind(" ", 28)
+			if split_at < 8:
+				split_at = 28
+			detail = headline.substr(split_at).strip_edges() + (" · " + detail if detail != "" else "")
+			headline = headline.substr(0, split_at).strip_edges()
+		banner_title.text = headline
+		banner_title.add_theme_font_size_override("font_size", 27 if headline.length() <= 20 else maxi(16, int(27.0 * 20.0 / float(headline.length()))))
+		banner_subtitle.text = detail
 		event_time = 2.1
 		banner_age = 0.0
 	if event_time > 0.0:
