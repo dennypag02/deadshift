@@ -14,6 +14,7 @@ var banish_mode := false
 var pause_taps := 0
 var last_pause_tap := 0
 var god_mode := false
+var debug_stats: Label
 var font: Font
 const CYAN := Color("#3FD0E0")
 const DARK := Color("#14110F")
@@ -116,16 +117,31 @@ func _build_levelup() -> void:
 
 func _build_debug() -> void:
 	debug_panel = PanelContainer.new()
-	debug_panel.position = Vector2(12, 300)
-	debug_panel.size = Vector2(408, 620)
+	debug_panel.position = Vector2(12, 190)
+	debug_panel.size = Vector2(408, 760)
 	debug_panel.visible = false
 	add_child(debug_panel)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(400, 748)
+	debug_panel.add_child(scroll)
 	var dbg := VBoxContainer.new()
-	debug_panel.add_child(dbg)
-	for command in ["TEST 6 SHAMBLER KILLS", "XP +100", "LEVEL +1", "SPAWN 20", "WAVE +1", "GOD MODE", "SPEED 1", "SPEED 2", "CLOSE"]:
+	dbg.custom_minimum_size.x = 380
+	scroll.add_child(dbg)
+	debug_stats = Label.new()
+	debug_stats.add_theme_font_size_override("font_size", 16)
+	if font != null:
+		debug_stats.add_theme_font_override("font", font)
+	dbg.add_child(debug_stats)
+	for command in [
+		"TEST 6 SHAMBLER KILLS", "XP +100", "LEVEL +1",
+		"SMG +1", "BOOMSTICK +1", "BUZZSAW +1",
+		"MUSCLE +1", "AMMO BELT +1", "TRIGGER +1", "MAGNET +1", "THICK HIDE +1",
+		"SPAWN SHAMBLER", "SPAWN RUNNER", "SPAWN 20", "WAVE +1",
+		"GOD MODE", "SPEED 0.5", "SPEED 1", "SPEED 2", "SPEED 4", "CLOSE"
+	]:
 		var b := Button.new()
 		b.text = command
-		b.custom_minimum_size.y = 56
+		b.custom_minimum_size.y = 48
 		b.pressed.connect(_debug_action.bind(command))
 		dbg.add_child(b)
 
@@ -194,6 +210,26 @@ func _process(delta: float) -> void:
 	var pulse := 1.0 + 0.5 * (xp_flash / 0.36) if xp_flash > 0.0 else 1.0
 	xp_track.modulate = Color(pulse, pulse, pulse, 1.0)
 	xp_fill.modulate = Color(pulse, pulse, pulse, 1.0)
+	if debug_stats != null and debug_panel.visible:
+		debug_stats.text = "FPS %d   ENEMIES %d   PROJECTILES %d   GEMS %d\nLV %d  XP %d/%d  GOD %s  TIME %.1fx" % [
+			Engine.get_frames_per_second(), game.enemies.size(), game.bullets.size(), progression.gems.size(),
+			progression.level, progression.xp, needed, "ON" if god_mode else "OFF", Engine.time_scale
+		]
+
+func _grant_upgrade(id: String) -> void:
+	if progression.config.get("weapons", {}).has(id):
+		var max_level := int(progression.config["weapons"][id].get("max_level", 5))
+		progression.weapons[id] = mini(max_level, int(progression.weapons.get(id, 0)) + 1)
+	elif progression.config.get("passives", {}).has(id):
+		var before := int(progression.passives.get(id, 0))
+		var max_level := int(progression.config["passives"][id].get("max_level", 5))
+		if before < max_level:
+			progression.choose(id)
+			# Debug grants should not consume a pending level-up choice.
+			progression.pending_levels = 0
+			progression.choosing = false
+			panel.visible = false
+			get_tree().paused = false
 
 func _debug_action(command: String) -> void:
 	match command:
@@ -204,6 +240,26 @@ func _debug_action(command: String) -> void:
 			progression.add_xp(100)
 		"LEVEL +1":
 			progression.add_xp(progression.xp_required(progression.level))
+		"SMG +1":
+			_grant_upgrade("scrap_smg")
+		"BOOMSTICK +1":
+			_grant_upgrade("boomstick")
+		"BUZZSAW +1":
+			_grant_upgrade("buzzsaw")
+		"MUSCLE +1":
+			_grant_upgrade("muscle")
+		"AMMO BELT +1":
+			_grant_upgrade("ammo_belt")
+		"TRIGGER +1":
+			_grant_upgrade("trigger_finger")
+		"MAGNET +1":
+			_grant_upgrade("magnet")
+		"THICK HIDE +1":
+			_grant_upgrade("thick_hide")
+		"SPAWN SHAMBLER":
+			game.enemies.append({"pos":game.player_pos + Vector2(220,0), "kind":"shambler", "hp":1, "speed":108.0, "radius":18.0, "charge":0.0})
+		"SPAWN RUNNER":
+			game.enemies.append({"pos":game.player_pos + Vector2(220,0), "kind":"runner", "hp":2, "speed":195.0, "radius":15.0, "charge":0.0})
 		"SPAWN 20":
 			for i in range(20):
 				game._spawn_next_enemy()
@@ -211,10 +267,14 @@ func _debug_action(command: String) -> void:
 			game._start_wave(mini(10, game.wave + 1))
 		"GOD MODE":
 			god_mode = not god_mode
+		"SPEED 0.5":
+			Engine.time_scale = 0.5
 		"SPEED 1":
 			Engine.time_scale = 1.0
 		"SPEED 2":
 			Engine.time_scale = 2.0
+		"SPEED 4":
+			Engine.time_scale = 4.0
 		"CLOSE":
 			debug_panel.visible = false
 
