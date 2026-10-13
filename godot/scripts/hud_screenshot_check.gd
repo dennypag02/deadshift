@@ -15,7 +15,7 @@ func _capture() -> void:
 	var caches: Array = game.get("supply_caches")
 	for i in range(mini(2, caches.size())):
 		caches[i]["collected"] = true
-	game.get("banner").text = "SUPPLIES RECOVERED\\n2 of 3 - find the last crate"
+	game.get("banner").text = "SUPPLIES RECOVERED\n2 of 3 - find the last crate"
 	for i in range(8):
 		await process_frame
 	var image := root.get_texture().get_image()
