@@ -1,0 +1,71 @@
+{
+  "xp": {
+    "base": 6,
+    "linear": 4,
+    "quadratic": 0.12,
+    "pickup_radius_tiles": 1.2,
+    "merge_threshold": 200
+  },
+  "limits": {
+    "weapons": 6,
+    "passives": 6,
+    "active_enemies": 250,
+    "projectiles": 400
+  },
+  "weapons": {
+    "scrap_smg": {
+      "name": "Scrap SMG",
+      "max_level": 5,
+      "description": "Auto-fire at nearest zombie"
+    },
+    "boomstick": {
+      "name": "Boomstick",
+      "max_level": 5,
+      "description": "Shotgun cone and knockback"
+    },
+    "buzzsaw": {
+      "name": "Buzzsaw Orbit",
+      "max_level": 5,
+      "description": "Orbiting blades damage zombies"
+    }
+  },
+  "passives": {
+    "muscle": {
+      "name": "Muscle",
+      "max_level": 5,
+      "description": "+10% damage per level"
+    },
+    "ammo_belt": {
+      "name": "Ammo Belt",
+      "max_level": 5,
+      "description": "Extra projectiles at L1/L3/L5"
+    },
+    "trigger_finger": {
+      "name": "Trigger Finger",
+      "max_level": 5,
+      "description": "+8% attack speed per level"
+    },
+    "magnet": {
+      "name": "Magnet",
+      "max_level": 5,
+      "description": "+30% pickup range per level"
+    },
+    "thick_hide": {
+      "name": "Thick Hide",
+      "max_level": 5,
+      "description": "+15% HP and +1 armor per level"
+    }
+  },
+  "enemy_xp": {
+    "shambler": 1,
+    "runner": 2,
+    "bloater": 4,
+    "spitter": 4,
+    "brute": 10,
+    "trucker": 25
+  },
+  "ui": {
+    "card_count": 3,
+    "level_invulnerability": 0.5
+  }
+}
