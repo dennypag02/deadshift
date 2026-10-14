@@ -164,6 +164,8 @@ var infestation_nests: Array[Dictionary] = []
 var generator_active := false
 var wave10_survived := false
 var objective_flash_clock := 0.0
+var objective_idle_clock := 0.0
+var objective_hint_cooldown := 0.0
 var player_velocity := Vector2.ZERO
 var hazard_debug := false
 var puzzle_started := false
@@ -953,11 +955,27 @@ func _update_health(delta: float) -> void:
 
 func _update_objectives(delta: float) -> void:
 	objective_flash_clock = maxf(0.0, objective_flash_clock - delta)
+	objective_idle_clock += delta
+	objective_hint_cooldown = maxf(0.0, objective_hint_cooldown - delta)
+	if objective_idle_clock >= 45.0 and objective_hint_cooldown <= 0.0 and not _objectives_complete():
+		objective_hint_cooldown = 15.0
+		objective_flash_clock = 3.0
+		if not generator_active:
+			banner.text = "HINT: The generator is near the mini-mart"
+		elif _objective_counts()["supplies"] < 3:
+			banner.text = "HINT: Search the diner, auto shop and motel for supplies"
+		elif _objective_counts()["nests"] < 4:
+			banner.text = "HINT: Follow the infestation markers to destroy nests"
+		else:
+			banner.text = "HINT: Follow the colored relay markers for the core"
+		banner.visible = true
 
 	if not generator_active and player_pos.distance_to(GENERATOR_POS) < 105.0:
 		generator_active = true
 		score += 500
 		objective_flash_clock = 2.5
+		objective_idle_clock = 0.0
+		objective_hint_cooldown = 0.0
 		banner.text = "GENERATOR ONLINE!\nMINI-MART POWER RESTORED"
 		_haptic_pulse(30)
 		_try_unlock_district()
@@ -965,6 +983,8 @@ func _update_objectives(delta: float) -> void:
 	for cache in supply_caches:
 		if not bool(cache["collected"]) and player_pos.distance_to(Vector2(cache["pos"])) < 95.0:
 			cache["collected"] = true
+			objective_idle_clock = 0.0
+			objective_hint_cooldown = 0.0
 			score += 350
 			objective_flash_clock = 2.5
 			banner.text = "SUPPLIES RECOVERED: %s" % str(cache["name"])
@@ -974,6 +994,8 @@ func _update_objectives(delta: float) -> void:
 	for nest in infestation_nests:
 		if not bool(nest["destroyed"]) and player_pos.distance_to(Vector2(nest["pos"])) < 105.0:
 			nest["destroyed"] = true
+			objective_idle_clock = 0.0
+			objective_hint_cooldown = 0.0
 			score += 600
 			objective_flash_clock = 2.5
 			impact_marks.append({"pos": nest["pos"], "life": 0.55, "blast": true})
