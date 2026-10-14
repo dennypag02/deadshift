@@ -620,23 +620,23 @@ func _physics_process(delta: float) -> void:
 			smg_burst += maxi(1, roundi(progression.weapon_step_mult("scrap_smg", 2)))
 		if smg_level >= 5:
 			smg_burst += maxi(1, roundi(progression.weapon_step_mult("scrap_smg", 5)))
-		var shot_count: int = smg_burst + ammo_bonus
+		var shot_count: int = (maxi(12, smg_burst) if progression != null and progression.evolutions.has("scrap_smg") else smg_burst) + ammo_bonus
 		var smg_hits := 1 + (maxi(1, roundi(progression.weapon_step_mult("scrap_smg", 4))) if smg_level >= 4 else 0)
 		var smg_damage_mult: float = 1.0 + (0.25 * progression.weapon_step_mult("scrap_smg", 5) if smg_level >= 5 else 0.0)
 		for shot in range(shot_count):
-			var spread := (float(shot) - float(shot_count - 1) * 0.5) * 0.12
+			var spread := (TAU * float(shot) / float(shot_count) + run_clock * 2.0) if progression != null and progression.evolutions.has("scrap_smg") else (float(shot) - float(shot_count - 1) * 0.5) * 0.12
 			if progression == null or bullets.size() < int(progression.config.get("limits", {}).get("projectiles", 400)):
 				bullets.append({"pos": player_pos, "dir": heading.rotated(spread), "life": 1.6, "hits_left": smg_hits, "damage_mult": smg_damage_mult, "knockback": 0.0})
 		if progression != null and progression.weapons.has("boomstick"):
 			var boom_level := int(progression.weapons["boomstick"])
 			var boom_data: Dictionary = progression.config["weapons"]["boomstick"]
-			var pellet_count: int = int(boom_data.get("base_pellets", 3)) + ammo_bonus
+			var pellet_count: int = (12 if progression.evolutions.has("boomstick") else int(boom_data.get("base_pellets", 3))) + ammo_bonus
 			if boom_level >= 2:
 				pellet_count += maxi(1, roundi(2.0 * progression.weapon_step_mult("boomstick", 2)))
 			if boom_level >= 5:
 				pellet_count += maxi(1, roundi(2.0 * progression.weapon_step_mult("boomstick", 5)))
-			var boom_damage_mult: float = 1.0 + (0.20 * progression.weapon_step_mult("boomstick", 3) if boom_level >= 3 else 0.0)
-			var cone_step := float(boom_data.get("base_cone_step", 0.14)) * (1.30 if boom_level >= 4 else 1.0)
+			var boom_damage_mult: float = (2.0 if progression.evolutions.has("boomstick") else 1.0) + (0.20 * progression.weapon_step_mult("boomstick", 3) if boom_level >= 3 else 0.0)
+			var cone_step := (0.085 if progression.evolutions.has("boomstick") else float(boom_data.get("base_cone_step", 0.14))) * (1.30 if boom_level >= 4 else 1.0)
 			var boom_knockback := float(boom_data.get("base_knockback", 36.0)) * (2.0 if boom_level >= 5 else 1.0)
 			for pellet in range(pellet_count):
 				var angle := (float(pellet) - float(pellet_count-1)*0.5) * cone_step
