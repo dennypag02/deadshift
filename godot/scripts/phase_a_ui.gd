@@ -183,14 +183,14 @@ func _build_levelup() -> void:
 
 	for i in range(3):
 		var wrapper := Control.new()
-		wrapper.custom_minimum_size = Vector2(390, 160)
+		wrapper.custom_minimum_size = Vector2(390, 180)
 		wrapper.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		stack.add_child(wrapper)
 		card_wrappers.append(wrapper)
 
 		var card := PanelContainer.new()
 		card.position = Vector2.ZERO
-		card.size = Vector2(390, 160)
+		card.size = Vector2(390, 180)
 		var cs := StyleBoxFlat.new()
 		cs.bg_color = Color("#191A1C")
 		cs.border_color = COMMON
@@ -206,7 +206,7 @@ func _build_levelup() -> void:
 		margin.add_theme_constant_override("margin_left", 12)
 		margin.add_theme_constant_override("margin_right", 12)
 		margin.add_theme_constant_override("margin_top", 12)
-		margin.add_theme_constant_override("margin_bottom", 12)
+		margin.add_theme_constant_override("margin_bottom", 28)
 		card.add_child(margin)
 
 		var row := HBoxContainer.new()
