@@ -671,7 +671,7 @@ func _physics_process(delta: float) -> void:
 	if weapons.has("buzzsaw"):
 		var w: Dictionary = config["weapons"]["buzzsaw"]
 		var saw_level := int(weapons["buzzsaw"])
-		var count := 8 if evolutions.has("buzzsaw") else int(w.get("base_blades", 1))
+		var count := 16 if evolutions.has("buzzsaw") else int(w.get("base_blades", 1))
 		if saw_level >= 2:
 			count += maxi(1, roundi(weapon_step_mult("buzzsaw", 2)))
 		if saw_level >= 5:
@@ -687,7 +687,7 @@ func _physics_process(delta: float) -> void:
 			saw_damage *= 1.0 + 0.20 * weapon_step_mult("buzzsaw", 3)
 		for blade in range(count):
 			var theta := orbit_clock * orbit_speed * (-1.0 if evolutions.has("buzzsaw") and blade % 2 == 1 else 1.0) + TAU * float(blade) / float(count)
-			var blade_pos: Vector2 = game.player_pos + Vector2.from_angle(theta) * orbit_radius
+			var blade_pos: Vector2 = game.player_pos + Vector2.from_angle(theta) * (orbit_radius * (0.70 if evolutions.has("buzzsaw") and blade % 2 == 1 else 1.0))
 			for i in range(game.enemies.size() - 1, -1, -1):
 				if i >= game.enemies.size():
 					continue
@@ -749,7 +749,7 @@ func _draw() -> void:
 		var orbit_speed := float(w.get("base_speed", 3.2)) * speed_multiplier()
 		for blade in range(count):
 			var theta := orbit_clock * orbit_speed * (-1.0 if evolutions.has("buzzsaw") and blade % 2 == 1 else 1.0) + TAU * float(blade) / float(count)
-			var p: Vector2 = game.player_pos + Vector2.from_angle(theta) * orbit_radius
+			var p: Vector2 = game.player_pos + Vector2.from_angle(theta) * (orbit_radius * (0.70 if evolutions.has("buzzsaw") and blade % 2 == 1 else 1.0))
 			draw_set_transform(p, orbit_clock * 9.0, Vector2.ONE)
 			var teeth := PackedVector2Array()
 			for tooth in range(16):
