@@ -14,7 +14,7 @@ permissions:
 jobs:
   android-runtime:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
 
@@ -23,7 +23,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Build guarded Android APK
+      - name: Install Godot and matching export templates
         shell: bash
         run: |
           set -euo pipefail
@@ -34,13 +34,27 @@ jobs:
           mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable"
           unzip -q templates.tpz -d templates-unpacked
           cp templates-unpacked/templates/* "$HOME/.local/share/godot/export_templates/4.4.1.stable/"
+
+      - name: Configure Android SDK and debug signing
+        shell: bash
+        run: |
+          set -euo pipefail
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           if [ ! -x "$SDKMANAGER" ]; then SDKMANAGER="$(command -v sdkmanager)"; fi
           yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses > /dev/null || true
           "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
           mkdir -p "$HOME/.android"
           cp "$GITHUB_WORKSPACE/.github/android/deadshift-dev.keystore" "$HOME/.android/debug.keystore"
-          export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$HOME/.android/debug.keystore"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >> "$GITHUB_ENV"
+
+      - name: Configure Godot editor Android export settings
+        shell: bash
+        run: |
+          set -euo pipefail
           cat > godot/configure_android_export.gd <<'GDSCRIPT'
           extends SceneTree
           func _initialize() -> void:
@@ -54,9 +68,16 @@ jobs:
           GDSCRIPT
           timeout 120s ./Godot_v4.4.1-stable_linux.x86_64 --headless --editor --quit --path godot --script res://configure_android_export.gd
           rm godot/configure_android_export.gd
-          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --editor --quit
+
+      - name: Import project
+        run: ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --editor --quit
+
+      - name: Export guarded APK
+        shell: bash
+        run: |
+          set -euo pipefail
           mkdir -p build
-          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --export-debug Android "$GITHUB_WORKSPACE/build/deadshift-v3-debug.apk"
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --verbose --path godot --export-debug Android "$GITHUB_WORKSPACE/build/deadshift-v3-debug.apk"
           test -s build/deadshift-v3-debug.apk
           unzip -l build/deadshift-v3-debug.apk > apk-contents.txt
           grep -q "assets/data/phase_a.json" apk-contents.txt
