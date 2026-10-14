@@ -37,7 +37,8 @@ func _check() -> void:
 		"charge": 0.0,
 		"contact_cooldown": 0.0,
 	}
-	game.enemies = [enemy]
+	game.enemies.clear()
+	game.enemies.append(enemy)
 	print("SURV_CHECK checkpoint=single_hit")
 	game._apply_player_contact_damage(game.enemies[0])
 	if game.player_hp != 94:
