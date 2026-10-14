@@ -190,9 +190,15 @@ var upgrade_title: Label
 var rng := RandomNumberGenerator.new()
 var generated_map_rows: Array[String] = []
 var generated_cars: Array[Dictionary] = []
+var capture_mode := false
+var capture_clock := 0.0
 
 func _ready() -> void:
-	rng.randomize()
+	capture_mode = OS.get_cmdline_user_args().has("--pacing-capture")
+	if capture_mode:
+		rng.seed = 20261014
+	else:
+		rng.randomize()
 	_generate_outskirts_layout()
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_setup_pumps()
@@ -200,6 +206,8 @@ func _ready() -> void:
 	_setup_camera()
 	_setup_ui()
 	_start_wave(1)
+	if capture_mode:
+		print("PACING_CAPTURE_READY")
 
 func _generate_outskirts_layout() -> void:
 	generated_map_rows = MAP_ROWS.duplicate()
@@ -373,6 +381,8 @@ func _setup_objectives() -> void:
 
 func _start_wave(next_wave: int) -> void:
 	wave = next_wave
+	if capture_mode:
+		print("PACING_WAVE wave=%d t=%.2f" % [wave, capture_clock])
 	if wave > 10:
 		return
 	wave_active = true
@@ -460,10 +470,18 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var direction := Vector2.ZERO
-	if touch_active:
+	if capture_mode:
+		capture_clock += delta
+		direction = Vector2(cos(capture_clock * 0.31), sin(capture_clock * 0.47)).normalized()
+	elif touch_active:
 		direction = (touch_position - touch_origin).limit_length(90.0) / 90.0
-	direction += Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	if not capture_mode:
+		direction += Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	direction = direction.limit_length(1.0)
+	if capture_mode and capture_clock >= 120.0:
+		print("PACING_CAPTURE_COMPLETE t=%.2f wave=%d level=%d kills=%d" % [capture_clock, wave, progression.level if progression != null else 1, kills])
+		get_tree().quit()
+		return
 
 	var hazard := _hazard_at(player_pos)
 	var speed_mult := float(hazard["speed_mult"])
