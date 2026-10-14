@@ -456,7 +456,7 @@ func _spawn_rockets() -> void:
 		count += maxi(1, roundi(weapon_step_mult("rocket", 5)))
 	for n in range(count):
 		if evolutions.has("rocket"):
-			var strike := game.player_pos + Vector2(-450.0 + float(n % 5) * 225.0, -220.0 + float(n / 5) * 320.0)
+			var strike: Vector2 = game.player_pos + Vector2(-450.0 + float(n % 5) * 225.0, -220.0 + float(n / 5) * 320.0)
 			_damage_area(strike, 155.0 * area_multiplier(), 7.0 * damage_multiplier(), "carpet_bomber")
 			game.impact_marks.append({"pos": strike, "life": 0.55, "blast": true})
 		var angle := -0.12 * float(count - 1) * 0.5 + 0.12 * float(n)
