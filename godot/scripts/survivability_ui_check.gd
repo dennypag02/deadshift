@@ -2,7 +2,7 @@ extends SceneTree
 
 func _fail(message: String) -> void:
 	push_error("SURVIVABILITY_UI_CHECK_FAIL " + message)
-	get_tree().paused = false
+	paused = false
 	quit(1)
 
 func _initialize() -> void:
@@ -47,7 +47,7 @@ func _check() -> void:
 	if float(game.enemies[0].get("contact_cooldown", 0.0)) < 0.79:
 		_fail("missing 0.8s per-enemy contact cooldown")
 		return
-	var hp_after_first := game.player_hp
+	var hp_after_first: int = game.player_hp
 	game._apply_player_contact_damage(game.enemies[0])
 	if game.player_hp != hp_after_first:
 		_fail("immediate stacked contact damage was not blocked")
@@ -92,7 +92,7 @@ func _check() -> void:
 	game.wave_spawned = 0
 	game.wave = 1
 	game._spawn_pressure_group(10)
-	var min_distance := float(game.progression.config.get("pacing", {}).get("min_spawn_distance_tiles", 1.5)) * game.TILE
+	var min_distance: float = float(game.progression.config.get("pacing", {}).get("min_spawn_distance_tiles", 1.5)) * game.TILE
 	for e in game.enemies:
 		if Vector2(e["pos"]).distance_to(game.player_pos) < min_distance - 1.0:
 			_fail("spawned zombie inside 1.5-tile player safety radius")
