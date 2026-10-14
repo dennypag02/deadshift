@@ -12,8 +12,6 @@ func _check() -> void:
 	var scene: PackedScene = load("res://scenes/Outskirts.tscn")
 	var game = scene.instantiate()
 	get_root().add_child(game)
-	for i in range(18):
-		await process_frame
 	game.set_physics_process(false)
 	if game.progression != null:
 		game.progression.set_physics_process(false)
