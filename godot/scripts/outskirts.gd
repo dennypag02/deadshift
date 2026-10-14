@@ -501,8 +501,9 @@ func _physics_process(delta: float) -> void:
 	direction = direction.limit_length(1.0)
 	if capture_mode:
 		var on_screen := _onscreen_enemy_count()
-		capture_enemy_integral += float(on_screen) * delta
-		capture_enemy_sample_time += delta
+		if wave_active:
+			capture_enemy_integral += float(on_screen) * delta
+			capture_enemy_sample_time += delta
 		capture_enemy_max = maxi(capture_enemy_max, on_screen)
 		if capture_clock >= 120.0:
 			var avg_enemies := capture_enemy_integral / maxf(0.001, capture_enemy_sample_time)
