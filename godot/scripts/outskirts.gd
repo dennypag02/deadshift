@@ -410,7 +410,7 @@ func _start_wave(next_wave: int) -> void:
 	_reset_pumps()
 	if progression != null:
 		var pacing_cfg: Dictionary = progression.config.get("pacing", {})
-		var start_groups := int(pacing_cfg.get("wave_start_groups", 2))
+		var start_groups := int(pacing_cfg.get("wave1_start_groups", 2)) if wave == 1 else int(pacing_cfg.get("later_wave_start_groups", 3))
 		var start_group_size := int(pacing_cfg.get("wave_start_group_size", 10))
 		for _group in range(start_groups):
 			_spawn_pressure_group(start_group_size)
@@ -620,13 +620,38 @@ func _active_horde_target() -> int:
 	var target := roundi(lerpf(float(start_target), float(end_target), t)) + later_bonus
 	return mini(int(progression.config.get("limits", {}).get("active_enemies", 250)), target)
 
+func _camera_half_extents() -> Vector2:
+	var view := get_viewport_rect().size
+	var zoom := camera.zoom if camera != null else Vector2.ONE
+	return Vector2(view.x / maxf(0.01, 2.0 * zoom.x), view.y / maxf(0.01, 2.0 * zoom.y))
+
+func _is_position_on_screen(pos: Vector2) -> bool:
+	var half := _camera_half_extents()
+	var offset := pos - player_pos
+	return absf(offset.x) <= half.x and absf(offset.y) <= half.y
+
 func _onscreen_enemy_count() -> int:
-	var radius := float(progression.config.get("pacing", {}).get("spawn_distance", 720.0)) if progression != null else 720.0
 	var count := 0
 	for enemy in enemies:
-		if Vector2(enemy["pos"]).distance_to(player_pos) <= radius:
+		if _is_position_on_screen(Vector2(enemy["pos"])):
 			count += 1
 	return count
+
+func _spawn_position_outside_view(angle: float) -> Vector2:
+	var pacing: Dictionary = progression.config.get("pacing", {}) if progression != null else {}
+	var half := _camera_half_extents()
+	var direction := Vector2.from_angle(angle)
+	var x_edge := half.x / maxf(0.001, absf(direction.x))
+	var y_edge := half.y / maxf(0.001, absf(direction.y))
+	var edge_distance := minf(x_edge, y_edge)
+	var margin := float(pacing.get("spawn_margin", 180.0))
+	var jitter := float(pacing.get("spawn_jitter", 80.0))
+	var distance := edge_distance + margin + rng.randf_range(0.0, jitter)
+	var pos := player_pos + direction * distance
+	return Vector2(
+		clampf(pos.x, 45.0, MAP_SIZE.x - 45.0),
+		clampf(pos.y, 45.0, MAP_SIZE.y - 45.0)
+	)
 
 func _next_uid() -> int:
 	var value := next_enemy_uid
@@ -670,7 +695,6 @@ func _spawn_pressure_group(forced_size: int = -1) -> void:
 	var group_size := forced_size if forced_size > 0 else rng.randi_range(int(pacing.get("spawn_group_min", 4)), int(pacing.get("spawn_group_max", 10)))
 	var dir_count := rng.randi_range(int(pacing.get("spawn_directions_min", 2)), int(pacing.get("spawn_directions_max", 3)))
 	var base_angle := rng.randf_range(0.0, TAU)
-	var spawn_distance := float(pacing.get("spawn_distance", 720.0))
 	var cap := int(progression.config.get("limits", {}).get("active_enemies", 250))
 	for n in range(group_size):
 		if enemies.size() >= cap:
@@ -679,8 +703,7 @@ func _spawn_pressure_group(forced_size: int = -1) -> void:
 			break
 		var lane := n % maxi(1, dir_count)
 		var angle := base_angle + TAU * float(lane) / float(maxi(1, dir_count)) + rng.randf_range(-0.20, 0.20)
-		var pos := player_pos + Vector2.from_angle(angle) * (spawn_distance + rng.randf_range(-45.0, 65.0))
-		pos = Vector2(clampf(pos.x, 45.0, MAP_SIZE.x - 45.0), clampf(pos.y, 45.0, MAP_SIZE.y - 45.0))
+		var pos := _spawn_position_outside_view(angle)
 		pos = _nearest_walkable_position(pos, 18.0)
 		_append_enemy(_pressure_kind(), pos)
 		wave_spawned += 1
@@ -697,12 +720,7 @@ func _spawn_next_enemy() -> void:
 func _pick_spawn_point() -> Vector2:
 	if progression == null:
 		return player_pos + Vector2.RIGHT * 720.0
-	var distance := float(progression.config.get("pacing", {}).get("spawn_distance", 720.0))
-	var angle := rng.randf_range(0.0, TAU)
-	return Vector2(
-		clampf(player_pos.x + cos(angle) * distance, 45.0, MAP_SIZE.x - 45.0),
-		clampf(player_pos.y + sin(angle) * distance, 45.0, MAP_SIZE.y - 45.0)
-	)
+	return _spawn_position_outside_view(rng.randf_range(0.0, TAU))
 
 func _update_bullets(delta: float) -> void:
 	for i in range(bullets.size() - 1, -1, -1):
