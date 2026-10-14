@@ -421,14 +421,14 @@ func _refresh_choices() -> void:
 		if not visible:
 			continue
 		var id := current_choices[i]
-		var rarity := progression.choice_rarity(id)
+		var rarity: String = progression.choice_rarity(id)
 		var item: Dictionary = {}
 		var current := 0
 		var target := 0
 		var max_level := 0
 		var pips := ""
 		var addition := ""
-		var is_fallback := progression.config.get("fallbacks", {}).has(id)
+		var is_fallback: bool = progression.config.get("fallbacks", {}).has(id)
 		if is_fallback:
 			item = progression.config["fallbacks"][id]
 			addition = str(item.get("description", "Fallback"))
