@@ -150,7 +150,23 @@ func _draw() -> void:
 		var orbit_speed := 3.2 * (1.30 if saw_level >= 5 else 1.0)
 		for blade in range(count):
 			var theta := orbit_clock * orbit_speed + TAU * float(blade) / float(count)
-			var p: Vector2 = game.player_pos + Vector2.from_angle(theta)*orbit_radius
-			draw_circle(p,23.0,Color("#9eabb6"))
-			draw_arc(p,18.0,0.0,TAU,12,Color("#f3e9d8"),4.0)
-			draw_circle(p,5.0,Color("#3A322B"))
+			for trail_step in range(3, 0, -1):
+				var trail_theta := theta - float(trail_step) * 0.07
+				var trail_pos := game.player_pos + Vector2.from_angle(trail_theta) * orbit_radius
+				var trail_alpha := 0.05 + 0.045 * float(4 - trail_step)
+				draw_circle(trail_pos, 17.0 - float(trail_step) * 2.0, Color(0.78, 0.86, 0.90, trail_alpha))
+			var p: Vector2 = game.player_pos + Vector2.from_angle(theta) * orbit_radius
+			var spin := orbit_clock * 11.0 + float(blade) * 1.7
+			draw_set_transform(p, spin, Vector2.ONE)
+			draw_circle(Vector2.ZERO, 24.0, Color("#4D555A"))
+			draw_circle(Vector2.ZERO, 20.0, Color("#AEB8BD"))
+			draw_circle(Vector2.ZERO, 15.5, Color("#6F797E"))
+			for spoke in range(6):
+				var angle := TAU * float(spoke) / 6.0
+				var inner := Vector2.from_angle(angle) * 5.0
+				var outer := Vector2.from_angle(angle) * 15.0
+				draw_line(inner, outer, Color("#D9E0E3"), 3.2)
+			draw_circle(Vector2.ZERO, 5.0, Color("#343A3E"))
+			draw_arc(Vector2.ZERO, 18.0, -2.5, -0.55, 16, Color(1.0, 1.0, 1.0, 0.95), 3.5)
+			draw_arc(Vector2.ZERO, 22.0, 0.65, 1.65, 10, Color(0.55, 0.62, 0.66, 0.8), 2.0)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
