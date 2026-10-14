@@ -327,7 +327,9 @@ func debug_grant(id: String) -> void:
 func choose(id: String) -> void:
 	if id == "fallback_gold":
 		if game != null:
-			game.score += int(config.get("fallbacks", {}).get(id, {}).get("value", 50))
+			var scrap_value := int(config.get("fallbacks", {}).get(id, {}).get("value", 50))
+			game.score += scrap_value
+			game.scrap_earned += scrap_value
 		finish_choice()
 		return
 	if id == "fallback_heal":
