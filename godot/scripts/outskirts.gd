@@ -408,6 +408,12 @@ func _start_wave(next_wave: int) -> void:
 	wave_total = int(plan["shamblers"]) + int(plan["runners"]) + int(plan["trucker"])
 	spawn_clock = 0.0
 	_reset_pumps()
+	if progression != null:
+		var pacing_cfg: Dictionary = progression.config.get("pacing", {})
+		var start_groups := int(pacing_cfg.get("wave_start_groups", 2))
+		var start_group_size := int(pacing_cfg.get("wave_start_group_size", 10))
+		for _group in range(start_groups):
+			_spawn_pressure_group(start_group_size)
 	if wave == 10:
 		tanker_event = true
 		fire_hazard = true
