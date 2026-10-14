@@ -117,7 +117,7 @@ func _check() -> void:
 	if not game.phase_ui.game_over_stats.text.contains("TIME SURVIVED"):
 		_fail("game over stats missing")
 		return
-	get_tree().paused = false
+	paused = false
 
 	print("SURVIVABILITY_UI_CHECK_PASS shambler=6 invuln=0.5 enemy_cd=0.8 damage_cap=35% density=20->40 game_over=PASS cards=PASS")
 	quit(0)
