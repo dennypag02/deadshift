@@ -515,7 +515,7 @@ func _physics_process(delta: float) -> void:
 			capture_enemy_integral += float(on_screen) * delta
 			capture_enemy_sample_time += delta
 		capture_enemy_max = maxi(capture_enemy_max, on_screen)
-		if capture_clock >= 120.0:
+		if capture_clock >= 180.0:
 			var avg_enemies := capture_enemy_integral / maxf(0.001, capture_enemy_sample_time)
 			var xp_drop: int = progression.xp_dropped_total if progression != null else 0
 			var xp_collect: int = progression.xp_collected_total if progression != null else 0
