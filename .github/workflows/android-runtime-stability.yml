@@ -89,16 +89,16 @@ jobs:
           cat > android_stability_test.sh <<'BASH'
           #!/usr/bin/env bash
           set -euxo pipefail
-          adb install -r build/deadshift-v3-debug.apk
-          adb logcat -c
-          adb shell monkey -p com.dennypag02.deadshift 1
+          timeout 30s adb install -r build/deadshift-v3-debug.apk
+          timeout 10s adb logcat -c
+          timeout 15s adb shell monkey -p com.dennypag02.deadshift 1
           sleep 8
           for i in $(seq 1 18); do
-            adb shell input tap 540 650 || true
+            timeout 5s adb shell input tap 540 650 || true
             sleep 10
           done
-          adb logcat -d > crash.log
-          adb shell pidof com.dennypag02.deadshift > deadshift.pid
+          timeout 20s adb logcat -d > crash.log
+          timeout 10s adb shell pidof com.dennypag02.deadshift > deadshift.pid
           test -s deadshift.pid
           grep "ANDROID_RUNTIME" crash.log > android-runtime.log || true
           test -s android-runtime.log
