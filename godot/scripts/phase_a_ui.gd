@@ -34,6 +34,9 @@ var bebas_font: Font
 var capture_mode := false
 var capture_start_msec := 0
 var capture_title: ColorRect
+var game_over_panel: PanelContainer
+var game_over_stats: Label
+var main_menu_panel: PanelContainer
 
 const CYAN := Color("#3FD0E0")
 const TRACK := Color("#2A3A40")
@@ -55,6 +58,8 @@ func _ready() -> void:
 	capture_mode = OS.get_cmdline_user_args().has("--pacing-capture")
 	_build_xp_bar()
 	_build_levelup()
+	_build_game_over()
+	_build_main_menu()
 	_build_debug()
 	progression.level_up_requested.connect(_show_choices)
 	last_level = progression.level
@@ -152,8 +157,8 @@ func _build_xp_bar() -> void:
 
 func _build_levelup() -> void:
 	panel = PanelContainer.new()
-	panel.position = Vector2(12, 165)
-	panel.size = Vector2(408, 720)
+	panel.position = Vector2(12, 145)
+	panel.size = Vector2(408, 800)
 	panel.visible = false
 	var ps := StyleBoxFlat.new()
 	ps.bg_color = Color("#0E0D0C", 0.98)
@@ -164,7 +169,7 @@ func _build_levelup() -> void:
 	add_child(panel)
 
 	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 10)
+	stack.add_theme_constant_override("separation", 12)
 	panel.add_child(stack)
 
 	var heading := Label.new()
@@ -178,14 +183,14 @@ func _build_levelup() -> void:
 
 	for i in range(3):
 		var wrapper := Control.new()
-		wrapper.custom_minimum_size = Vector2(390, 120)
+		wrapper.custom_minimum_size = Vector2(390, 160)
 		wrapper.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		stack.add_child(wrapper)
 		card_wrappers.append(wrapper)
 
 		var card := PanelContainer.new()
 		card.position = Vector2.ZERO
-		card.size = Vector2(390, 120)
+		card.size = Vector2(390, 160)
 		var cs := StyleBoxFlat.new()
 		cs.bg_color = Color("#191A1C")
 		cs.border_color = COMMON
@@ -198,10 +203,10 @@ func _build_levelup() -> void:
 		card_rarities.append("COMMON")
 
 		var margin := MarginContainer.new()
-		margin.add_theme_constant_override("margin_left", 10)
-		margin.add_theme_constant_override("margin_right", 10)
-		margin.add_theme_constant_override("margin_top", 10)
-		margin.add_theme_constant_override("margin_bottom", 10)
+		margin.add_theme_constant_override("margin_left", 12)
+		margin.add_theme_constant_override("margin_right", 12)
+		margin.add_theme_constant_override("margin_top", 12)
+		margin.add_theme_constant_override("margin_bottom", 12)
 		card.add_child(margin)
 
 		var row := HBoxContainer.new()
@@ -209,7 +214,7 @@ func _build_levelup() -> void:
 		margin.add_child(row)
 
 		var icon := ColorRect.new()
-		icon.custom_minimum_size = Vector2(40, 40)
+		icon.custom_minimum_size = Vector2(48, 48)
 		icon.color = Color("#6B747C")
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(icon)
@@ -266,7 +271,9 @@ func _build_levelup() -> void:
 		var desc_label := Label.new()
 		desc_label.add_theme_font_size_override("font_size", 30)
 		desc_label.add_theme_color_override("font_color", Color("#F2E8D8"))
-		desc_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc_label.max_lines_visible = 2
+		desc_label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 		desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if barlow_font != null:
 			desc_label.add_theme_font_override("font", barlow_font)
@@ -287,6 +294,9 @@ func _build_levelup() -> void:
 		card.add_child(click)
 		card_buttons.append(click)
 
+	var action_gap := Control.new()
+	action_gap.custom_minimum_size.y = 24
+	stack.add_child(action_gap)
 	var actions := HBoxContainer.new()
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	actions.add_theme_constant_override("separation", 12)
@@ -302,6 +312,113 @@ func _build_levelup() -> void:
 			banish_button = b
 			b.pressed.connect(_banish)
 		actions.add_child(b)
+
+func _build_game_over() -> void:
+	game_over_panel = PanelContainer.new()
+	game_over_panel.position = Vector2(26, 190)
+	game_over_panel.size = Vector2(380, 560)
+	game_over_panel.visible = false
+	var ps := StyleBoxFlat.new()
+	ps.bg_color = Color("#0B0B0B", 0.97)
+	ps.border_color = Color("#C94A3D")
+	ps.set_border_width_all(4)
+	ps.set_corner_radius_all(18)
+	game_over_panel.add_theme_stylebox_override("panel", ps)
+	add_child(game_over_panel)
+
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 18)
+	game_over_panel.add_child(stack)
+
+	var title := Label.new()
+	title.text = "YOU DIED"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.custom_minimum_size.y = 86
+	title.add_theme_font_size_override("font_size", 52)
+	title.add_theme_color_override("font_color", Color("#E85A4F"))
+	if bebas_font != null:
+		title.add_theme_font_override("font", bebas_font)
+	stack.add_child(title)
+
+	game_over_stats = Label.new()
+	game_over_stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	game_over_stats.custom_minimum_size.y = 250
+	game_over_stats.add_theme_font_size_override("font_size", 26)
+	game_over_stats.add_theme_color_override("font_color", Color("#F2E8D8"))
+	if barlow_font != null:
+		game_over_stats.add_theme_font_override("font", barlow_font)
+	stack.add_child(game_over_stats)
+
+	var retry := Button.new()
+	retry.text = "RETRY"
+	retry.custom_minimum_size = Vector2(320, 64)
+	retry.add_theme_font_size_override("font_size", 28)
+	retry.pressed.connect(_retry_run)
+	stack.add_child(retry)
+
+	var menu := Button.new()
+	menu.text = "MAIN MENU"
+	menu.custom_minimum_size = Vector2(320, 64)
+	menu.add_theme_font_size_override("font_size", 28)
+	menu.pressed.connect(_show_main_menu)
+	stack.add_child(menu)
+
+func _build_main_menu() -> void:
+	main_menu_panel = PanelContainer.new()
+	main_menu_panel.position = Vector2(20, 180)
+	main_menu_panel.size = Vector2(392, 580)
+	main_menu_panel.visible = false
+	var ps := StyleBoxFlat.new()
+	ps.bg_color = Color("#090B0C", 0.99)
+	ps.border_color = CYAN
+	ps.set_border_width_all(4)
+	ps.set_corner_radius_all(18)
+	main_menu_panel.add_theme_stylebox_override("panel", ps)
+	add_child(main_menu_panel)
+	var stack := VBoxContainer.new()
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	stack.add_theme_constant_override("separation", 24)
+	main_menu_panel.add_child(stack)
+	var title := Label.new()
+	title.text = "DEADSHIFT"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 58)
+	title.add_theme_color_override("font_color", Color("#F2E8D8"))
+	if bebas_font != null:
+		title.add_theme_font_override("font", bebas_font)
+	stack.add_child(title)
+	var subtitle := Label.new()
+	subtitle.text = "OUTSKIRTS"
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.add_theme_font_size_override("font_size", 26)
+	subtitle.add_theme_color_override("font_color", AMBER)
+	if barlow_font != null:
+		subtitle.add_theme_font_override("font", barlow_font)
+	stack.add_child(subtitle)
+	var start := Button.new()
+	start.text = "START RUN"
+	start.custom_minimum_size = Vector2(300, 72)
+	start.add_theme_font_size_override("font_size", 30)
+	start.pressed.connect(_retry_run)
+	stack.add_child(start)
+
+func show_game_over(time_survived: float, wave_number: int, player_level: int, kill_count: int, run_score: int, scrap: int) -> void:
+	panel.visible = false
+	debug_panel.visible = false
+	game_over_stats.text = "TIME SURVIVED   %02d:%02d\nWAVE   %d\nLEVEL   %d\nKILLS   %d\nSCORE   %d\nSCRAP EARNED   %d" % [
+		int(time_survived) / 60, int(time_survived) % 60, wave_number, player_level, kill_count, run_score, scrap
+	]
+	game_over_panel.visible = true
+	get_tree().paused = true
+
+func _retry_run() -> void:
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+func _show_main_menu() -> void:
+	game_over_panel.visible = false
+	main_menu_panel.visible = true
+	get_tree().paused = true
 
 func _build_debug() -> void:
 	debug_panel = PanelContainer.new()
