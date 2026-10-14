@@ -29,6 +29,9 @@ var god_mode := false
 var debug_stats: Label
 var barlow_font: Font
 var bebas_font: Font
+var capture_mode := false
+var capture_start_msec := 0
+var capture_title: ColorRect
 
 const CYAN := Color("#3FD0E0")
 const TRACK := Color("#2A3A40")
@@ -47,11 +50,62 @@ func _ready() -> void:
 	scale = Vector2.ONE * scale_factor
 	barlow_font = load("res://art/fonts/BarlowCondensed-SemiBold.ttf")
 	bebas_font = load("res://art/fonts/BebasNeue-Regular.ttf")
+	capture_mode = OS.get_cmdline_user_args().has("--pacing-capture")
 	_build_xp_bar()
 	_build_levelup()
 	_build_debug()
 	progression.level_up_requested.connect(_show_choices)
 	last_level = progression.level
+	if capture_mode:
+		_start_capture_title()
+
+func _start_capture_title() -> void:
+	get_tree().paused = true
+	capture_title = ColorRect.new()
+	capture_title.color = Color("#090B0C")
+	capture_title.position = Vector2.ZERO
+	capture_title.size = Vector2(432, 960)
+	capture_title.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(capture_title)
+	var title := Label.new()
+	title.text = "DEADSHIFT"
+	title.position = Vector2(36, 385)
+	title.size = Vector2(360, 95)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 58)
+	title.add_theme_color_override("font_color", Color("#F2E8D8"))
+	if bebas_font != null:
+		title.add_theme_font_override("font", bebas_font)
+	capture_title.add_child(title)
+	var subtitle := Label.new()
+	subtitle.text = "OUTSKIRTS"
+	subtitle.position = Vector2(36, 475)
+	subtitle.size = Vector2(360, 45)
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.add_theme_font_size_override("font_size", 24)
+	subtitle.add_theme_color_override("font_color", AMBER)
+	if barlow_font != null:
+		subtitle.add_theme_font_override("font", barlow_font)
+	capture_title.add_child(subtitle)
+	_finish_capture_title()
+
+func _finish_capture_title() -> void:
+	await get_tree().create_timer(1.6, true, false, true).timeout
+	if capture_title != null:
+		capture_title.queue_free()
+	capture_start_msec = Time.get_ticks_msec()
+	print("PACING_CAPTURE_GAMEPLAY_START")
+	get_tree().paused = false
+
+func _capture_elapsed() -> float:
+	if capture_start_msec <= 0:
+		return 0.0
+	return float(Time.get_ticks_msec() - capture_start_msec) / 1000.0
+
+func _capture_auto_pick() -> void:
+	await get_tree().create_timer(0.65, true, false, true).timeout
+	if capture_mode and panel.visible and not current_choices.is_empty():
+		_pick(0)
 
 func _build_xp_bar() -> void:
 	xp_glow = ColorRect.new()
@@ -297,6 +351,9 @@ func _show_choices() -> void:
 	banish_mode = false
 	_refresh_choices()
 	_animate_cards_in()
+	if capture_mode:
+		print("PACING_LEVEL_UP level=%d t=%.2f" % [progression.level, _capture_elapsed()])
+		_capture_auto_pick()
 
 func _animate_cards_in() -> void:
 	for i in range(cards.size()):
