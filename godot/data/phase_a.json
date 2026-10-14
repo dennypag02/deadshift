@@ -9,9 +9,9 @@
     "pickup_speed": 850,
     "vacuum_speed": 1250,
     "pickup_distance": 28,
-    "guaranteed_until_level": 1,
+    "guaranteed_until_level": 2,
     "drop_multiplier_by_wave": {
-      "1": 0.75,
+      "1": 0.4,
       "2": 0.72,
       "3": 0.58,
       "default": 0.46
