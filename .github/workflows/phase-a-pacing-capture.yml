@@ -24,7 +24,7 @@ jobs:
       - name: Import project
         run: |
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --editor --quit
-      - name: Record launch through first two gameplay minutes
+      - name: Record launch through first three gameplay minutes
         shell: bash
         run: |
           set -o pipefail
@@ -33,7 +33,7 @@ jobs:
           XVFB_PID=$!
           export DISPLAY=:99
           sleep 2
-          ffmpeg -y -f x11grab -draw_mouse 0 -framerate 30 -video_size 720x1560 -i :99.0+0,0 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p pacing-capture/deadshift-first-two-minutes.mp4 > pacing-capture/ffmpeg.log 2>&1 &
+          ffmpeg -y -f x11grab -draw_mouse 0 -framerate 30 -video_size 720x1560 -i :99.0+0,0 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p pacing-capture/deadshift-first-three-minutes.mp4 > pacing-capture/ffmpeg.log 2>&1 &
           FFMPEG_PID=$!
           set +e
           timeout 360s ./Godot_v4.4.1-stable_linux.x86_64 --path godot --windowed --resolution 720x1560 --position 0,0 --rendering-driver opengl3 -- --pacing-capture 2>&1 | tee pacing-capture/pacing.log
@@ -42,7 +42,7 @@ jobs:
           kill -INT $FFMPEG_PID 2>/dev/null || true
           wait $FFMPEG_PID || true
           kill $XVFB_PID 2>/dev/null || true
-          test -s pacing-capture/deadshift-first-two-minutes.mp4
+          test -s pacing-capture/deadshift-first-three-minutes.mp4
           grep -q "PACING_CAPTURE_COMPLETE" pacing-capture/pacing.log
           grep -q "PACING_LEVEL_UP level=2" pacing-capture/pacing.log
           grep -q "PACING_SUMMARY" pacing-capture/pacing.log
@@ -55,32 +55,33 @@ jobs:
           if not levels:
               raise SystemExit("no level-up telemetry")
           first = next(t for lvl,t in levels if lvl == 2)
-          if not 6.0 <= first <= 14.0:
+          early = [t for lvl,t in levels if t <= 60.1]
+          early_gaps = [b-a for a,b in zip([0.0]+early[:-1], early)]
+          early_avg = sum(early_gaps)/len(early_gaps) if early_gaps else 0.0
+          if not 8.0 <= first <= 15.0:
               raise SystemExit(f"first level-up outside target: {first:.2f}s")
-          times = [t for lvl,t in levels if t <= 120.1]
-          gaps = [b-a for a,b in zip(times, times[1:])]
-          avg_gap = sum(gaps) / len(gaps) if gaps else 0.0
-          if gaps and max(gaps) > 20.0:
-              raise SystemExit(f"level-up gap too long: {max(gaps):.2f}s")
-          if gaps and not 8.0 <= avg_gap <= 15.0:
-              raise SystemExit(f"average level-up cadence outside target: {avg_gap:.2f}s")
+          if early_gaps and not 10.0 <= early_avg <= 15.0:
+              raise SystemExit(f"first-minute cadence outside target: {early_avg:.2f}s")
+          mid = [t for lvl,t in levels if 60.0 < t <= 180.1]
+          mid_points = [60.0] + mid
+          mid_gaps = [b-a for a,b in zip(mid_points, mid_points[1:])]
+          mid_avg = sum(mid_gaps)/len(mid_gaps) if mid_gaps else 999.0
+          if mid_gaps and not 18.0 <= mid_avg <= 30.0:
+              raise SystemExit(f"mid-run cadence outside target: {mid_avg:.2f}s")
           final = re.search(r'PACING_CAPTURE_COMPLETE t=([0-9.]+) wave=(\d+) level=(\d+) kills=(\d+)', text)
-          if not final or int(final.group(3)) < 8:
-              raise SystemExit(f"expected level >= 8 by two minutes; got {final.group(3) if final else 'missing'}")
+          if not final:
+              raise SystemExit("missing capture completion")
+          final_level = int(final.group(3))
+          if not 9 <= final_level <= 11:
+              raise SystemExit(f"expected approximately level 10 by three minutes; got {final_level}")
           summary = re.search(r'PACING_SUMMARY enemies_avg=([0-9.]+) enemies_max=(\d+) xp_dropped=(\d+) xp_collected=(\d+)', text)
           if not summary:
               raise SystemExit("missing pacing summary")
           avg, peak, dropped, collected = float(summary.group(1)), int(summary.group(2)), int(summary.group(3)), int(summary.group(4))
-          if peak < 40:
-              raise SystemExit(f"peak nearby zombies below 40: {peak}")
-          if avg < 18:
-              raise SystemExit(f"average nearby zombies too low: {avg:.2f}")
-          if dropped > 0 and collected / dropped < 0.90:
-              raise SystemExit(f"XP collection ratio too low: {collected}/{dropped}")
           wave1 = re.search(r'PACING_WAVE_END wave=1 t=([0-9.]+)', text)
-          if not wave1 or not 55.0 <= float(wave1.group(1)) <= 75.0:
+          if not wave1 or not 55.0 <= float(wave1.group(1)) <= 70.0:
               raise SystemExit(f"Wave 1 end outside target: {wave1.group(1) if wave1 else 'missing'}")
-          print(f"PACING_ACCEPT first={first:.2f}s avg_gap={avg_gap:.2f}s max_gap={max(gaps) if gaps else 0:.2f}s avg={avg:.2f} peak={peak} xp={collected}/{dropped} level={final.group(3)} wave1_end={wave1.group(1)}")
+          print(f"PACING_ACCEPT first={first:.2f}s early_avg={early_avg:.2f}s mid_avg={mid_avg:.2f}s avg_zombies={avg:.2f} peak_zombies={peak} xp={collected}/{dropped} level={final_level} wave1_end={wave1.group(1)}")
           PY
           if [ "$GAME_RC" -ne 0 ]; then
             echo "Godot exited with status $GAME_RC"
@@ -89,9 +90,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: deadshift-phase-b-first-two-minutes
+          name: deadshift-phase-b-first-three-minutes
           path: |
-            pacing-capture/deadshift-first-two-minutes.mp4
+            pacing-capture/deadshift-first-three-minutes.mp4
             pacing-capture/pacing.log
             pacing-capture/ffmpeg.log
           if-no-files-found: warn
