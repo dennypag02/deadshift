@@ -34,6 +34,7 @@ var bebas_font: Font
 var capture_mode := false
 var capture_start_msec := 0
 var capture_title: ColorRect
+var chest_reveal: PanelContainer
 var game_over_panel: PanelContainer
 var game_over_stats: Label
 var main_menu_panel: PanelContainer
