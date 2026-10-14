@@ -582,8 +582,11 @@ func _physics_process(delta: float) -> void:
 				_spawn_pressure_group(int(pacing.get("final_surge_size", 10)))
 			elif enemies.is_empty():
 				_finish_wave()
-		elif spawn_clock <= 0.0 and _onscreen_enemy_count() < active_target and enemies.size() < int(progression.config.get("limits", {}).get("active_enemies", 250)):
-			_spawn_pressure_group()
+		elif spawn_clock <= 0.0 and _pressure_population_count() < active_target and enemies.size() < int(progression.config.get("limits", {}).get("active_enemies", 250)):
+			var pressure_room := maxi(0, active_target - _pressure_population_count())
+			if pressure_room > 0:
+				var group_cap := mini(int(pacing.get("spawn_group_max", 10)), pressure_room)
+				_spawn_pressure_group(group_cap)
 			spawn_clock = float(pacing.get("spawn_interval_seconds", 0.75))
 		elif wave > 1 and wave_spawned >= wave_total and enemies.is_empty():
 			_finish_wave()
@@ -666,6 +669,17 @@ func _onscreen_enemy_count() -> int:
 	var count := 0
 	for enemy in enemies:
 		if _is_position_on_screen(Vector2(enemy["pos"])):
+			count += 1
+	return count
+
+func _pressure_population_count() -> int:
+	var half := _camera_half_extents()
+	var pacing: Dictionary = progression.config.get("pacing", {}) if progression != null else {}
+	var margin := float(pacing.get("spawn_margin", 180.0)) + float(pacing.get("spawn_jitter", 80.0)) + 80.0
+	var count := 0
+	for enemy in enemies:
+		var offset := Vector2(enemy["pos"]) - player_pos
+		if absf(offset.x) <= half.x + margin and absf(offset.y) <= half.y + margin:
 			count += 1
 	return count
 
