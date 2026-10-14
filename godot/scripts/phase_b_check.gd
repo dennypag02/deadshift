@@ -91,7 +91,7 @@ func _check() -> void:
 	p.xp_collected_total = 0
 	game.wave_active = true
 	p.drop_xp(game.player_pos + Vector2(700, 0), "shambler")
-	p.gems[0]["age"] = 7.0
+	p.gems[0]["age"] = float(cfg.get("xp", {}).get("vacuum_age_seconds", 8.0)) + 1.0
 	for i in range(8):
 		p._physics_process(0.1)
 	if p.xp_collected_total != 1 or not p.gems.is_empty():
