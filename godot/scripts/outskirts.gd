@@ -568,7 +568,7 @@ func _physics_process(delta: float) -> void:
 
 	var hazard := _hazard_at(player_pos)
 	var speed_mult := float(hazard["speed_mult"])
-	var desired_velocity := direction * player_speed * speed_mult
+	var desired_velocity := direction * player_speed * speed_mult * (1.5 if rage_clock > 0.0 else 1.0)
 	if bool(hazard["slippery"]):
 		player_velocity = player_velocity.move_toward(desired_velocity, player_speed * delta / 0.35)
 	else:
