@@ -2,6 +2,7 @@ extends Node2D
 signal level_up_requested
 
 const DATA_PATH := "res://data/phase_a.json"
+const FALLBACK_CONFIG := preload("res://scripts/gameplay_config_fallback.gd")
 
 var game: Node2D
 var config: Dictionary = {}
@@ -44,12 +45,63 @@ func _ready() -> void:
 		rng.seed = 20261014
 	else:
 		rng.randomize()
-	var file := FileAccess.open(DATA_PATH, FileAccess.READ)
-	if file != null:
-		config = JSON.parse_string(file.get_as_text())
+	config = _load_config_safe()
 	rerolls_left = int(config.get("ui", {}).get("rerolls_per_run", 2))
 	banishes_left = int(config.get("ui", {}).get("banishes_per_run", 1))
 	z_index = 3
+
+func _config_valid(candidate: Variant) -> bool:
+	if not (candidate is Dictionary):
+		return false
+	var d: Dictionary = candidate
+	for key in ["xp", "pacing", "limits", "rarity", "fallbacks", "damage_numbers", "weapons", "passives", "enemy_xp", "ui"]:
+		if not d.has(key) or not (d[key] is Dictionary):
+			return false
+	for weapon_id in ["scrap_smg", "boomstick", "molotov", "buzzsaw", "lightning", "rocket", "drone", "chakram"]:
+		if not d["weapons"].has(weapon_id):
+			return false
+	return true
+
+func _load_config_safe() -> Dictionary:
+	var parsed: Variant = null
+	var file := FileAccess.open(DATA_PATH, FileAccess.READ)
+	if file == null:
+		push_error("DEADSHIFT_CONFIG_MISSING path=%s error=%s; using built-in fallback" % [DATA_PATH, error_string(FileAccess.get_open_error())])
+	else:
+		parsed = JSON.parse_string(file.get_as_text())
+		if not _config_valid(parsed):
+			push_error("DEADSHIFT_CONFIG_INVALID path=%s; using built-in fallback" % DATA_PATH)
+	if _config_valid(parsed):
+		print("DEADSHIFT_CONFIG_LOADED path=%s" % DATA_PATH)
+		return (parsed as Dictionary).duplicate(true)
+	var fallback: Dictionary = FALLBACK_CONFIG.get_config()
+	if _config_valid(fallback):
+		push_warning("DEADSHIFT_CONFIG_FALLBACK_ACTIVE")
+		return fallback
+	push_error("DEADSHIFT_CONFIG_FATAL_FALLBACK_INVALID")
+	return {
+		"xp":{"base":6,"linear":4,"quadratic":0.12,"pickup_radius_tiles":1.2,"merge_threshold":200,"vacuum_age_seconds":6.0,"pickup_speed":850.0,"vacuum_speed":1250.0,"pickup_distance":28.0},
+		"pacing":{"wave1_duration_seconds":52.0,"break_seconds":8.0,"pressure_start":12,"pressure_at_60s":20,"spawn_group_min":4,"spawn_group_max":6,"spawn_interval_seconds":1.0,"spawn_distance":720.0,"spawn_directions_min":2,"spawn_directions_max":2,"final_surge_size":6,"wave_start_group_size":6,"wave1_start_groups":1,"later_wave_start_groups":1},
+		"limits":{"weapons":6,"passives":6,"active_enemies":80,"projectiles":160,"damage_numbers":20},
+		"rarity":{"common":{"chance":1.0,"step_multiplier":1.0},"rare":{"chance":0.0,"step_multiplier":1.0},"epic":{"chance":0.0,"step_multiplier":1.0},"legendary":{"chance":0.0,"step_multiplier":1.0,"bonus_heal_fraction":0.0},"luck_shift_per_level":0.0},
+		"fallbacks":{"fallback_gold":{"name":"Scrap Cache","description":"+50 scrap","value":50},"fallback_heal":{"name":"Field Medkit","description":"Heal 30% max HP","heal_fraction":0.3}},
+		"damage_numbers":{"enabled_default":false,"merge_window_seconds":0.15,"normal_color":"#FFFFFF","crit_color":"#F2C14E","normal_size":24,"crit_size":36,"lifetime_seconds":0.75},
+		"weapons":{
+			"scrap_smg":{"name":"Scrap SMG","max_level":5,"base_damage":1.0,"base_fire_period":0.30,"level_adds":[]},
+			"boomstick":{"name":"Boomstick","max_level":5,"base_pellets":3,"base_damage":1.0,"base_knockback":36.0,"base_cone_step":0.14,"level_adds":[]},
+			"molotov":{"name":"Molotov Lobber","max_level":5,"base_bottles":1,"base_cooldown":3.2,"base_pool_radius":120.0,"base_duration":3.0,"base_dps":3.0,"level_adds":[]},
+			"buzzsaw":{"name":"Buzzsaw Orbit","max_level":5,"base_blades":1,"base_damage_per_second":4.0,"base_radius":125.0,"base_speed":3.2,"level_adds":[]},
+			"lightning":{"name":"Lightning Rod","max_level":5,"base_damage":4.0,"base_cooldown":2.2,"base_chains":2,"level_adds":[]},
+			"rocket":{"name":"Rocket Pod","max_level":5,"base_damage":6.0,"base_cooldown":3.0,"base_rockets":1,"base_radius":135.0,"rocket_speed":430.0,"level_adds":[]},
+			"drone":{"name":"Attack Drone","max_level":5,"base_drones":1,"base_damage":1.5,"base_fire_period":0.8,"drone_radius":82.0,"mini_rocket_radius":90.0,"level_adds":[]},
+			"chakram":{"name":"Hubcap Chakram","max_level":5,"base_hubcaps":1,"base_damage":3.0,"base_cooldown":2.5,"base_range":420.0,"travel_speed":520.0,"level_adds":[]}
+		},
+		"passives":{
+			"muscle":{"name":"Muscle","max_level":5,"per_level":0.10,"level_adds":[]},"ammo_belt":{"name":"Ammo Belt","max_level":5,"level_adds":[]},"trigger_finger":{"name":"Trigger Finger","max_level":5,"per_level":0.08,"level_adds":[]},"battery_pack":{"name":"Battery Pack","max_level":5,"per_level":0.08,"level_adds":[]},"blast_radius":{"name":"Blast Radius","max_level":5,"per_level":0.12,"level_adds":[]},"fuel_tank":{"name":"Fuel Tank","max_level":5,"per_level":0.15,"level_adds":[]},"ball_bearings":{"name":"Ball Bearings","max_level":5,"per_level":0.12,"level_adds":[]},"magnet":{"name":"Magnet","max_level":5,"per_level":0.30,"level_adds":[]},"thick_hide":{"name":"Thick Hide","max_level":5,"hp_fraction_per_level":0.15,"armor_per_level":1,"level_adds":[]},"sharpened_edge":{"name":"Sharpened Edge","max_level":5,"per_level":0.06,"crit_multiplier":2.0,"level_adds":[]},"rabbit_foot":{"name":"Rabbit's Foot","max_level":5,"per_level":0.10,"level_adds":[]}
+		},
+		"enemy_xp":{"shambler":1,"runner":2,"trucker":25},
+		"ui":{"card_count":3,"level_invulnerability":0.5,"rerolls_per_run":2,"banishes_per_run":1}
+	}
 
 func xp_required(n: int) -> int:
 	var c: Dictionary = config.get("xp", {})
