@@ -490,7 +490,7 @@ func _build_debug() -> void:
 		"SMG +1", "BOOMSTICK +1", "MOLOTOV +1", "BUZZSAW +1", "LIGHTNING +1", "ROCKET +1", "DRONE +1", "CHAKRAM +1",
 		"MUSCLE +1", "AMMO BELT +1", "TRIGGER +1", "BATTERY +1", "BLAST +1", "FUEL +1", "BALL BEARINGS +1", "MAGNET +1", "THICK HIDE +1", "SHARP EDGE +1", "RABBIT FOOT +1",
 		"SPAWN SHAMBLER", "SPAWN RUNNER", "SPAWN 20", "WAVE +1",
-		"GOD MODE", "SPEED 0.5", "SPEED 1", "SPEED 2", "SPEED 4", "CLOSE"
+		"GOD MODE", "FORCE GAME OVER", "SPEED 0.5", "SPEED 1", "SPEED 2", "SPEED 4", "CLOSE"
 	]:
 		var b := Button.new()
 		b.text = command
@@ -751,6 +751,11 @@ func _debug_action(command: String) -> void:
 			game._start_wave(mini(10, game.wave + 1))
 		"GOD MODE":
 			god_mode = not god_mode
+		"FORCE GAME OVER":
+			god_mode = false
+			debug_panel.visible = false
+			game.player_hp = 0
+			print("PHASE_C_FORCE_DEATH")
 		"SPEED 0.5":
 			Engine.time_scale = 0.5
 		"SPEED 1":
