@@ -110,7 +110,7 @@ func _check() -> void:
 			_fail("level-up description does not wrap to two lines")
 			return
 
-	game.phase_ui.show_game_over(27.2, 1, 3, 20, 450, 0)
+	game.phase_ui.show_game_over(27.2, 1, 3, 20, 450, 0, false)
 	if not game.phase_ui.game_over_panel.visible:
 		_fail("game over panel did not open")
 		return
