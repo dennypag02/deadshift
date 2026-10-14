@@ -376,5 +376,8 @@
     "level_invulnerability": 0.5,
     "rerolls_per_run": 2,
     "banishes_per_run": 1
+  },
+  "difficulty": {
+    "enemy_hp_per_wave": 0.12
   }
 }
