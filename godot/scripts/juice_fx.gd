@@ -44,9 +44,15 @@ func hit(position: Vector2, direction: Vector2) -> void:
 
 func kill(position: Vector2, value: int) -> void:
 	emit("death",position,Vector2.ZERO,J.DEATH_LIFE)
-	decals.append({"pos":position,"life":20.0,"total":20.0,"scorch":false,"variant":rng.randi_range(0,3),"scale":rng.randf_range(0.6,1.4),"rotation":rng.randf_range(0.0,TAU)})
+	var blood_cfg: Dictionary = {}
 	if game != null and game.progression != null:
-		var decal_cap := int(game.progression.config.get("limits", {}).get("blood_decals", 160))
+		blood_cfg = game.progression.config.get("blood_decals", {})
+	var life := float(blood_cfg.get("lifetime_seconds", 8.0))
+	var scale_min := float(blood_cfg.get("scale_min", 0.5))
+	var scale_max := float(blood_cfg.get("scale_max", 1.0))
+	decals.append({"pos":position,"life":life,"total":life,"scorch":false,"variant":rng.randi_range(0,3),"scale":rng.randf_range(scale_min,scale_max),"rotation":rng.randf_range(0.0,TAU)})
+	if game != null and game.progression != null:
+		var decal_cap := int(game.progression.config.get("limits", {}).get("blood_decals", 40))
 		while decals.size() > decal_cap:
 			decals.pop_front()
 	if decals.size() > J.BLOOD_DECAL_CAP:
@@ -153,8 +159,11 @@ func _draw() -> void:
 		if bool(decal["scorch"]):
 			draw_circle(decal["pos"], 42.0, Color(0.08, 0.05, 0.04, 0.35))
 			continue
-		var life_ratio := clampf(float(decal["life"]) / maxf(0.01, float(decal.get("total", 20.0))), 0.0, 1.0)
-		var tint := Color(0.30, 0.018, 0.028, 0.70 * life_ratio)
+		var life_ratio := clampf(float(decal["life"]) / maxf(0.01, float(decal.get("total", 8.0))), 0.0, 1.0)
+		var blood_opacity := 0.50
+		if game != null and game.progression != null:
+			blood_opacity = float(game.progression.config.get("blood_decals", {}).get("opacity", 0.50))
+		var tint := Color(0.30, 0.018, 0.028, blood_opacity * life_ratio)
 		var variant := int(decal.get("variant", 0))
 		var splat_scale := float(decal.get("scale", 1.0))
 		var rotation := float(decal.get("rotation", 0.0))
