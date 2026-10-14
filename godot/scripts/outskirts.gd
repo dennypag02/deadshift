@@ -392,7 +392,7 @@ func _start_wave(next_wave: int) -> void:
 	wave_active = true
 	wave_spawned = 0
 	opening_spawn_remaining = 6 if wave == 1 else 0
-	opening_spawn_clock = 0.35 if wave == 1 else 0.0
+	opening_spawn_clock = 0.25 if wave == 1 else 0.0
 	runners_spawned = 0
 	trucker_spawned = false
 	var plan: Dictionary = wave_plan[wave]
@@ -516,7 +516,7 @@ func _physics_process(delta: float) -> void:
 			if opening_spawn_clock <= 0.0:
 				_spawn_opening_shambler()
 				opening_spawn_remaining -= 1
-				opening_spawn_clock = 1.70
+				opening_spawn_clock = 1.00
 		else:
 			spawn_clock -= delta
 			if spawn_clock <= 0.0 and wave_spawned < wave_total and enemies.size() < active_target:
@@ -578,7 +578,7 @@ func _spawn_opening_shambler() -> void:
 		return
 	var slot := 6 - opening_spawn_remaining
 	var angle := -PI * 0.75 + float(slot) * (PI * 1.5 / 5.0)
-	var spawn := player_pos + Vector2.from_angle(angle) * 120.0
+	var spawn := player_pos + Vector2.from_angle(angle) * 80.0
 	spawn = _nearest_walkable_position(spawn, 18.0)
 	enemies.append({
 		"pos": spawn,
