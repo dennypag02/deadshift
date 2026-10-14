@@ -577,7 +577,8 @@ func _physics_process(delta: float) -> void:
 		var smg_damage_mult: float = 1.0 + (0.25 * progression.weapon_step_mult("scrap_smg", 5) if smg_level >= 5 else 0.0)
 		for shot in range(shot_count):
 			var spread := (float(shot) - float(shot_count - 1) * 0.5) * 0.12
-			bullets.append({"pos": player_pos, "dir": heading.rotated(spread), "life": 1.6, "hits_left": smg_hits, "damage_mult": smg_damage_mult, "knockback": 0.0})
+			if progression == null or bullets.size() < int(progression.config.get("limits", {}).get("projectiles", 400)):
+				bullets.append({"pos": player_pos, "dir": heading.rotated(spread), "life": 1.6, "hits_left": smg_hits, "damage_mult": smg_damage_mult, "knockback": 0.0})
 		if progression != null and progression.weapons.has("boomstick"):
 			var boom_level := int(progression.weapons["boomstick"])
 			var boom_data: Dictionary = progression.config["weapons"]["boomstick"]
@@ -591,7 +592,8 @@ func _physics_process(delta: float) -> void:
 			var boom_knockback := float(boom_data.get("base_knockback", 36.0)) * (2.0 if boom_level >= 5 else 1.0)
 			for pellet in range(pellet_count):
 				var angle := (float(pellet) - float(pellet_count-1)*0.5) * cone_step
-				bullets.append({"pos": player_pos, "dir": heading.rotated(angle), "life": 0.48, "hits_left": 1, "damage_mult": boom_damage_mult, "knockback": boom_knockback})
+				if progression == null or bullets.size() < int(progression.config.get("limits", {}).get("projectiles", 400)):
+					bullets.append({"pos": player_pos, "dir": heading.rotated(angle), "life": 0.48, "hits_left": 1, "damage_mult": boom_damage_mult, "knockback": boom_knockback})
 		if juice_fx != null:
 			juice_fx.call("shot", player_pos, heading)
 			recoil_vector = -heading * 3.0
@@ -722,6 +724,13 @@ func _pick_spawn_point() -> Vector2:
 		return player_pos + Vector2.RIGHT * 720.0
 	return _spawn_position_outside_view(rng.randf_range(0.0, TAU))
 
+func _cap_impact_marks() -> void:
+	if progression == null:
+		return
+	var cap := int(progression.config.get("limits", {}).get("impact_marks", 120))
+	while impact_marks.size() > cap:
+		impact_marks.pop_front()
+
 func _update_bullets(delta: float) -> void:
 	for i in range(bullets.size() - 1, -1, -1):
 		var bullet: Dictionary = bullets[i]
@@ -759,6 +768,7 @@ func _update_bullets(delta: float) -> void:
 						var pushed := Vector2(live_enemy["pos"]) + Vector2(bullet["dir"]).normalized() * knockback
 						live_enemy["pos"] = _move_with_blockers(Vector2(live_enemy["pos"]), pushed - Vector2(live_enemy["pos"]), float(live_enemy["radius"]))
 					impact_marks.append({"pos": live_enemy["pos"], "life": 0.22})
+					_cap_impact_marks()
 					live_enemy["visual_hit"] = 0.06
 					live_enemy["visual_dir"] = Vector2(bullet["dir"])
 					if juice_fx != null:
@@ -776,6 +786,7 @@ func _update_bullets(delta: float) -> void:
 func _explode_pump(pump: Dictionary) -> void:
 	pump["alive"] = false
 	impact_marks.append({"pos": pump["pos"], "life": 0.55, "blast": true})
+	_cap_impact_marks()
 	var blast_kills := 0
 	for i in range(enemies.size() - 1, -1, -1):
 		var enemy: Dictionary = enemies[i]
@@ -1369,6 +1380,7 @@ func phase_a_resume_shockwave() -> void:
 	var radius := 260.0
 	var push := 145.0
 	impact_marks.append({"pos": player_pos, "life": 0.45, "blast": true})
+	_cap_impact_marks()
 	for enemy in enemies:
 		var enemy_pos := Vector2(enemy["pos"])
 		var offset := enemy_pos - player_pos
