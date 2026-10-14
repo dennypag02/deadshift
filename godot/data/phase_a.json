@@ -11,8 +11,8 @@
     "pickup_distance": 28,
     "guaranteed_until_level": 2,
     "drop_multiplier_by_wave": {
-      "1": 0.33,
-      "2": 0.58,
+      "1": 0.34,
+      "2": 0.82,
       "3": 0.46,
       "default": 0.36
     }
