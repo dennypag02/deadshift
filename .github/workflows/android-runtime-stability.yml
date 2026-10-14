@@ -83,6 +83,44 @@ jobs:
           grep -q "assets/data/phase_a.json" apk-contents.txt
           grep -q "gameplay_config_fallback.gd" apk-contents.txt || grep -q "gameplay_config_fallback.gdc" apk-contents.txt
 
+      - name: Prepare Android stability script
+        shell: bash
+        run: |
+          cat > android_stability_test.sh <<'BASH'
+          #!/usr/bin/env bash
+          set -euxo pipefail
+          adb install -r build/deadshift-v3-debug.apk
+          adb logcat -c
+          adb shell monkey -p com.dennypag02.deadshift 1
+          sleep 8
+          for i in $(seq 1 18); do
+            adb shell input tap 540 650 || true
+            sleep 10
+          done
+          adb logcat -d > crash.log
+          adb shell pidof com.dennypag02.deadshift > deadshift.pid
+          test -s deadshift.pid
+          grep "ANDROID_RUNTIME" crash.log > android-runtime.log || true
+          test -s android-runtime.log
+          if grep -Eiq 'FATAL EXCEPTION|AndroidRuntime.*FATAL|SIGSEGV|Fatal signal|Out of memory|OutOfMemoryError' crash.log; then
+            echo "Android fatal signature detected"
+            grep -Ein 'FATAL EXCEPTION|AndroidRuntime|SIGSEGV|Fatal signal|Out of memory|OutOfMemoryError' crash.log | tail -100
+            exit 1
+          fi
+          python3 - <<'PY'
+          import re
+          text=open('android-runtime.log',encoding='utf-8',errors='ignore').read()
+          fps=[int(x) for x in re.findall(r'fps=(\\d+)', text)]
+          enemies=[int(x) for x in re.findall(r'enemies=(\\d+)', text)]
+          if not fps or not enemies:
+              raise SystemExit('missing Android runtime telemetry')
+          print(f'ANDROID_STABILITY_PASS samples={len(fps)} fps_min={min(fps)} fps_avg={sum(fps)/len(fps):.1f} enemies_max={max(enemies)}')
+          if max(enemies) < 40:
+              raise SystemExit(f'dense horde not reached; enemies_max={max(enemies)}')
+          PY
+          BASH
+          chmod +x android_stability_test.sh
+
       - name: Three-minute Android logcat stability test
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -91,37 +129,7 @@ jobs:
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
-          script: |
-            set -eux
-            adb install -r build/deadshift-v3-debug.apk
-            adb logcat -c
-            adb shell monkey -p com.dennypag02.deadshift 1
-            sleep 8
-            for i in $(seq 1 18); do
-              adb shell input tap 540 650 || true
-              sleep 10
-            done
-            adb logcat -d > crash.log
-            adb shell pidof com.dennypag02.deadshift > deadshift.pid
-            test -s deadshift.pid
-            grep "ANDROID_RUNTIME" crash.log > android-runtime.log || true
-            test -s android-runtime.log
-            if grep -Eiq 'FATAL EXCEPTION|AndroidRuntime.*FATAL|SIGSEGV|Fatal signal|Out of memory|OutOfMemoryError' crash.log; then
-              echo "Android fatal signature detected"
-              grep -Ein 'FATAL EXCEPTION|AndroidRuntime|SIGSEGV|Fatal signal|Out of memory|OutOfMemoryError' crash.log | tail -100
-              exit 1
-            fi
-            python3 - <<'PY'
-            import re
-            text=open('android-runtime.log',encoding='utf-8',errors='ignore').read()
-            fps=[int(x) for x in re.findall(r'fps=(\d+)', text)]
-            enemies=[int(x) for x in re.findall(r'enemies=(\d+)', text)]
-            if not fps or not enemies:
-                raise SystemExit('missing Android runtime telemetry')
-            print(f'ANDROID_STABILITY_PASS samples={len(fps)} fps_min={min(fps)} fps_avg={sum(fps)/len(fps):.1f} enemies_max={max(enemies)}')
-            if max(enemies) < 40:
-                raise SystemExit(f'dense horde not reached; enemies_max={max(enemies)}')
-            PY
+          script: bash android_stability_test.sh
 
       - name: Upload Android stability evidence
         if: always()
