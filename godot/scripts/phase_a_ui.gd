@@ -226,7 +226,7 @@ func _build_levelup() -> void:
 
 		var name_label := Label.new()
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_label.add_theme_font_size_override("font_size", 16)
+		name_label.add_theme_font_size_override("font_size", 44)
 		if bebas_font != null:
 			name_label.add_theme_font_override("font", bebas_font)
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -255,7 +255,7 @@ func _build_levelup() -> void:
 		card_badge_labels.append(badge_label)
 
 		var pips_label := Label.new()
-		pips_label.add_theme_font_size_override("font_size", 10)
+		pips_label.add_theme_font_size_override("font_size", 26)
 		pips_label.add_theme_color_override("font_color", Color("#D9E3E8"))
 		if barlow_font != null:
 			pips_label.add_theme_font_override("font", barlow_font)
@@ -264,7 +264,7 @@ func _build_levelup() -> void:
 		card_pips.append(pips_label)
 
 		var desc_label := Label.new()
-		desc_label.add_theme_font_size_override("font_size", 11)
+		desc_label.add_theme_font_size_override("font_size", 30)
 		desc_label.add_theme_color_override("font_color", Color("#F2E8D8"))
 		desc_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
