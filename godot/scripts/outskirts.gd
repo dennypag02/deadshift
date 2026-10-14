@@ -210,6 +210,11 @@ var incoming_damage_window := 0.0
 var incoming_damage_this_window := 0.0
 var wave_damage_taken := 0
 var wave_min_hp := 100
+var elite_spawn_clock := 45.0
+var powerups: Array[Dictionary] = []
+var rage_clock := 0.0
+var mega_clock := 0.0
+var freeze_clock := 0.0
 var spawn_group_index := 0
 var run_clock := 0.0
 var game_over_shown := false
@@ -408,6 +413,7 @@ func _start_wave(next_wave: int) -> void:
 	wave = next_wave
 	wave_damage_taken = 0
 	wave_min_hp = player_hp
+	elite_spawn_clock = 45.0
 	if capture_mode:
 		print("PACING_WAVE wave=%d t=%.2f" % [wave, capture_clock])
 	if wave > 10:
@@ -643,8 +649,9 @@ func _physics_process(delta: float) -> void:
 		var trigger_bonus: float = progression.attack_speed_multiplier() if progression != null else 1.0
 		var smg_rate_bonus: float = 1.0 + (0.20 * progression.weapon_step_mult("scrap_smg", 3) if smg_level >= 3 else 0.0)
 		var smg_base_period := float(progression.config["weapons"]["scrap_smg"].get("base_fire_period", fire_period)) if progression != null else fire_period
-		fire_clock = smg_base_period / (trigger_bonus * smg_rate_bonus)
+		fire_clock = smg_base_period / (trigger_bonus * smg_rate_bonus * (2.0 if rage_clock > 0.0 else 1.0) * (3.0 if mega_clock > 0.0 else 1.0))
 
+	_update_phase_c(delta)
 	_update_bullets(delta)
 	_update_enemies(delta)
 	_update_health(delta)
@@ -733,6 +740,7 @@ func _append_enemy(kind: String, pos: Vector2) -> void:
 		"hp": float(stats["hp"]),
 		"speed": float(stats["speed"]),
 		"radius": float(stats["radius"]),
+		"elite": false,
 		"charge": 0.0,
 		"contact_cooldown": 0.0,
 	})
@@ -923,7 +931,7 @@ func _update_enemies(delta: float) -> void:
 		enemy["visual_hit"] = maxf(0.0, float(enemy.get("visual_hit", 0.0)) - delta)
 		enemy["contact_cooldown"] = maxf(0.0, float(enemy.get("contact_cooldown", 0.0)) - delta)
 		var to_player: Vector2 = player_pos - enemy["pos"]
-		var speed := float(enemy["speed"])
+		var speed := 0.0 if freeze_clock > 0.0 else float(enemy["speed"])
 		if str(enemy["kind"]) == "trucker" and float(enemy["charge"]) > 0.0:
 			enemy["charge"] = maxf(0.0, float(enemy["charge"]) - delta)
 			speed = 165.0
@@ -940,6 +948,62 @@ func _haptic_pulse(duration_ms: int = 30) -> void:
 	if OS.get_name() != "Android":
 		return
 	Input.vibrate_handheld(maxi(1, duration_ms))
+
+func _update_phase_c(delta: float) -> void:
+	rage_clock = maxf(0.0, rage_clock - delta)
+	mega_clock = maxf(0.0, mega_clock - delta)
+	freeze_clock = maxf(0.0, freeze_clock - delta)
+	if wave >= 3 and wave_active:
+		elite_spawn_clock -= delta
+		if elite_spawn_clock <= 0.0 and enemies.size() < 240:
+			elite_spawn_clock = 45.0
+			var spawn_at := _spawn_position_outside_view(rng.randf_range(0.0, TAU))
+			_append_enemy("shambler", spawn_at)
+			var elite: Dictionary = enemies[enemies.size() - 1]
+			elite["elite"] = true
+			elite["hp"] = float(elite["hp"]) * 4.0
+			elite["radius"] = float(elite["radius"]) * 1.35
+			print("PHASE_C_ELITE wave=%d t=%.1f" % [wave, run_clock])
+	for i in range(powerups.size() - 1, -1, -1):
+		var pickup: Dictionary = powerups[i]
+		pickup["age"] = float(pickup["age"]) + delta
+		if player_pos.distance_to(Vector2(pickup["pos"])) < 65.0:
+			_collect_phase_c_powerup(str(pickup["kind"]))
+			powerups.remove_at(i)
+		elif float(pickup["age"]) > 35.0:
+			powerups.remove_at(i)
+	if powerups.size() > 30:
+		powerups.pop_front()
+
+func _collect_phase_c_powerup(kind: String) -> void:
+	match kind:
+		"Rage":
+			rage_clock = 10.0
+		"Mega Gun":
+			mega_clock = 8.0
+		"Nuke":
+			for i in range(enemies.size() - 1, -1, -1):
+				if bool(enemies[i].get("elite", false)):
+					enemies[i]["hp"] = float(enemies[i]["hp"]) * 0.5
+				elif str(enemies[i]["kind"]) != "trucker":
+					_phase_a_kill_enemy(i)
+		"Magnet":
+			if progression != null:
+				progression.vacuum_all_gems()
+		"Freeze":
+			freeze_clock = 5.0
+		"Medkit":
+			player_hp = mini(player_max_hp, player_hp + roundi(float(player_max_hp) * 0.30))
+		"Chest":
+			score += 250
+			scrap_earned += 50
+			if progression != null:
+				progression.add_xp(30)
+	banner.text = "POWER-UP: %s!" % kind
+	banner.visible = true
+	impact_marks.append({"pos": player_pos, "life": 0.55, "blast": true})
+	_cap_impact_marks()
+	print("PHASE_C_PICKUP kind=%s t=%.1f" % [kind, run_clock])
 
 func _update_health(delta: float) -> void:
 	if health_available:
@@ -1423,9 +1487,18 @@ func _draw_combat() -> void:
 			draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(23,23), Vector2(46,46)), false)
 		else:
 			draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(25,25), Vector2(50,50)), false)
+		if bool(enemy.get("elite", false)):
+			var aura := 0.55 + 0.25 * sin(run_clock * 7.0)
+			draw_arc(p, radius + 12.0, 0.0, TAU, 32, Color(1.0, 0.74, 0.12, aura), 7.0, true)
 		if flash_clock > 0.0:
 			draw_circle(p, radius + 5.0, Color(1,1,1,0.7 * flash_clock / 0.06))
 
+	for pickup in powerups:
+		var ppos: Vector2 = pickup["pos"]
+		var bob := sin(float(pickup["age"]) * 5.0) * 8.0
+		var tint := Color("#F2C14E") if str(pickup["kind"]) == "Chest" else Color("#3D8BFF")
+		draw_circle(ppos + Vector2(0, bob), 23.0, tint * Color(1, 1, 1, 0.55))
+		draw_arc(ppos + Vector2(0, bob), 30.0, 0.0, TAU, 24, tint, 4.0)
 	for bullet in bullets:
 		draw_line(bullet["pos"] - bullet["dir"] * 22.0, bullet["pos"], Color("#F2A23A", 0.45), 7.0)
 		draw_line(bullet["pos"] - bullet["dir"] * 22.0, bullet["pos"], Color("#fff2b8"), 4.0)
@@ -1508,6 +1581,13 @@ func _phase_a_kill_enemy(index: int) -> void:
 		return
 	var enemy: Dictionary = enemies[index]
 	var kind := str(enemy["kind"])
+	if bool(enemy.get("elite", false)):
+		powerups.append({"pos": Vector2(enemy["pos"]), "kind": "Chest", "age": 0.0})
+		if progression != null:
+			progression.add_xp(25)
+	elif rng.randf() < 0.004:
+		var kinds := ["Rage", "Mega Gun", "Nuke", "Magnet", "Freeze", "Medkit"]
+		powerups.append({"pos": Vector2(enemy["pos"]), "kind": kinds[rng.randi_range(0, kinds.size() - 1)], "age": 0.0})
 	if progression != null:
 		progression.drop_xp(Vector2(enemy["pos"]), kind)
 	kills += 1
