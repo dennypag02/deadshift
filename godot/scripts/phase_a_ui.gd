@@ -66,6 +66,44 @@ func _ready() -> void:
 	if capture_mode:
 		_start_capture_title()
 
+func show_chest_reveal(reward: String) -> void:
+	if chest_reveal != null and is_instance_valid(chest_reveal):
+		chest_reveal.queue_free()
+	chest_reveal = PanelContainer.new()
+	chest_reveal.position = Vector2(35, 345)
+	chest_reveal.size = Vector2(362, 190)
+	chest_reveal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#15161C", 0.96)
+	style.border_color = LEGENDARY
+	style.set_border_width_all(5)
+	style.set_corner_radius_all(16)
+	chest_reveal.add_theme_stylebox_override("panel", style)
+	add_child(chest_reveal)
+	var reward_label := Label.new()
+	reward_label.text = "CHEST OPENING"
+	reward_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	reward_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	reward_label.add_theme_font_size_override("font_size", 38)
+	reward_label.add_theme_color_override("font_color", LEGENDARY)
+	if bebas_font != null:
+		reward_label.add_theme_font_override("font", bebas_font)
+	chest_reveal.add_child(reward_label)
+	var options := ["SCRAP", "XP", "EVOLUTION", "JACKPOT"]
+	for i in range(12):
+		if not is_instance_valid(reward_label):
+			return
+		reward_label.text = options[i % options.size()]
+		await get_tree().create_timer(0.07 + float(i) * 0.018, true, false, true).timeout
+	if not is_instance_valid(reward_label):
+		return
+	reward_label.text = reward.to_upper()
+	var tween := create_tween()
+	tween.tween_property(chest_reveal, "modulate:a", 0.0, 1.5).set_delay(1.2)
+	await tween.finished
+	if is_instance_valid(chest_reveal):
+		chest_reveal.queue_free()
+
 func _start_capture_title() -> void:
 	get_tree().paused = true
 	capture_title = ColorRect.new()
