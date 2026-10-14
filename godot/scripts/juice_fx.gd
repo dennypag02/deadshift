@@ -4,6 +4,7 @@ var game: Node2D
 var effects: Array[Dictionary] = []
 var decals: Array[Dictionary] = []
 var popups: Array[Dictionary] = []
+var damage_numbers: Array[Dictionary] = []
 var shake_clock := 0.0
 var shake_strength := 0.0
 var zoom_clock := 0.0
@@ -55,6 +56,23 @@ func kill(position: Vector2, value: int) -> void:
 	if popups.size() > J.SCORE_POPUP_CAP:
 		popups.pop_front()
 
+func damage_number(uid: int, position: Vector2, amount: float, crit: bool) -> void:
+	if game == null or game.progression == null:
+		return
+	var cfg: Dictionary = game.progression.config.get("damage_numbers", {})
+	var merge_window := float(cfg.get("merge_window_seconds", 0.15))
+	for number in damage_numbers:
+		if int(number["uid"]) == uid and float(number["age"]) <= merge_window:
+			number["amount"] = float(number["amount"]) + amount
+			number["crit"] = bool(number["crit"]) or crit
+			number["age"] = 0.0
+			number["pos"] = position
+			return
+	var cap := int(game.progression.config.get("limits", {}).get("damage_numbers", 40))
+	if damage_numbers.size() >= cap:
+		damage_numbers.pop_front()
+	damage_numbers.append({"uid": uid, "pos": position, "amount": amount, "crit": crit, "age": 0.0})
+
 func explosion(position: Vector2, count: int) -> void:
 	emit("blast",position,Vector2.ZERO,0.55)
 	for i in range(14):
@@ -87,6 +105,12 @@ func _process(delta: float) -> void:
 		popups[i]["age"] += delta
 		if popups[i]["age"] >= J.SCORE_POPUP_LIFE:
 			popups.remove_at(i)
+	if game.progression != null:
+		var number_life := float(game.progression.config.get("damage_numbers", {}).get("lifetime_seconds", 0.75))
+		for i in range(damage_numbers.size()-1,-1,-1):
+			damage_numbers[i]["age"] = float(damage_numbers[i]["age"]) + delta
+			if float(damage_numbers[i]["age"]) >= number_life:
+				damage_numbers.remove_at(i)
 	if game.player_hp < last_hp:
 		hurt()
 	last_hp = game.player_hp
@@ -171,3 +195,15 @@ func _draw() -> void:
 	for popup in popups:
 		var t := float(popup["age"])/J.SCORE_POPUP_LIFE
 		draw_string(ThemeDB.fallback_font,popup["pos"]+Vector2(-20,-60.0*t),"+%d"%popup["value"],HORIZONTAL_ALIGNMENT_LEFT,-1,24,Color(1.0,0.63,0.2,1.0-t))
+	if game.progression != null:
+		var cfg: Dictionary = game.progression.config.get("damage_numbers", {})
+		var life := float(cfg.get("lifetime_seconds", 0.75))
+		for number in damage_numbers:
+			var t := clampf(float(number["age"]) / maxf(0.01, life), 0.0, 1.0)
+			var is_crit := bool(number["crit"])
+			var color := Color(str(cfg.get("crit_color", "#F2C14E"))) if is_crit else Color(str(cfg.get("normal_color", "#FFFFFF")))
+			color.a = 1.0 - t
+			var size := int(cfg.get("crit_size", 36)) if is_crit else int(cfg.get("normal_size", 24))
+			var prefix := "!" if is_crit else ""
+			var label := "%s%d" % [prefix, maxi(1, roundi(float(number["amount"])))]
+			draw_string(ThemeDB.fallback_font, Vector2(number["pos"]) + Vector2(-16,-36.0-28.0*t), label, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
