@@ -809,6 +809,7 @@ func _explode_pump(pump: Dictionary) -> void:
 				_phase_a_kill_enemy(i)
 	if juice_fx != null:
 		juice_fx.call("explosion", Vector2(pump["pos"]), blast_kills)
+	_haptic_pulse(45)
 	banner.text = "PUMP DETONATED!"
 
 func _update_enemies(delta: float) -> void:
@@ -830,9 +831,15 @@ func _update_enemies(delta: float) -> void:
 			if not god_mode and (progression == null or progression.invulnerability <= 0.0):
 				var effective_damage := maxi(1, damage - player_armor)
 				player_hp = maxi(0, player_hp - effective_damage)
-			if vibration_enabled:
-				Input.vibrate_handheld(30)
+			_haptic_pulse(20)
 			enemies.remove_at(i)
+
+func _haptic_pulse(duration_ms: int = 30) -> void:
+	if not vibration_enabled:
+		return
+	if OS.get_name() != "Android":
+		return
+	Input.vibrate_handheld(maxi(1, duration_ms))
 
 func _update_health(delta: float) -> void:
 	if health_available:
@@ -854,6 +861,7 @@ func _update_objectives(delta: float) -> void:
 		score += 500
 		objective_flash_clock = 2.5
 		banner.text = "GENERATOR ONLINE!\nMINI-MART POWER RESTORED"
+		_haptic_pulse(30)
 		_try_unlock_district()
 
 	for cache in supply_caches:
@@ -862,6 +870,7 @@ func _update_objectives(delta: float) -> void:
 			score += 350
 			objective_flash_clock = 2.5
 			banner.text = "SUPPLIES RECOVERED: %s" % str(cache["name"])
+			_haptic_pulse(24)
 			_try_unlock_district()
 
 	for nest in infestation_nests:
