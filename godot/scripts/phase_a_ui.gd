@@ -14,6 +14,8 @@ var card_badges: Array[PanelContainer] = []
 var card_badge_labels: Array[Label] = []
 var card_styles: Array[StyleBoxFlat] = []
 var card_rarities: Array[String] = []
+var reroll_button: Button
+var banish_button: Button
 var xp_track: ColorRect
 var xp_fill: ColorRect
 var xp_glow: ColorRect
@@ -294,8 +296,10 @@ func _build_levelup() -> void:
 		b.text = label
 		b.custom_minimum_size = Vector2(150, 54)
 		if label == "REROLL":
+			reroll_button = b
 			b.pressed.connect(_reroll)
 		else:
+			banish_button = b
 			b.pressed.connect(_banish)
 		actions.add_child(b)
 
@@ -318,8 +322,8 @@ func _build_debug() -> void:
 	dbg.add_child(debug_stats)
 	for command in [
 		"TEST 6 SHAMBLER KILLS", "XP +100", "LEVEL +1",
-		"SMG +1", "BOOMSTICK +1", "BUZZSAW +1",
-		"MUSCLE +1", "AMMO BELT +1", "TRIGGER +1", "MAGNET +1", "THICK HIDE +1",
+		"SMG +1", "BOOMSTICK +1", "MOLOTOV +1", "BUZZSAW +1", "LIGHTNING +1", "ROCKET +1", "DRONE +1", "CHAKRAM +1",
+		"MUSCLE +1", "AMMO BELT +1", "TRIGGER +1", "BATTERY +1", "BLAST +1", "FUEL +1", "BALL BEARINGS +1", "MAGNET +1", "THICK HIDE +1", "SHARP EDGE +1", "RABBIT FOOT +1",
 		"SPAWN SHAMBLER", "SPAWN RUNNER", "SPAWN 20", "WAVE +1",
 		"GOD MODE", "SPEED 0.5", "SPEED 1", "SPEED 2", "SPEED 4", "CLOSE"
 	]:
@@ -346,18 +350,44 @@ func _placeholder_icon_color(id: String, _rarity: String) -> Color:
 			return Color("#3FD0E0")
 		"boomstick":
 			return Color("#F28C3A")
+		"molotov":
+			return Color("#F26A2E")
 		"buzzsaw":
 			return Color("#B8C4CA")
+		"lightning":
+			return Color("#73E9FF")
+		"rocket":
+			return Color("#D96D45")
+		"drone":
+			return Color("#8DD4D8")
+		"chakram":
+			return Color("#DDE4E7")
 		"muscle":
 			return Color("#D95A4E")
 		"ammo_belt":
 			return Color("#9BAA55")
 		"trigger_finger":
 			return Color("#F2C14E")
+		"battery_pack":
+			return Color("#9CEB74")
+		"blast_radius":
+			return Color("#E66D3B")
+		"fuel_tank":
+			return Color("#F08A38")
+		"ball_bearings":
+			return Color("#BFC6CE")
 		"magnet":
 			return Color("#5BA9FF")
 		"thick_hide":
 			return Color("#6E7FAE")
+		"sharpened_edge":
+			return Color("#D7DDE1")
+		"rabbit_foot":
+			return Color("#B78BFF")
+		"fallback_gold":
+			return Color("#F2C14E")
+		"fallback_heal":
+			return Color("#66D983")
 		_:
 			return Color("#8A8A8A")
 
@@ -391,24 +421,34 @@ func _refresh_choices() -> void:
 		if not visible:
 			continue
 		var id := current_choices[i]
-		var category: Dictionary = progression.config["weapons"] if progression.config["weapons"].has(id) else progression.config["passives"]
-		var item: Dictionary = category[id]
-		var current := int(progression.weapons.get(id, progression.passives.get(id, 0)))
-		var target := current + 1
-		var max_level := int(item.get("max_level", 5))
+		var rarity := progression.choice_rarity(id)
+		var item: Dictionary = {}
+		var current := 0
+		var target := 0
+		var max_level := 0
 		var pips := ""
-		for p in range(max_level):
-			pips += "●" if p < target else "○"
-		var level_adds: Array = item.get("level_adds", [])
-		var addition := str(level_adds[target - 1]) if target - 1 < level_adds.size() else str(item.get("description", "Upgrade"))
-		var rarity := str(item.get("rarity", "COMMON")).to_upper()
+		var addition := ""
+		var is_fallback := progression.config.get("fallbacks", {}).has(id)
+		if is_fallback:
+			item = progression.config["fallbacks"][id]
+			addition = str(item.get("description", "Fallback"))
+		else:
+			var category: Dictionary = progression.config["weapons"] if progression.config["weapons"].has(id) else progression.config["passives"]
+			item = category[id]
+			current = int(progression.weapons.get(id, progression.passives.get(id, 0)))
+			target = current + 1
+			max_level = int(item.get("max_level", 5))
+			for p in range(max_level):
+				pips += "●" if p < target else "○"
+			var level_adds: Array = item.get("level_adds", [])
+			addition = str(level_adds[target - 1]) if target - 1 < level_adds.size() else str(item.get("description", "Upgrade"))
 		card_rarities[i] = rarity
 		card_styles[i].border_color = _rarity_color(rarity)
 		card_icons[i].color = _placeholder_icon_color(id, rarity)
 		card_names[i].text = str(item["name"])
-		card_pips[i].text = pips
-		card_descs[i].text = "%s LV %d: %s" % [item["name"], target, addition]
-		card_badges[i].visible = current == 0
+		card_pips[i].text = ("%s   %s" % [pips, rarity]).strip_edges()
+		card_descs[i].text = addition if is_fallback else "%s LV %d: %s" % [item["name"], target, addition]
+		card_badges[i].visible = (not is_fallback) and current == 0
 		card_buttons[i].set_meta("upgrade", id)
 
 func _animate_choice(index: int) -> void:
@@ -433,10 +473,10 @@ func _pick(index: int) -> void:
 		return
 	var id := current_choices[index]
 	if banish_mode:
-		progression.banish(id)
-		banish_mode = false
-		_refresh_choices()
-		_animate_cards_in()
+		if progression.banish(id):
+			banish_mode = false
+			_refresh_choices()
+			_animate_cards_in()
 		return
 	await _animate_choice(index)
 	panel.visible = false
@@ -451,10 +491,13 @@ func _pick(index: int) -> void:
 		get_tree().paused = false
 
 func _reroll() -> void:
-	_refresh_choices()
-	_animate_cards_in()
+	if progression.use_reroll():
+		_refresh_choices()
+		_animate_cards_in()
 
 func _banish() -> void:
+	if progression.banishes_left <= 0:
+		return
 	banish_mode = true
 	for i in range(card_descs.size()):
 		if card_wrappers[i].visible:
@@ -485,6 +528,12 @@ func _process(delta: float) -> void:
 		if card_wrappers[i].visible and card_rarities[i] == "LEGENDARY":
 			var shimmer := 0.35 + 0.35 * (0.5 + 0.5 * sin(xp_glow_clock * 5.0 + float(i)))
 			card_styles[i].border_color = LEGENDARY.lerp(Color.WHITE, shimmer)
+	if reroll_button != null:
+		reroll_button.text = "REROLL (%d)" % progression.rerolls_left
+		reroll_button.disabled = progression.rerolls_left <= 0
+	if banish_button != null:
+		banish_button.text = "BANISH (%d)" % progression.banishes_left
+		banish_button.disabled = progression.banishes_left <= 0
 	if debug_stats != null and debug_panel.visible:
 		debug_stats.text = "FPS %d   ENEMIES %d   PROJECTILES %d   GEMS %d\nLV %d  XP %d/%d  GOD %s  TIME %.1fx" % [
 			Engine.get_frames_per_second(), game.enemies.size(), game.bullets.size(), progression.gems.size(),
@@ -492,18 +541,11 @@ func _process(delta: float) -> void:
 		]
 
 func _grant_upgrade(id: String) -> void:
-	if progression.config.get("weapons", {}).has(id):
-		var max_level := int(progression.config["weapons"][id].get("max_level", 5))
-		progression.weapons[id] = mini(max_level, int(progression.weapons.get(id, 0)) + 1)
-	elif progression.config.get("passives", {}).has(id):
-		var before := int(progression.passives.get(id, 0))
-		var max_level := int(progression.config["passives"][id].get("max_level", 5))
-		if before < max_level:
-			progression.choose(id)
-			progression.pending_levels = 0
-			progression.choosing = false
-			panel.visible = false
-			get_tree().paused = false
+	progression.debug_grant(id)
+	progression.pending_levels = 0
+	progression.choosing = false
+	panel.visible = false
+	get_tree().paused = false
 
 func _debug_action(command: String) -> void:
 	match command:
@@ -514,22 +556,25 @@ func _debug_action(command: String) -> void:
 			progression.add_xp(100)
 		"LEVEL +1":
 			progression.add_xp(progression.xp_required(progression.level))
-		"SMG +1":
-			_grant_upgrade("scrap_smg")
-		"BOOMSTICK +1":
-			_grant_upgrade("boomstick")
-		"BUZZSAW +1":
-			_grant_upgrade("buzzsaw")
-		"MUSCLE +1":
-			_grant_upgrade("muscle")
-		"AMMO BELT +1":
-			_grant_upgrade("ammo_belt")
-		"TRIGGER +1":
-			_grant_upgrade("trigger_finger")
-		"MAGNET +1":
-			_grant_upgrade("magnet")
-		"THICK HIDE +1":
-			_grant_upgrade("thick_hide")
+		"SMG +1": _grant_upgrade("scrap_smg")
+		"BOOMSTICK +1": _grant_upgrade("boomstick")
+		"MOLOTOV +1": _grant_upgrade("molotov")
+		"BUZZSAW +1": _grant_upgrade("buzzsaw")
+		"LIGHTNING +1": _grant_upgrade("lightning")
+		"ROCKET +1": _grant_upgrade("rocket")
+		"DRONE +1": _grant_upgrade("drone")
+		"CHAKRAM +1": _grant_upgrade("chakram")
+		"MUSCLE +1": _grant_upgrade("muscle")
+		"AMMO BELT +1": _grant_upgrade("ammo_belt")
+		"TRIGGER +1": _grant_upgrade("trigger_finger")
+		"BATTERY +1": _grant_upgrade("battery_pack")
+		"BLAST +1": _grant_upgrade("blast_radius")
+		"FUEL +1": _grant_upgrade("fuel_tank")
+		"BALL BEARINGS +1": _grant_upgrade("ball_bearings")
+		"MAGNET +1": _grant_upgrade("magnet")
+		"THICK HIDE +1": _grant_upgrade("thick_hide")
+		"SHARP EDGE +1": _grant_upgrade("sharpened_edge")
+		"RABBIT FOOT +1": _grant_upgrade("rabbit_foot")
 		"SPAWN SHAMBLER":
 			game.enemies.append({"pos":game.player_pos + Vector2(220,0), "kind":"shambler", "hp":1, "speed":108.0, "radius":18.0, "charge":0.0})
 		"SPAWN RUNNER":
