@@ -20,8 +20,8 @@
   "pacing": {
     "wave1_duration_seconds": 22,
     "break_seconds": 8,
-    "pressure_start": 22,
-    "pressure_at_60s": 44,
+    "pressure_start": 20,
+    "pressure_at_60s": 40,
     "pressure_per_later_wave": 6,
     "spawn_group_min": 4,
     "spawn_group_max": 10,
@@ -34,7 +34,9 @@
     "spawn_margin": 180,
     "spawn_jitter": 80,
     "wave1_start_groups": 2,
-    "later_wave_start_groups": 3
+    "later_wave_start_groups": 3,
+    "min_spawn_distance_tiles": 1.5,
+    "spawn_group_angle_step_degrees": 72
   },
   "limits": {
     "weapons": 6,
@@ -391,7 +393,18 @@
     "banishes_per_run": 1
   },
   "difficulty": {
-    "enemy_hp_per_wave": 0.12
+    "enemy_hp_per_wave": 0.12,
+    "enemy_damage_per_wave": 0.06,
+    "contact_damage": {
+      "shambler_base": 5.66,
+      "runner_base": 8,
+      "trucker_base": 18
+    },
+    "player_hit_invulnerability_seconds": 0.5,
+    "enemy_contact_cooldown_seconds": 0.8,
+    "incoming_damage_cap_fraction_per_second": 0.35,
+    "hit_knockback_radius": 230,
+    "hit_knockback_distance": 125
   },
   "blood_decals": {
     "lifetime_seconds": 8,
