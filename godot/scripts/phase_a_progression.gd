@@ -508,6 +508,9 @@ func _spawn_chakrams() -> void:
 			"returning": false,
 			"hit": {},
 			"bounces": 1 if lv >= 5 else 0,
+			"orbit_angle": TAU * float(n) / float(count),
+			"orbit_age": 0.0,
+			"hit_reset": 0.0,
 		})
 
 func _damage_area(center: Vector2, radius: float, damage: float, source: String) -> void:
@@ -599,7 +602,17 @@ func _update_weapon_effects(delta: float) -> void:
 	for i in range(chakrams.size() - 1, -1, -1):
 		var ch: Dictionary = chakrams[i]
 		var speed := float(config["weapons"]["chakram"].get("travel_speed", 520.0)) * speed_multiplier()
-		if bool(ch["returning"]):
+		if evolutions.has("chakram"):
+			ch["orbit_age"] = float(ch["orbit_age"]) + delta
+			ch["hit_reset"] = float(ch["hit_reset"]) + delta
+			ch["pos"] = game.player_pos + Vector2.from_angle(float(ch["orbit_angle"]) + float(ch["orbit_age"]) * 3.2) * 410.0
+			if float(ch["hit_reset"]) >= 0.45:
+				ch["hit"] = {}
+				ch["hit_reset"] = 0.0
+			if float(ch["orbit_age"]) > 8.0:
+				chakrams.remove_at(i)
+				continue
+		elif bool(ch["returning"]):
 			var to_player: Vector2 = game.player_pos - Vector2(ch["pos"])
 			ch["dir"] = to_player.normalized()
 			ch["pos"] = Vector2(ch["pos"]) + Vector2(ch["dir"]) * speed * delta
