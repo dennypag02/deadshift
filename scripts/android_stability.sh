@@ -26,8 +26,9 @@ echo "ANDROID_STABILITY_BEGIN" | tee "$STATUS_FILE"
 test -s "$APK_PATH"
 
 echo "Checking APK ABI contents..." | tee -a "$STATUS_FILE"
-unzip -l "$APK_PATH" | grep -E 'lib/(arm64-v8a|x86_64)/' | head -20 | tee -a "$STATUS_FILE"
-if ! unzip -l "$APK_PATH" | grep -q 'lib/x86_64/'; then
+unzip -Z1 "$APK_PATH" > android-stability/apk-files.txt
+grep -E 'lib/(arm64-v8a|x86_64)/' android-stability/apk-files.txt | head -20 | tee -a "$STATUS_FILE" || true
+if ! grep -Fq 'lib/x86_64/libgodot_android.so' android-stability/apk-files.txt; then
   echo "INSTALL_FAILED_NO_MATCHING_ABIS: APK has no x86_64 native library" | tee -a "$STATUS_FILE"
   exit 21
 fi
