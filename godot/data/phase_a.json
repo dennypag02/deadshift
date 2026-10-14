@@ -11,7 +11,7 @@
     "pickup_distance": 28
   },
   "pacing": {
-    "wave1_duration_seconds": 60,
+    "wave1_duration_seconds": 52,
     "break_seconds": 8,
     "pressure_start": 20,
     "pressure_at_60s": 40,
@@ -22,7 +22,9 @@
     "spawn_distance": 720,
     "spawn_directions_min": 2,
     "spawn_directions_max": 3,
-    "final_surge_size": 10
+    "final_surge_size": 10,
+    "wave_start_groups": 2,
+    "wave_start_group_size": 10
   },
   "limits": {
     "weapons": 6,
