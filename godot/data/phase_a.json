@@ -23,8 +23,11 @@
     "spawn_directions_min": 2,
     "spawn_directions_max": 3,
     "final_surge_size": 10,
-    "wave_start_groups": 2,
-    "wave_start_group_size": 10
+    "wave_start_group_size": 10,
+    "spawn_margin": 180,
+    "spawn_jitter": 80,
+    "wave1_start_groups": 2,
+    "later_wave_start_groups": 3
   },
   "limits": {
     "weapons": 6,
