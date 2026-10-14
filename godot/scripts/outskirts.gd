@@ -500,8 +500,8 @@ func _physics_process(delta: float) -> void:
 		capture_enemy_max = maxi(capture_enemy_max, on_screen)
 		if capture_clock >= 120.0:
 			var avg_enemies := capture_enemy_integral / maxf(0.001, capture_enemy_sample_time)
-			var xp_drop := progression.xp_dropped_total if progression != null else 0
-			var xp_collect := progression.xp_collected_total if progression != null else 0
+			var xp_drop: int = progression.xp_dropped_total if progression != null else 0
+			var xp_collect: int = progression.xp_collected_total if progression != null else 0
 			print("PACING_SUMMARY enemies_avg=%.2f enemies_max=%d xp_dropped=%d xp_collected=%d" % [avg_enemies, capture_enemy_max, xp_drop, xp_collect])
 			print("PACING_CAPTURE_COMPLETE t=%.2f wave=%d level=%d kills=%d" % [capture_clock, wave, progression.level if progression != null else 1, kills])
 			get_tree().quit()
@@ -559,27 +559,27 @@ func _physics_process(delta: float) -> void:
 				nearest = i
 		var heading: Vector2 = (enemies[nearest]["pos"] - player_pos).normalized()
 		var smg_level := int(progression.weapons.get("scrap_smg", 1)) if progression != null else 1
-		var ammo_bonus := progression.ammo_bonus() if progression != null else 0
+		var ammo_bonus: int = progression.ammo_bonus() if progression != null else 0
 		var smg_burst := 1
 		if smg_level >= 2:
 			smg_burst += maxi(1, roundi(progression.weapon_step_mult("scrap_smg", 2)))
 		if smg_level >= 5:
 			smg_burst += maxi(1, roundi(progression.weapon_step_mult("scrap_smg", 5)))
-		var shot_count := smg_burst + ammo_bonus
+		var shot_count: int = smg_burst + ammo_bonus
 		var smg_hits := 1 + (maxi(1, roundi(progression.weapon_step_mult("scrap_smg", 4))) if smg_level >= 4 else 0)
-		var smg_damage_mult := 1.0 + (0.25 * progression.weapon_step_mult("scrap_smg", 5) if smg_level >= 5 else 0.0)
+		var smg_damage_mult: float = 1.0 + (0.25 * progression.weapon_step_mult("scrap_smg", 5) if smg_level >= 5 else 0.0)
 		for shot in range(shot_count):
 			var spread := (float(shot) - float(shot_count - 1) * 0.5) * 0.12
 			bullets.append({"pos": player_pos, "dir": heading.rotated(spread), "life": 1.6, "hits_left": smg_hits, "damage_mult": smg_damage_mult, "knockback": 0.0})
 		if progression != null and progression.weapons.has("boomstick"):
 			var boom_level := int(progression.weapons["boomstick"])
 			var boom_data: Dictionary = progression.config["weapons"]["boomstick"]
-			var pellet_count := int(boom_data.get("base_pellets", 3)) + ammo_bonus
+			var pellet_count: int = int(boom_data.get("base_pellets", 3)) + ammo_bonus
 			if boom_level >= 2:
 				pellet_count += maxi(1, roundi(2.0 * progression.weapon_step_mult("boomstick", 2)))
 			if boom_level >= 5:
 				pellet_count += maxi(1, roundi(2.0 * progression.weapon_step_mult("boomstick", 5)))
-			var boom_damage_mult := 1.0 + (0.20 * progression.weapon_step_mult("boomstick", 3) if boom_level >= 3 else 0.0)
+			var boom_damage_mult: float = 1.0 + (0.20 * progression.weapon_step_mult("boomstick", 3) if boom_level >= 3 else 0.0)
 			var cone_step := float(boom_data.get("base_cone_step", 0.14)) * (1.30 if boom_level >= 4 else 1.0)
 			var boom_knockback := float(boom_data.get("base_knockback", 36.0)) * (2.0 if boom_level >= 5 else 1.0)
 			for pellet in range(pellet_count):
@@ -589,8 +589,8 @@ func _physics_process(delta: float) -> void:
 			juice_fx.call("shot", player_pos, heading)
 			recoil_vector = -heading * 3.0
 			last_aim = heading
-		var trigger_bonus := progression.attack_speed_multiplier() if progression != null else 1.0
-		var smg_rate_bonus := 1.0 + (0.20 * progression.weapon_step_mult("scrap_smg", 3) if smg_level >= 3 else 0.0)
+		var trigger_bonus: float = progression.attack_speed_multiplier() if progression != null else 1.0
+		var smg_rate_bonus: float = 1.0 + (0.20 * progression.weapon_step_mult("scrap_smg", 3) if smg_level >= 3 else 0.0)
 		var smg_base_period := float(progression.config["weapons"]["scrap_smg"].get("base_fire_period", fire_period)) if progression != null else fire_period
 		fire_clock = smg_base_period / (trigger_bonus * smg_rate_bonus)
 
@@ -718,8 +718,8 @@ func _update_bullets(delta: float) -> void:
 			var enemy: Dictionary = enemies[j]
 			if bullet["pos"].distance_to(enemy["pos"]) <= float(enemy["radius"]) + BULLET_RADIUS:
 				var bullet_mult := float(bullet.get("damage_mult", 1.0))
-				var raw_damage := float(bullet_damage) * bullet_mult * (progression.damage_multiplier() if progression != null else 1.0)
-				var crit := progression.roll_crit() if progression != null else false
+				var raw_damage: float = float(bullet_damage) * bullet_mult * (progression.damage_multiplier() if progression != null else 1.0)
+				var crit: bool = progression.roll_crit() if progression != null else false
 				var killed := phase_b_damage_enemy(j, raw_damage, crit, "bullet")
 				if not killed and j < enemies.size() and str(enemies[j]["kind"]) == "trucker":
 					enemies[j]["charge"] = 1.1
@@ -1311,7 +1311,7 @@ func phase_b_damage_enemy(index: int, raw_damage: float, crit: bool, source: Str
 	var enemy: Dictionary = enemies[index]
 	if not enemy.has("uid"):
 		enemy["uid"] = _next_uid()
-	var actual := raw_damage * (progression.crit_multiplier() if crit and progression != null else 1.0)
+	var actual: float = raw_damage * (progression.crit_multiplier() if crit and progression != null else 1.0)
 	enemy["hp"] = float(enemy["hp"]) - actual
 	if juice_fx != null and damage_numbers_enabled:
 		juice_fx.call("damage_number", int(enemy["uid"]), Vector2(enemy["pos"]), actual, crit)
