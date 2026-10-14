@@ -1,0 +1,63 @@
+name: Deadshift Phase A Pacing Capture
+on:
+  push:
+    branches:
+      - feature/phase-a-progression
+    paths:
+      - 'godot/**'
+      - '.github/workflows/phase-a-pacing-capture.yml'
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot and capture dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb ffmpeg libgl1-mesa-dri >/dev/null
+          curl -fL --retry 3 -o godot.zip https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip -q godot.zip
+          chmod +x Godot_v4.4.1-stable_linux.x86_64
+      - name: Import project
+        run: |
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --editor --quit
+      - name: Record launch through first two gameplay minutes
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p pacing-capture
+          Xvfb :99 -screen 0 720x1560x24 -ac +extension GLX +render -noreset > pacing-capture/xvfb.log 2>&1 &
+          XVFB_PID=$!
+          export DISPLAY=:99
+          sleep 2
+          ffmpeg -y -f x11grab -draw_mouse 0 -framerate 30 -video_size 720x1560 -i :99.0+0,0 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p pacing-capture/deadshift-first-two-minutes.mp4 > pacing-capture/ffmpeg.log 2>&1 &
+          FFMPEG_PID=$!
+          set +e
+          timeout 150s ./Godot_v4.4.1-stable_linux.x86_64 --path godot --windowed --resolution 720x1560 --position 0,0 --rendering-driver opengl3 -- --pacing-capture 2>&1 | tee pacing-capture/pacing.log
+          GAME_RC=${PIPESTATUS[0]}
+          set -e
+          kill -INT $FFMPEG_PID 2>/dev/null || true
+          wait $FFMPEG_PID || true
+          kill $XVFB_PID 2>/dev/null || true
+          test -s pacing-capture/deadshift-first-two-minutes.mp4
+          grep -q "PACING_CAPTURE_COMPLETE" pacing-capture/pacing.log
+          grep -q "PACING_LEVEL_UP level=2" pacing-capture/pacing.log
+          FIRST_LEVEL=$(grep -m1 "PACING_LEVEL_UP level=2" pacing-capture/pacing.log | sed -E 's/.*t=([0-9.]+).*/\1/')
+          echo "First level-up gameplay time: ${FIRST_LEVEL}s"
+          awk -v t="$FIRST_LEVEL" 'BEGIN { exit !(t >= 6.0 && t <= 14.0) }'
+          if [ "$GAME_RC" -ne 0 ]; then
+            echo "Godot exited with status $GAME_RC"
+            exit "$GAME_RC"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deadshift-phase-a-first-two-minutes
+          path: |
+            pacing-capture/deadshift-first-two-minutes.mp4
+            pacing-capture/pacing.log
+            pacing-capture/ffmpeg.log
+          if-no-files-found: warn
