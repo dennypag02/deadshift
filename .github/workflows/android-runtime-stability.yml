@@ -92,7 +92,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
           script: |
-            set -euxo pipefail
+            set -eux
             adb install -r build/deadshift-v3-debug.apk
             adb logcat -c
             adb shell monkey -p com.dennypag02.deadshift 1
