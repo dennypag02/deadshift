@@ -152,7 +152,7 @@ func _draw() -> void:
 			var theta := orbit_clock * orbit_speed + TAU * float(blade) / float(count)
 			for trail_step in range(3, 0, -1):
 				var trail_theta := theta - float(trail_step) * 0.07
-				var trail_pos := game.player_pos + Vector2.from_angle(trail_theta) * orbit_radius
+				var trail_pos: Vector2 = game.player_pos + Vector2.from_angle(trail_theta) * orbit_radius
 				var trail_alpha := 0.05 + 0.045 * float(4 - trail_step)
 				draw_circle(trail_pos, 17.0 - float(trail_step) * 2.0, Color(0.78, 0.86, 0.90, trail_alpha))
 			var p: Vector2 = game.player_pos + Vector2.from_angle(theta) * orbit_radius
