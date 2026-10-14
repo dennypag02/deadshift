@@ -414,7 +414,7 @@ func _spawn_molotovs() -> void:
 		var idx := _nearest_enemy_index(game.player_pos)
 		if idx < 0:
 			break
-		var target := (game.player_pos + Vector2.from_angle(TAU * float(n) / maxf(1.0, float(count))) * 360.0) if evolutions.has("molotov") else (Vector2(game.enemies[idx]["pos"]) + Vector2.from_angle(TAU * float(n) / maxf(1.0, float(count))) * 35.0)
+		var target: Vector2 = (game.player_pos + Vector2.from_angle(TAU * float(n) / maxf(1.0, float(count))) * 360.0) if evolutions.has("molotov") else (Vector2(game.enemies[idx]["pos"]) + Vector2.from_angle(TAU * float(n) / maxf(1.0, float(count))) * 35.0)
 		molotov_pools.append({"pos": target, "life": duration, "radius": radius, "dps": dps, "tick": 0.0})
 		game.impact_marks.append({"pos": target, "life": 0.35, "blast": true})
 
