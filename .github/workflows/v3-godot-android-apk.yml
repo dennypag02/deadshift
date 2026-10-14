@@ -92,6 +92,14 @@ jobs:
           mkdir -p build
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --verbose --path godot --export-debug Android "$GITHUB_WORKSPACE/build/deadshift-v3-debug.apk"
           test -s build/deadshift-v3-debug.apk
+      - name: Verify packaged runtime resources
+        shell: bash
+        run: |
+          unzip -l build/deadshift-v3-debug.apk | tee apk-contents.txt
+          grep -q "assets/data/phase_a.json" apk-contents.txt
+          grep -q "BebasNeue-Regular.ttf" apk-contents.txt
+          grep -q "BarlowCondensed-SemiBold.ttf" apk-contents.txt
+          grep -q "gameplay_config_fallback.gd" apk-contents.txt || grep -q "gameplay_config_fallback.gdc" apk-contents.txt
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
