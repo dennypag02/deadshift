@@ -998,7 +998,11 @@ func _collect_phase_c_powerup(kind: String) -> void:
 			score += 250
 			scrap_earned += 50
 			if progression != null:
-				progression.add_xp(30)
+				var evolved: String = progression.chest_evolution()
+				if evolved != "":
+					kind = "EVOLVED: " + evolved
+				else:
+					progression.add_xp(30)
 	banner.text = "POWER-UP: %s!" % kind
 	banner.visible = true
 	impact_marks.append({"pos": player_pos, "life": 0.55, "blast": true})
