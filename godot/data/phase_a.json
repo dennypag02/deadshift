@@ -34,7 +34,10 @@
     "passives": 6,
     "active_enemies": 250,
     "projectiles": 400,
-    "damage_numbers": 40
+    "damage_numbers": 40,
+    "blood_decals": 160,
+    "impact_marks": 120,
+    "weapon_effects": 160
   },
   "rarity": {
     "common": {
