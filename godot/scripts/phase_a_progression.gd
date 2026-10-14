@@ -414,7 +414,7 @@ func _spawn_molotovs() -> void:
 		var idx := _nearest_enemy_index(game.player_pos)
 		if idx < 0:
 			break
-		var target := Vector2(game.enemies[idx]["pos"]) + Vector2.from_angle(TAU * float(n) / maxf(1.0, float(count))) * 35.0
+		var target := (game.player_pos + Vector2.from_angle(TAU * float(n) / maxf(1.0, float(count))) * 360.0) if evolutions.has("molotov") else (Vector2(game.enemies[idx]["pos"]) + Vector2.from_angle(TAU * float(n) / maxf(1.0, float(count))) * 35.0)
 		molotov_pools.append({"pos": target, "life": duration, "radius": radius, "dps": dps, "tick": 0.0})
 		game.impact_marks.append({"pos": target, "life": 0.35, "blast": true})
 
@@ -545,7 +545,7 @@ func _update_weapon_effects(delta: float) -> void:
 		var cd := float(config["weapons"]["lightning"].get("base_cooldown", 2.2))
 		if int(weapons["lightning"]) >= 4:
 			cd *= 1.0 - 0.15 * weapon_step_mult("lightning", 4)
-		weapon_clocks["lightning"] = cd * cooldown_multiplier() / attack_speed_multiplier()
+		weapon_clocks["lightning"] = (0.4 if evolutions.has("lightning") else cd * cooldown_multiplier() / attack_speed_multiplier())
 	if weapons.has("rocket") and float(weapon_clocks["rocket"]) <= 0.0:
 		_spawn_rockets()
 		weapon_clocks["rocket"] = float(config["weapons"]["rocket"].get("base_cooldown", 3.0)) * cooldown_multiplier() / attack_speed_multiplier()
@@ -627,7 +627,7 @@ func _update_weapon_effects(delta: float) -> void:
 				var damage := float(config["weapons"]["chakram"].get("base_damage", 3.0)) * damage_multiplier()
 				if int(weapons["chakram"]) >= 3:
 					damage *= 1.0 + 0.20 * weapon_step_mult("chakram", 3)
-				game.phase_b_damage_enemy(e, damage, roll_crit(), "chakram")
+				game.phase_b_damage_enemy(e, damage, true if evolutions.has("chakram") else roll_crit(), "chakram")
 				hit_map[uid] = true
 				ch["hit"] = hit_map
 
@@ -723,7 +723,7 @@ func _draw() -> void:
 
 	if weapons.has("drone") and game != null:
 		var w: Dictionary = config["weapons"]["drone"]
-		var count := int(w.get("base_drones", 1))
+		var count := 8 if evolutions.has("drone") else int(w.get("base_drones", 1))
 		var lv := int(weapons["drone"])
 		if lv >= 2:
 			count += maxi(1, roundi(weapon_step_mult("drone", 2)))
@@ -738,7 +738,7 @@ func _draw() -> void:
 	if weapons.has("buzzsaw") and game != null:
 		var w: Dictionary = config["weapons"]["buzzsaw"]
 		var saw_level := int(weapons["buzzsaw"])
-		var count := int(w.get("base_blades", 1))
+		var count := 8 if evolutions.has("buzzsaw") else int(w.get("base_blades", 1))
 		if saw_level >= 2:
 			count += maxi(1, roundi(weapon_step_mult("buzzsaw", 2)))
 		if saw_level >= 5:
@@ -748,7 +748,7 @@ func _draw() -> void:
 			orbit_radius *= 1.0 + 0.25 * weapon_step_mult("buzzsaw", 4)
 		var orbit_speed := float(w.get("base_speed", 3.2)) * speed_multiplier()
 		for blade in range(count):
-			var theta := orbit_clock * orbit_speed + TAU * float(blade) / float(count)
+			var theta := orbit_clock * orbit_speed * (-1.0 if evolutions.has("buzzsaw") and blade % 2 == 1 else 1.0) + TAU * float(blade) / float(count)
 			var p: Vector2 = game.player_pos + Vector2.from_angle(theta) * orbit_radius
 			draw_set_transform(p, orbit_clock * 9.0, Vector2.ONE)
 			var teeth := PackedVector2Array()
