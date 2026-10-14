@@ -45,6 +45,10 @@ func hit(position: Vector2, direction: Vector2) -> void:
 func kill(position: Vector2, value: int) -> void:
 	emit("death",position,Vector2.ZERO,J.DEATH_LIFE)
 	decals.append({"pos":position,"life":20.0,"total":20.0,"scorch":false,"variant":rng.randi_range(0,3),"scale":rng.randf_range(0.6,1.4),"rotation":rng.randf_range(0.0,TAU)})
+	if game != null and game.progression != null:
+		var decal_cap := int(game.progression.config.get("limits", {}).get("blood_decals", 160))
+		while decals.size() > decal_cap:
+			decals.pop_front()
 	if decals.size() > J.BLOOD_DECAL_CAP:
 		decals.pop_front()
 	for popup in popups:
