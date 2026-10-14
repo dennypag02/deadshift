@@ -5,13 +5,20 @@
     "quadratic": 0.12,
     "pickup_radius_tiles": 1.2,
     "merge_threshold": 200,
-    "vacuum_age_seconds": 6,
+    "vacuum_age_seconds": 8,
     "pickup_speed": 850,
     "vacuum_speed": 1250,
-    "pickup_distance": 28
+    "pickup_distance": 28,
+    "guaranteed_until_level": 2,
+    "drop_multiplier_by_wave": {
+      "1": 0.5,
+      "2": 0.22,
+      "3": 0.2,
+      "default": 0.18
+    }
   },
   "pacing": {
-    "wave1_duration_seconds": 52,
+    "wave1_duration_seconds": 44,
     "break_seconds": 8,
     "pressure_start": 22,
     "pressure_at_60s": 44,
@@ -22,7 +29,7 @@
     "spawn_distance": 720,
     "spawn_directions_min": 2,
     "spawn_directions_max": 3,
-    "final_surge_size": 10,
+    "final_surge_size": 8,
     "wave_start_group_size": 10,
     "spawn_margin": 180,
     "spawn_jitter": 80,
@@ -35,7 +42,7 @@
     "active_enemies": 250,
     "projectiles": 400,
     "damage_numbers": 40,
-    "blood_decals": 160,
+    "blood_decals": 40,
     "impact_marks": 120,
     "weapon_effects": 160
   },
@@ -385,5 +392,11 @@
   },
   "difficulty": {
     "enemy_hp_per_wave": 0.12
+  },
+  "blood_decals": {
+    "lifetime_seconds": 8,
+    "opacity": 0.5,
+    "scale_min": 0.5,
+    "scale_max": 1
   }
 }
