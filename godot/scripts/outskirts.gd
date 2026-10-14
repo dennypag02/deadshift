@@ -491,8 +491,8 @@ func _physics_process(delta: float) -> void:
 		android_diag_clock += delta
 		if android_diag_clock >= 5.0:
 			android_diag_clock = 0.0
-			var gem_count := progression.gems.size() if progression != null else 0
-			var effect_count := 0
+			var gem_count: int = progression.gems.size() if progression != null else 0
+			var effect_count: int = 0
 			if progression != null:
 				effect_count = progression.rockets.size() + progression.chakrams.size() + progression.molotov_pools.size() + progression.lightning_arcs.size() + progression.drone_shots.size()
 			print("ANDROID_RUNTIME fps=%d enemies=%d bullets=%d gems=%d effects=%d level=%d" % [Engine.get_frames_per_second(), enemies.size(), bullets.size(), gem_count, effect_count, progression.level if progression != null else 1])
