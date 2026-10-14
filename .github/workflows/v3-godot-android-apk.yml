@@ -92,6 +92,14 @@ jobs:
           mkdir -p build
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --verbose --path godot --export-debug Android "$GITHUB_WORKSPACE/build/deadshift-v3-debug.apk"
           test -s build/deadshift-v3-debug.apk
+      - name: Verify Android manifest permissions
+        shell: bash
+        run: |
+          set -euo pipefail
+          APKANALYZER="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
+          test -x "$APKANALYZER"
+          "$APKANALYZER" manifest permissions build/deadshift-v3-debug.apk | tee manifest-permissions.txt
+          grep -Fxq "android.permission.VIBRATE" manifest-permissions.txt
       - name: Verify packaged runtime resources
         shell: bash
         run: |
