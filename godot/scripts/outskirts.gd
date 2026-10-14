@@ -516,7 +516,7 @@ func _physics_process(delta: float) -> void:
 			if opening_spawn_clock <= 0.0:
 				_spawn_opening_shambler()
 				opening_spawn_remaining -= 1
-				opening_spawn_clock = 1.00
+				opening_spawn_clock = 1.85
 		else:
 			spawn_clock -= delta
 			if spawn_clock <= 0.0 and wave_spawned < wave_total and enemies.size() < active_target:
