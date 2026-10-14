@@ -13,8 +13,8 @@
   "pacing": {
     "wave1_duration_seconds": 52,
     "break_seconds": 8,
-    "pressure_start": 20,
-    "pressure_at_60s": 40,
+    "pressure_start": 22,
+    "pressure_at_60s": 44,
     "pressure_per_later_wave": 6,
     "spawn_group_min": 4,
     "spawn_group_max": 10,
