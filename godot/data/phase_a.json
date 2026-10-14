@@ -4,52 +4,208 @@
     "linear": 4,
     "quadratic": 0.12,
     "pickup_radius_tiles": 1.2,
-    "merge_threshold": 200
+    "merge_threshold": 200,
+    "vacuum_age_seconds": 6,
+    "pickup_speed": 850,
+    "vacuum_speed": 1250,
+    "pickup_distance": 28
+  },
+  "pacing": {
+    "wave1_duration_seconds": 60,
+    "break_seconds": 8,
+    "pressure_start": 20,
+    "pressure_at_60s": 40,
+    "pressure_per_later_wave": 6,
+    "spawn_group_min": 4,
+    "spawn_group_max": 10,
+    "spawn_interval_seconds": 0.75,
+    "spawn_distance": 720,
+    "spawn_directions_min": 2,
+    "spawn_directions_max": 3,
+    "final_surge_size": 10
   },
   "limits": {
     "weapons": 6,
     "passives": 6,
     "active_enemies": 250,
-    "projectiles": 400
+    "projectiles": 400,
+    "damage_numbers": 40
+  },
+  "rarity": {
+    "common": {
+      "chance": 0.7,
+      "step_multiplier": 1
+    },
+    "rare": {
+      "chance": 0.22,
+      "step_multiplier": 1.5
+    },
+    "epic": {
+      "chance": 0.07,
+      "step_multiplier": 2
+    },
+    "legendary": {
+      "chance": 0.01,
+      "step_multiplier": 2,
+      "bonus_heal_fraction": 0.15
+    },
+    "luck_shift_per_level": 0.02
+  },
+  "fallbacks": {
+    "fallback_gold": {
+      "name": "Scrap Cache",
+      "description": "+50 scrap",
+      "value": 50,
+      "rarity": "COMMON"
+    },
+    "fallback_heal": {
+      "name": "Field Medkit",
+      "description": "Heal 30% max HP",
+      "heal_fraction": 0.3,
+      "rarity": "COMMON"
+    }
+  },
+  "damage_numbers": {
+    "enabled_default": true,
+    "merge_window_seconds": 0.15,
+    "normal_color": "#FFFFFF",
+    "crit_color": "#F2C14E",
+    "normal_size": 24,
+    "crit_size": 36,
+    "lifetime_seconds": 0.75
   },
   "weapons": {
     "scrap_smg": {
       "name": "Scrap SMG",
       "max_level": 5,
-      "description": "Auto-fire at nearest zombie",
-      "rarity": "COMMON",
+      "description": "Fast bullets at the nearest zombie",
+      "base_damage": 1,
+      "base_fire_period": 0.3,
+      "bullet_speed": 680,
       "level_adds": [
         "Auto-fire at nearest zombie",
         "+1 bullet per burst",
         "+20% fire rate",
         "Pierce 1 enemy",
-        "+1 bullet and +25% damage"
+        "+1 bullet / +25% damage"
       ]
     },
     "boomstick": {
       "name": "Boomstick",
       "max_level": 5,
-      "description": "Shotgun cone and knockback",
-      "rarity": "COMMON",
+      "description": "Shotgun cone with heavy knockback",
+      "base_pellets": 3,
+      "base_damage": 1,
+      "base_knockback": 36,
+      "base_cone_step": 0.14,
       "level_adds": [
         "Unlock shotgun cone",
-        "+2 pellets per blast",
+        "+2 pellets",
         "+20% damage",
-        "Wider blast cone",
-        "+2 pellets and 2x knockback"
+        "Wider cone",
+        "+2 pellets / knockback ×2"
+      ]
+    },
+    "molotov": {
+      "name": "Molotov Lobber",
+      "max_level": 5,
+      "description": "Burning pools damage clustered zombies",
+      "base_bottles": 1,
+      "base_cooldown": 3.2,
+      "base_pool_radius": 120,
+      "base_duration": 3,
+      "base_dps": 3,
+      "level_adds": [
+        "Unlock Molotov Lobber",
+        "+1 bottle",
+        "+30% pool size",
+        "+1 s burn",
+        "+1 bottle / ignite oil"
       ]
     },
     "buzzsaw": {
       "name": "Buzzsaw Orbit",
       "max_level": 5,
-      "description": "Orbiting blades damage zombies",
-      "rarity": "COMMON",
+      "description": "Saw blades circle the player",
+      "base_blades": 1,
+      "base_damage_per_second": 4,
+      "base_radius": 125,
+      "base_speed": 3.2,
       "level_adds": [
         "Unlock orbiting blade",
-        "+1 orbiting blade",
+        "+1 blade",
         "+20% damage",
-        "+25% orbit radius",
-        "+1 blade and +30% orbit speed"
+        "+25% radius",
+        "+1 blade / +30% speed"
+      ]
+    },
+    "lightning": {
+      "name": "Lightning Rod",
+      "max_level": 5,
+      "description": "Chain lightning jumps between zombies",
+      "base_damage": 4,
+      "base_cooldown": 2.2,
+      "base_chains": 2,
+      "chain_range": 250,
+      "stun_seconds": 0.3,
+      "level_adds": [
+        "Unlock Lightning Rod",
+        "+1 chain",
+        "+20% damage",
+        "−15% cooldown",
+        "+2 chains / stun 0.3 s"
+      ]
+    },
+    "rocket": {
+      "name": "Rocket Pod",
+      "max_level": 5,
+      "description": "Homing rockets explode in an area",
+      "base_damage": 6,
+      "base_cooldown": 3,
+      "base_rockets": 1,
+      "base_radius": 135,
+      "rocket_speed": 430,
+      "fire_duration": 2,
+      "level_adds": [
+        "Unlock Rocket Pod",
+        "+1 rocket",
+        "+25% blast radius",
+        "+20% damage",
+        "+1 rocket / leaves fire"
+      ]
+    },
+    "drone": {
+      "name": "Attack Drone",
+      "max_level": 5,
+      "description": "Drones follow and fire automatically",
+      "base_drones": 1,
+      "base_damage": 1.5,
+      "base_fire_period": 0.8,
+      "drone_radius": 82,
+      "mini_rocket_radius": 90,
+      "level_adds": [
+        "Unlock Attack Drone",
+        "+1 drone",
+        "+20% fire rate",
+        "Drones pierce",
+        "+1 drone / mini-rockets"
+      ]
+    },
+    "chakram": {
+      "name": "Hubcap Chakram",
+      "max_level": 5,
+      "description": "Chrome discs boomerang through the horde",
+      "base_hubcaps": 1,
+      "base_damage": 3,
+      "base_cooldown": 2.5,
+      "base_range": 420,
+      "travel_speed": 520,
+      "level_adds": [
+        "Unlock Hubcap Chakram",
+        "+1 hubcap",
+        "+20% damage",
+        "+30% range",
+        "+1 hubcap / wall bounce"
       ]
     }
   },
@@ -57,8 +213,8 @@
     "muscle": {
       "name": "Muscle",
       "max_level": 5,
-      "description": "+10% damage per level",
-      "rarity": "COMMON",
+      "description": "+10% all damage",
+      "per_level": 0.1,
       "level_adds": [
         "+10% damage",
         "+10% damage",
@@ -70,21 +226,25 @@
     "ammo_belt": {
       "name": "Ammo Belt",
       "max_level": 5,
-      "description": "Extra projectiles at L1/L3/L5",
-      "rarity": "COMMON",
+      "description": "+1 projectile at L1, L3, L5",
+      "levels": [
+        1,
+        3,
+        5
+      ],
       "level_adds": [
-        "+1 projectile per volley",
+        "+1 projectile",
         "Capacity upgrade",
-        "+1 projectile per volley",
+        "+1 projectile",
         "Capacity upgrade",
-        "+1 projectile per volley"
+        "+1 projectile"
       ]
     },
     "trigger_finger": {
       "name": "Trigger Finger",
       "max_level": 5,
-      "description": "+8% attack speed per level",
-      "rarity": "COMMON",
+      "description": "+8% fire rate / attack speed",
+      "per_level": 0.08,
       "level_adds": [
         "+8% attack speed",
         "+8% attack speed",
@@ -93,11 +253,63 @@
         "+8% attack speed"
       ]
     },
+    "battery_pack": {
+      "name": "Battery Pack",
+      "max_level": 5,
+      "description": "−8% cooldowns",
+      "per_level": 0.08,
+      "level_adds": [
+        "−8% cooldown",
+        "−8% cooldown",
+        "−8% cooldown",
+        "−8% cooldown",
+        "−8% cooldown"
+      ]
+    },
+    "blast_radius": {
+      "name": "Blast Radius",
+      "max_level": 5,
+      "description": "+12% area",
+      "per_level": 0.12,
+      "level_adds": [
+        "+12% area",
+        "+12% area",
+        "+12% area",
+        "+12% area",
+        "+12% area"
+      ]
+    },
+    "fuel_tank": {
+      "name": "Fuel Tank",
+      "max_level": 5,
+      "description": "+15% effect duration",
+      "per_level": 0.15,
+      "level_adds": [
+        "+15% duration",
+        "+15% duration",
+        "+15% duration",
+        "+15% duration",
+        "+15% duration"
+      ]
+    },
+    "ball_bearings": {
+      "name": "Ball Bearings",
+      "max_level": 5,
+      "description": "+12% projectile and orbit speed",
+      "per_level": 0.12,
+      "level_adds": [
+        "+12% speed",
+        "+12% speed",
+        "+12% speed",
+        "+12% speed",
+        "+12% speed"
+      ]
+    },
     "magnet": {
       "name": "Magnet",
       "max_level": 5,
-      "description": "+30% pickup range per level",
-      "rarity": "COMMON",
+      "description": "+30% pickup radius",
+      "per_level": 0.3,
       "level_adds": [
         "+30% pickup radius",
         "+30% pickup radius",
@@ -109,14 +321,42 @@
     "thick_hide": {
       "name": "Thick Hide",
       "max_level": 5,
-      "description": "+15% HP and +1 armor per level",
-      "rarity": "COMMON",
+      "description": "+15% max HP and +1 armor",
+      "hp_fraction_per_level": 0.15,
+      "armor_per_level": 1,
       "level_adds": [
-        "+15 max HP, +1 armor",
-        "+15 max HP, +1 armor",
-        "+15 max HP, +1 armor",
-        "+15 max HP, +1 armor",
-        "+15 max HP, +1 armor"
+        "+15% max HP / +1 armor",
+        "+15% max HP / +1 armor",
+        "+15% max HP / +1 armor",
+        "+15% max HP / +1 armor",
+        "+15% max HP / +1 armor"
+      ]
+    },
+    "sharpened_edge": {
+      "name": "Sharpened Edge",
+      "max_level": 5,
+      "description": "+6% critical chance",
+      "per_level": 0.06,
+      "crit_multiplier": 2,
+      "level_adds": [
+        "+6% crit chance",
+        "+6% crit chance",
+        "+6% crit chance",
+        "+6% crit chance",
+        "+6% crit chance"
+      ]
+    },
+    "rabbit_foot": {
+      "name": "Rabbit's Foot",
+      "max_level": 5,
+      "description": "+10% luck",
+      "per_level": 0.1,
+      "level_adds": [
+        "+10% luck",
+        "+10% luck",
+        "+10% luck",
+        "+10% luck",
+        "+10% luck"
       ]
     }
   },
@@ -126,10 +366,13 @@
     "bloater": 4,
     "spitter": 4,
     "brute": 10,
+    "elite": 25,
     "trucker": 25
   },
   "ui": {
     "card_count": 3,
-    "level_invulnerability": 0.5
+    "level_invulnerability": 0.5,
+    "rerolls_per_run": 2,
+    "banishes_per_run": 1
   }
 }
