@@ -203,6 +203,13 @@ var capture_enemy_integral := 0.0
 var capture_enemy_sample_time := 0.0
 var capture_enemy_max := 0
 var android_diag_clock := 0.0
+var player_hit_invulnerability := 0.0
+var incoming_damage_window := 0.0
+var incoming_damage_this_window := 0.0
+var spawn_group_index := 0
+var run_clock := 0.0
+var game_over_shown := false
+var scrap_earned := 0
 
 func _ready() -> void:
 	capture_mode = OS.get_cmdline_user_args().has("--pacing-capture")
@@ -487,6 +494,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		touch_position = event.position
 
 func _physics_process(delta: float) -> void:
+	run_clock += delta
+	player_hit_invulnerability = maxf(0.0, player_hit_invulnerability - delta)
+	incoming_damage_window += delta
+	if incoming_damage_window >= 1.0:
+		incoming_damage_window = fmod(incoming_damage_window, 1.0)
+		incoming_damage_this_window = 0.0
 	if OS.get_name() == "Android":
 		android_diag_clock += delta
 		if android_diag_clock >= 5.0:
@@ -497,7 +510,10 @@ func _physics_process(delta: float) -> void:
 				effect_count = progression.rockets.size() + progression.chakrams.size() + progression.molotov_pools.size() + progression.lightning_arcs.size() + progression.drone_shots.size()
 			print("ANDROID_RUNTIME fps=%d enemies=%d bullets=%d gems=%d effects=%d level=%d" % [Engine.get_frames_per_second(), enemies.size(), bullets.size(), gem_count, effect_count, progression.level if progression != null else 1])
 	if player_hp <= 0:
-		banner.text = "YOU DIED - RESTART THE APP TO RETRY"
+		if not game_over_shown:
+			game_over_shown = true
+			if phase_ui != null:
+				phase_ui.show_game_over(run_clock, wave, progression.level if progression != null else 1, kills, score, scrap_earned)
 		return
 
 	var direction := Vector2.ZERO
@@ -691,6 +707,7 @@ func _append_enemy(kind: String, pos: Vector2) -> void:
 		"speed": float(stats["speed"]),
 		"radius": float(stats["radius"]),
 		"charge": 0.0,
+		"contact_cooldown": 0.0,
 	})
 
 func _pressure_kind() -> String:
@@ -706,8 +723,11 @@ func _spawn_pressure_group(forced_size: int = -1) -> void:
 	var pacing: Dictionary = progression.config.get("pacing", {})
 	var group_size := forced_size if forced_size > 0 else rng.randi_range(int(pacing.get("spawn_group_min", 4)), int(pacing.get("spawn_group_max", 10)))
 	var dir_count := rng.randi_range(int(pacing.get("spawn_directions_min", 2)), int(pacing.get("spawn_directions_max", 3)))
-	var base_angle := rng.randf_range(0.0, TAU)
+	var step_radians := deg_to_rad(float(pacing.get("spawn_group_angle_step_degrees", 72.0)))
+	var base_angle := fmod(float(spawn_group_index) * step_radians + rng.randf_range(-0.18, 0.18), TAU)
+	spawn_group_index += 1
 	var cap := int(progression.config.get("limits", {}).get("active_enemies", 250))
+	var min_spawn_distance := float(pacing.get("min_spawn_distance_tiles", 1.5)) * TILE
 	for n in range(group_size):
 		if enemies.size() >= cap:
 			break
@@ -716,6 +736,8 @@ func _spawn_pressure_group(forced_size: int = -1) -> void:
 		var lane := n % maxi(1, dir_count)
 		var angle := base_angle + TAU * float(lane) / float(maxi(1, dir_count)) + rng.randf_range(-0.20, 0.20)
 		var pos := _spawn_position_outside_view(angle)
+		if pos.distance_to(player_pos) < min_spawn_distance:
+			pos = player_pos + Vector2.from_angle(angle) * min_spawn_distance
 		pos = _nearest_walkable_position(pos, 18.0)
 		_append_enemy(_pressure_kind(), pos)
 		wave_spawned += 1
@@ -812,10 +834,65 @@ func _explode_pump(pump: Dictionary) -> void:
 	_haptic_pulse(45)
 	banner.text = "PUMP DETONATED!"
 
+func _enemy_contact_damage(kind: String) -> int:
+	var difficulty: Dictionary = progression.config.get("difficulty", {}) if progression != null else {}
+	var contact: Dictionary = difficulty.get("contact_damage", {})
+	var base_damage := float(contact.get("shambler_base", 5.66))
+	if kind == "runner":
+		base_damage = float(contact.get("runner_base", 8.0))
+	elif kind == "trucker":
+		base_damage = float(contact.get("trucker_base", 18.0))
+	var scale := 1.0 + float(difficulty.get("enemy_damage_per_wave", 0.06)) * float(wave)
+	return maxi(1, roundi(base_damage * scale))
+
+func _knockback_nearby_enemies() -> void:
+	if progression == null:
+		return
+	var difficulty: Dictionary = progression.config.get("difficulty", {})
+	var radius := float(difficulty.get("hit_knockback_radius", 230.0))
+	var distance := float(difficulty.get("hit_knockback_distance", 125.0))
+	for enemy in enemies:
+		var pos := Vector2(enemy["pos"])
+		var offset := pos - player_pos
+		if offset.length() <= radius:
+			var dir := offset.normalized() if offset.length() > 0.01 else Vector2.RIGHT
+			var pushed := pos + dir * distance
+			enemy["pos"] = _move_with_blockers(pos, pushed - pos, float(enemy["radius"]))
+
+func _apply_player_contact_damage(enemy: Dictionary) -> void:
+	var god_mode := phase_ui != null and bool(phase_ui.god_mode)
+	if god_mode:
+		return
+	if progression != null and progression.invulnerability > 0.0:
+		return
+	if player_hit_invulnerability > 0.0:
+		return
+	if float(enemy.get("contact_cooldown", 0.0)) > 0.0:
+		return
+	var kind := str(enemy["kind"])
+	var damage := _enemy_contact_damage(kind)
+	var effective_damage := maxi(1, damage - player_armor)
+	var is_boss := kind == "trucker" and wave >= 10
+	if not is_boss:
+		var difficulty: Dictionary = progression.config.get("difficulty", {}) if progression != null else {}
+		var cap_fraction := float(difficulty.get("incoming_damage_cap_fraction_per_second", 0.35))
+		var remaining_budget := maxf(0.0, float(player_max_hp) * cap_fraction - incoming_damage_this_window)
+		effective_damage = mini(effective_damage, floori(remaining_budget))
+		if effective_damage <= 0:
+			return
+		incoming_damage_this_window += effective_damage
+	player_hp = maxi(0, player_hp - effective_damage)
+	var difficulty: Dictionary = progression.config.get("difficulty", {}) if progression != null else {}
+	player_hit_invulnerability = float(difficulty.get("player_hit_invulnerability_seconds", 0.5))
+	enemy["contact_cooldown"] = float(difficulty.get("enemy_contact_cooldown_seconds", 0.8))
+	_knockback_nearby_enemies()
+	_haptic_pulse(20)
+
 func _update_enemies(delta: float) -> void:
 	for i in range(enemies.size() - 1, -1, -1):
 		var enemy: Dictionary = enemies[i]
 		enemy["visual_hit"] = maxf(0.0, float(enemy.get("visual_hit", 0.0)) - delta)
+		enemy["contact_cooldown"] = maxf(0.0, float(enemy.get("contact_cooldown", 0.0)) - delta)
 		var to_player: Vector2 = player_pos - enemy["pos"]
 		var speed := float(enemy["speed"])
 		if str(enemy["kind"]) == "trucker" and float(enemy["charge"]) > 0.0:
@@ -826,13 +903,7 @@ func _update_enemies(delta: float) -> void:
 		var enemy_step := to_player.normalized() * speed * delta
 		enemy["pos"] = _move_with_blockers(Vector2(enemy["pos"]), enemy_step, float(enemy["radius"]))
 		if to_player.length() < PLAYER_RADIUS + float(enemy["radius"]):
-			var damage := 18 if str(enemy["kind"]) == "trucker" else 7
-			var god_mode := phase_ui != null and bool(phase_ui.god_mode)
-			if not god_mode and (progression == null or progression.invulnerability <= 0.0):
-				var effective_damage := maxi(1, damage - player_armor)
-				player_hp = maxi(0, player_hp - effective_damage)
-			_haptic_pulse(20)
-			enemies.remove_at(i)
+			_apply_player_contact_damage(enemy)
 
 func _haptic_pulse(duration_ms: int = 30) -> void:
 	if not vibration_enabled:
@@ -1321,7 +1392,11 @@ func _draw_combat() -> void:
 	recoil_vector = recoil_vector.move_toward(Vector2.ZERO, 120.0 * get_physics_process_delta_time())
 	var bounce := sin(float(Time.get_ticks_msec()) * TAU / 250.0) * 0.05 if player_velocity.length() > 40.0 else 0.0
 	var visual_scale := Vector2(1.0, 0.99 + bounce)
-	draw_texture_rect(SURVIVOR_ART, Rect2(player_pos + recoil_vector - Vector2(48,48) * visual_scale, Vector2(96,96) * visual_scale), false, Color.WHITE)
+	var survivor_tint := Color.WHITE
+	if player_hit_invulnerability > 0.0:
+		var flicker_on := int(Time.get_ticks_msec() / 70) % 2 == 0
+		survivor_tint.a = 0.30 if flicker_on else 1.0
+	draw_texture_rect(SURVIVOR_ART, Rect2(player_pos + recoil_vector - Vector2(48,48) * visual_scale, Vector2(96,96) * visual_scale), false, survivor_tint)
 
 func _draw_dusk() -> void:
 	if wave < 7:
