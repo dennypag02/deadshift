@@ -659,7 +659,7 @@ func _draw() -> void:
 		var orbit_speed := float(w.get("base_speed", 3.2)) * speed_multiplier()
 		for blade in range(count):
 			var theta := orbit_clock * orbit_speed + TAU * float(blade) / float(count)
-			var p := game.player_pos + Vector2.from_angle(theta) * orbit_radius
+			var p: Vector2 = game.player_pos + Vector2.from_angle(theta) * orbit_radius
 			draw_set_transform(p, orbit_clock * 9.0, Vector2.ONE)
 			var teeth := PackedVector2Array()
 			for tooth in range(16):
@@ -672,7 +672,7 @@ func _draw() -> void:
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 	for ch in chakrams:
-		var p := Vector2(ch["pos"])
+		var p: Vector2 = Vector2(ch["pos"])
 		var spin := orbit_clock * 12.0
 		draw_set_transform(p, spin, Vector2.ONE)
 		draw_circle(Vector2.ZERO, 22.0, Color("#4D555A"))
