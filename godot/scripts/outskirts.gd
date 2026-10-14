@@ -210,6 +210,7 @@ var spawn_group_index := 0
 var run_clock := 0.0
 var game_over_shown := false
 var scrap_earned := 0
+var capture_death_triggered := false
 
 func _ready() -> void:
 	capture_mode = OS.get_cmdline_user_args().has("--pacing-capture")
@@ -531,13 +532,16 @@ func _physics_process(delta: float) -> void:
 			capture_enemy_integral += float(on_screen) * delta
 			capture_enemy_sample_time += delta
 		capture_enemy_max = maxi(capture_enemy_max, on_screen)
-		if capture_clock >= 180.0:
+		if capture_clock >= 180.0 and not capture_death_triggered:
+			capture_death_triggered = true
 			var avg_enemies := capture_enemy_integral / maxf(0.001, capture_enemy_sample_time)
 			var xp_drop: int = progression.xp_dropped_total if progression != null else 0
 			var xp_collect: int = progression.xp_collected_total if progression != null else 0
 			print("PACING_SUMMARY enemies_avg=%.2f enemies_max=%d xp_dropped=%d xp_collected=%d" % [avg_enemies, capture_enemy_max, xp_drop, xp_collect])
 			print("PACING_CAPTURE_COMPLETE t=%.2f wave=%d level=%d kills=%d" % [capture_clock, wave, progression.level if progression != null else 1, kills])
-			get_tree().quit()
+			if phase_ui != null:
+				phase_ui.god_mode = false
+			player_hp = 0
 			return
 
 	if not wave_active and break_clock > 0.0:
