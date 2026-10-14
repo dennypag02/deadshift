@@ -43,7 +43,7 @@ func hit(position: Vector2, direction: Vector2) -> void:
 
 func kill(position: Vector2, value: int) -> void:
 	emit("death",position,Vector2.ZERO,J.DEATH_LIFE)
-	decals.append({"pos":position,"life":J.BLOOD_DECAL_LIFE,"scorch":false})
+	decals.append({"pos":position,"life":20.0,"total":20.0,"scorch":false,"variant":rng.randi_range(0,3),"scale":rng.randf_range(0.6,1.4),"rotation":rng.randf_range(0.0,TAU)})
 	if decals.size() > J.BLOOD_DECAL_CAP:
 		decals.pop_front()
 	for popup in popups:
@@ -59,7 +59,7 @@ func explosion(position: Vector2, count: int) -> void:
 	emit("blast",position,Vector2.ZERO,0.55)
 	for i in range(14):
 		emit("debris",position,Vector2.RIGHT.rotated(TAU*float(i)/14.0),0.5)
-	decals.append({"pos":position,"life":1200.0,"scorch":true})
+	decals.append({"pos":position,"life":1200.0,"total":1200.0,"scorch":true,"variant":0,"scale":1.0,"rotation":0.0})
 	if decals.size() > J.BLOOD_DECAL_CAP:
 		decals.pop_front()
 	shake_clock = J.EXPLOSION_SHAKE_LIFE
@@ -122,8 +122,29 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	for decal in decals:
-		var tint := Color(0.08,0.05,0.04,0.35) if decal["scorch"] else Color(0.32,0.015,0.025,0.35*minf(1.0,float(decal["life"])/2.0))
-		draw_circle(decal["pos"],42.0 if decal["scorch"] else 20.0,tint)
+		if bool(decal["scorch"]):
+			draw_circle(decal["pos"], 42.0, Color(0.08, 0.05, 0.04, 0.35))
+			continue
+		var life_ratio := clampf(float(decal["life"]) / maxf(0.01, float(decal.get("total", 20.0))), 0.0, 1.0)
+		var tint := Color(0.30, 0.018, 0.028, 0.70 * life_ratio)
+		var variant := int(decal.get("variant", 0))
+		var splat_scale := float(decal.get("scale", 1.0))
+		var rotation := float(decal.get("rotation", 0.0))
+		draw_set_transform(Vector2(decal["pos"]), rotation, Vector2.ONE * splat_scale)
+		var points := PackedVector2Array()
+		match variant:
+			0:
+				points = PackedVector2Array([Vector2(-26,-7),Vector2(-13,-18),Vector2(-4,-12),Vector2(6,-25),Vector2(11,-10),Vector2(27,-3),Vector2(16,7),Vector2(22,20),Vector2(6,15),Vector2(-2,27),Vector2(-10,14),Vector2(-28,17),Vector2(-18,3)])
+			1:
+				points = PackedVector2Array([Vector2(-30,-3),Vector2(-17,-12),Vector2(-12,-24),Vector2(1,-14),Vector2(14,-23),Vector2(15,-8),Vector2(31,2),Vector2(17,10),Vector2(20,24),Vector2(5,18),Vector2(-7,28),Vector2(-10,13),Vector2(-24,11)])
+			2:
+				points = PackedVector2Array([Vector2(-24,-18),Vector2(-9,-14),Vector2(-2,-29),Vector2(8,-13),Vector2(24,-17),Vector2(19,-2),Vector2(31,10),Vector2(14,13),Vector2(9,28),Vector2(-3,17),Vector2(-18,25),Vector2(-16,8),Vector2(-31,2)])
+			_:
+				points = PackedVector2Array([Vector2(-29,-10),Vector2(-12,-9),Vector2(-5,-26),Vector2(7,-15),Vector2(21,-25),Vector2(18,-6),Vector2(30,5),Vector2(12,9),Vector2(17,26),Vector2(1,18),Vector2(-13,29),Vector2(-15,12),Vector2(-30,13)])
+		draw_colored_polygon(points, tint)
+		draw_circle(Vector2(26,-18), 4.0, Color(tint.r,tint.g,tint.b,tint.a*0.8))
+		draw_circle(Vector2(-23,23), 3.0, Color(tint.r,tint.g,tint.b,tint.a*0.7))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	for fx in effects:
 		var p: Vector2 = fx["pos"]
 		var d: Vector2 = fx["dir"]
