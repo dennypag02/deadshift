@@ -108,10 +108,20 @@ func xp_required(n: int) -> int:
 	return roundi(float(c.get("base", 6)) + float(c.get("linear", 4)) * (n - 1) + float(c.get("quadratic", 0.12)) * pow(n - 1, 2))
 
 func drop_xp(pos: Vector2, kind: String) -> void:
+	var xp_cfg: Dictionary = config.get("xp", {})
 	var value := int(config.get("enemy_xp", {}).get(kind, 1))
+	var guaranteed_until := int(xp_cfg.get("guaranteed_until_level", 1))
+	var should_drop := level < guaranteed_until
+	if not should_drop:
+		var by_wave: Dictionary = xp_cfg.get("drop_multiplier_by_wave", {})
+		var wave_key := str(game.wave) if game != null else "1"
+		var chance := float(by_wave.get(wave_key, by_wave.get("default", 1.0)))
+		should_drop = rng.randf() < clampf(chance, 0.0, 1.0)
+	if not should_drop:
+		return
 	gems.append({"pos": pos, "value": value, "age": 0.0})
 	xp_dropped_total += value
-	var threshold := int(config.get("xp", {}).get("merge_threshold", 200))
+	var threshold := int(xp_cfg.get("merge_threshold", 200))
 	while gems.size() > threshold:
 		var first: Dictionary = gems.pop_front()
 		if not gems.is_empty():
