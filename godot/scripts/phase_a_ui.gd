@@ -340,10 +340,26 @@ func _rarity_color(rarity: String) -> Color:
 		_:
 			return COMMON
 
-func _placeholder_icon_color(id: String, rarity: String) -> Color:
-	var base := _rarity_color(rarity)
-	var hash_tint := float(abs(id.hash()) % 21) / 100.0
-	return base.lightened(0.10 + hash_tint)
+func _placeholder_icon_color(id: String, _rarity: String) -> Color:
+	match id:
+		"scrap_smg":
+			return Color("#3FD0E0")
+		"boomstick":
+			return Color("#F28C3A")
+		"buzzsaw":
+			return Color("#B8C4CA")
+		"muscle":
+			return Color("#D95A4E")
+		"ammo_belt":
+			return Color("#9BAA55")
+		"trigger_finger":
+			return Color("#F2C14E")
+		"magnet":
+			return Color("#5BA9FF")
+		"thick_hide":
+			return Color("#6E7FAE")
+		_:
+			return Color("#8A8A8A")
 
 func _show_choices() -> void:
 	get_tree().paused = true
