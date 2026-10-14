@@ -40,6 +40,7 @@ func _check() -> void:
 		"contact_cooldown": 0.0,
 	}
 	game.enemies = [enemy]
+	print("SURV_CHECK checkpoint=single_hit")
 	game._apply_player_contact_damage(game.enemies[0])
 	if game.player_hp != 94:
 		_fail("Wave 1 shambler should deal about 6 damage; hp=%d" % game.player_hp)
@@ -56,6 +57,7 @@ func _check() -> void:
 		_fail("immediate stacked contact damage was not blocked")
 		return
 
+	print("SURV_CHECK checkpoint=damage_cap")
 	game.player_hp = 100
 	game.player_hit_invulnerability = 0.0
 	game.incoming_damage_window = 0.0
@@ -81,6 +83,7 @@ func _check() -> void:
 		_fail("incoming damage exceeded 35 percent per second cap")
 		return
 
+	print("SURV_CHECK checkpoint=density")
 	game.wave = 1
 	game.wave_clock = 0.0
 	if game._active_horde_target() != 20:
@@ -91,6 +94,7 @@ func _check() -> void:
 		_fail("one-minute on-screen target is not 40")
 		return
 
+	print("SURV_CHECK checkpoint=spawn_safety")
 	game.enemies.clear()
 	game.wave_spawned = 0
 	game.wave = 1
@@ -101,6 +105,7 @@ func _check() -> void:
 			_fail("spawned zombie inside 1.5-tile player safety radius")
 			return
 
+	print("SURV_CHECK checkpoint=level_cards")
 	if game.phase_ui.panel.size.y < 800.0:
 		_fail("level-up panel too short")
 		return
@@ -113,6 +118,7 @@ func _check() -> void:
 			_fail("level-up description does not wrap to two lines")
 			return
 
+	print("SURV_CHECK checkpoint=game_over")
 	game.phase_ui.show_game_over(27.2, 1, 3, 20, 450, 0, false)
 	if not game.phase_ui.game_over_panel.visible:
 		_fail("game over panel did not open")
@@ -123,6 +129,6 @@ func _check() -> void:
 	paused = false
 
 	print("SURVIVABILITY_UI_CHECK_PASS shambler=6 invuln=0.5 enemy_cd=0.8 damage_cap=35% density=20->40 game_over=PASS cards=PASS")
+	print("SURV_CHECK checkpoint=cleanup")
 	game.queue_free()
-	await process_frame
 	quit(0)
