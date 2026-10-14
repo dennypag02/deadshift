@@ -354,7 +354,7 @@ func _fire_lightning() -> void:
 	var damage := float(w.get("base_damage", 4.0)) * damage_multiplier()
 	if lv >= 3:
 		damage *= 1.0 + 0.20 * weapon_step_mult("lightning", 3)
-	var origin := game.player_pos
+	var origin: Vector2 = game.player_pos
 	var used: Array[int] = []
 	for j in range(chains):
 		var idx := _nearest_enemy_index(origin, used)
@@ -511,7 +511,7 @@ func _update_weapon_effects(delta: float) -> void:
 		var ch: Dictionary = chakrams[i]
 		var speed := float(config["weapons"]["chakram"].get("travel_speed", 520.0)) * speed_multiplier()
 		if bool(ch["returning"]):
-			var to_player := game.player_pos - Vector2(ch["pos"])
+			var to_player: Vector2 = game.player_pos - Vector2(ch["pos"])
 			ch["dir"] = to_player.normalized()
 			ch["pos"] = Vector2(ch["pos"]) + Vector2(ch["dir"]) * speed * delta
 			if to_player.length() < 28.0:
@@ -556,7 +556,7 @@ func _physics_process(delta: float) -> void:
 		return
 	invulnerability = maxf(0.0, invulnerability - delta)
 	var xp_cfg: Dictionary = config.get("xp", {})
-	var radius := float(xp_cfg.get("pickup_radius_tiles", 1.2)) * game.TILE * (1.0 + float(config.get("passives", {}).get("magnet", {}).get("per_level", 0.30)) * passive_points("magnet"))
+	var radius: float = float(xp_cfg.get("pickup_radius_tiles", 1.2)) * game.TILE * (1.0 + float(config.get("passives", {}).get("magnet", {}).get("per_level", 0.30)) * passive_points("magnet"))
 	var vacuum_age := float(xp_cfg.get("vacuum_age_seconds", 6.0))
 	var pickup_speed := float(xp_cfg.get("pickup_speed", 850.0))
 	var vacuum_speed := float(xp_cfg.get("vacuum_speed", 1250.0))
@@ -597,7 +597,7 @@ func _physics_process(delta: float) -> void:
 			saw_damage *= 1.0 + 0.20 * weapon_step_mult("buzzsaw", 3)
 		for blade in range(count):
 			var theta := orbit_clock * orbit_speed + TAU * float(blade) / float(count)
-			var blade_pos := game.player_pos + Vector2.from_angle(theta) * orbit_radius
+			var blade_pos: Vector2 = game.player_pos + Vector2.from_angle(theta) * orbit_radius
 			for i in range(game.enemies.size() - 1, -1, -1):
 				if i >= game.enemies.size():
 					continue
@@ -619,7 +619,7 @@ func _draw() -> void:
 		draw_arc(Vector2(pool["pos"]), float(pool["radius"]) * 0.85, 0.0, TAU, 24, Color(1.0, 0.58, 0.10, 0.70), 5.0)
 
 	for rocket in rockets:
-		var p := Vector2(rocket["pos"])
+		var p: Vector2 = Vector2(rocket["pos"])
 		var d := Vector2(rocket["dir"])
 		draw_line(p - d * 30.0, p, Color(0.55,0.55,0.55,0.7), 6.0)
 		draw_circle(p, 8.0, Color("#F2A23A"))
@@ -641,7 +641,7 @@ func _draw() -> void:
 			count += maxi(1, roundi(weapon_step_mult("drone", 5)))
 		for i in range(count):
 			var theta := orbit_clock * 1.7 + TAU * float(i) / float(count)
-			var p := game.player_pos + Vector2.from_angle(theta) * float(w.get("drone_radius", 82.0))
+			var p: Vector2 = game.player_pos + Vector2.from_angle(theta) * float(w.get("drone_radius", 82.0))
 			draw_circle(p, 14.0, Color("#48555B"))
 			draw_rect(Rect2(p - Vector2(10,3), Vector2(20,6)), Color("#9CF7FF"))
 
