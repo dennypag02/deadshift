@@ -12,13 +12,13 @@
     "guaranteed_until_level": 2,
     "drop_multiplier_by_wave": {
       "1": 0.33,
-      "2": 0.32,
-      "3": 0.28,
-      "default": 0.24
+      "2": 0.58,
+      "3": 0.46,
+      "default": 0.36
     }
   },
   "pacing": {
-    "wave1_duration_seconds": 30,
+    "wave1_duration_seconds": 15,
     "break_seconds": 8,
     "pressure_start": 22,
     "pressure_at_60s": 44,
@@ -29,7 +29,7 @@
     "spawn_distance": 720,
     "spawn_directions_min": 2,
     "spawn_directions_max": 3,
-    "final_surge_size": 6,
+    "final_surge_size": 4,
     "wave_start_group_size": 10,
     "spawn_margin": 180,
     "spawn_jitter": 80,
