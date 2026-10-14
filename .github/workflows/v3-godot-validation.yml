@@ -58,6 +58,13 @@ jobs:
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --script res://scripts/phase_b_check.gd 2>&1 | tee phase-b.log
           grep -q "PHASE_B_CHECK_PASS" phase-b.log
           ! grep -E "SCRIPT ERROR:|Parse Error:|PHASE_B_CHECK_FAIL" phase-b.log
+      - name: Verify survivability and game over flow
+        shell: bash
+        run: |
+          set -o pipefail
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --script res://scripts/survivability_ui_check.gd 2>&1 | tee survivability-ui.log
+          grep -q "SURVIVABILITY_UI_CHECK_PASS" survivability-ui.log
+          ! grep -E "SCRIPT ERROR:|Parse Error:|SURVIVABILITY_UI_CHECK_FAIL" survivability-ui.log
       - name: Check HUD bounds at 1080x2340
         shell: bash
         run: |
