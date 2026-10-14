@@ -1,4 +1,4 @@
-name: Deadshift Phase A Pacing Capture
+name: Deadshift Phase B Pacing Capture
 on:
   push:
     branches:
@@ -45,9 +45,40 @@ jobs:
           test -s pacing-capture/deadshift-first-two-minutes.mp4
           grep -q "PACING_CAPTURE_COMPLETE" pacing-capture/pacing.log
           grep -q "PACING_LEVEL_UP level=2" pacing-capture/pacing.log
-          FIRST_LEVEL=$(grep -m1 "PACING_LEVEL_UP level=2" pacing-capture/pacing.log | sed -E 's/.*t=([0-9.]+).*/\1/')
-          echo "First level-up gameplay time: ${FIRST_LEVEL}s"
-          awk -v t="$FIRST_LEVEL" 'BEGIN { exit !(t >= 6.0 && t <= 14.0) }'
+          grep -q "PACING_SUMMARY" pacing-capture/pacing.log
+          grep -q "PACING_WAVE_END wave=1" pacing-capture/pacing.log
+          python3 - pacing-capture/pacing.log <<'PY'
+          import re, sys
+          path = sys.argv[1]
+          text = open(path, encoding="utf-8").read()
+          levels = [(int(a), float(b)) for a,b in re.findall(r'PACING_LEVEL_UP level=(\d+) t=([0-9.]+)', text)]
+          if not levels:
+              raise SystemExit("no level-up telemetry")
+          first = next(t for lvl,t in levels if lvl == 2)
+          if not 6.0 <= first <= 14.0:
+              raise SystemExit(f"first level-up outside target: {first:.2f}s")
+          times = [t for lvl,t in levels if t <= 120.1]
+          gaps = [b-a for a,b in zip(times, times[1:])]
+          if gaps and max(gaps) > 20.0:
+              raise SystemExit(f"level-up gap too long: {max(gaps):.2f}s")
+          final = re.search(r'PACING_CAPTURE_COMPLETE t=([0-9.]+) wave=(\d+) level=(\d+) kills=(\d+)', text)
+          if not final or int(final.group(3)) < 8:
+              raise SystemExit(f"expected level >= 8 by two minutes; got {final.group(3) if final else 'missing'}")
+          summary = re.search(r'PACING_SUMMARY enemies_avg=([0-9.]+) enemies_max=(\d+) xp_dropped=(\d+) xp_collected=(\d+)', text)
+          if not summary:
+              raise SystemExit("missing pacing summary")
+          avg, peak, dropped, collected = float(summary.group(1)), int(summary.group(2)), int(summary.group(3)), int(summary.group(4))
+          if peak < 40:
+              raise SystemExit(f"peak nearby zombies below 40: {peak}")
+          if avg < 18:
+              raise SystemExit(f"average nearby zombies too low: {avg:.2f}")
+          if dropped > 0 and collected / dropped < 0.95:
+              raise SystemExit(f"XP collection ratio too low: {collected}/{dropped}")
+          wave1 = re.search(r'PACING_WAVE_END wave=1 t=([0-9.]+)', text)
+          if not wave1 or not 55.0 <= float(wave1.group(1)) <= 75.0:
+              raise SystemExit(f"Wave 1 end outside target: {wave1.group(1) if wave1 else 'missing'}")
+          print(f"PACING_ACCEPT first={first:.2f}s max_gap={max(gaps) if gaps else 0:.2f}s avg={avg:.2f} peak={peak} xp={collected}/{dropped} level={final.group(3)} wave1_end={wave1.group(1)}")
+          PY
           if [ "$GAME_RC" -ne 0 ]; then
             echo "Godot exited with status $GAME_RC"
             exit "$GAME_RC"
@@ -55,7 +86,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: deadshift-phase-a-first-two-minutes
+          name: deadshift-phase-b-first-two-minutes
           path: |
             pacing-capture/deadshift-first-two-minutes.mp4
             pacing-capture/pacing.log
