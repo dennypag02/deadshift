@@ -206,6 +206,8 @@ var android_diag_clock := 0.0
 var player_hit_invulnerability := 0.0
 var incoming_damage_window := 0.0
 var incoming_damage_this_window := 0.0
+var wave_damage_taken := 0
+var wave_min_hp := 100
 var spawn_group_index := 0
 var run_clock := 0.0
 var game_over_shown := false
@@ -402,6 +404,8 @@ func _setup_objectives() -> void:
 
 func _start_wave(next_wave: int) -> void:
 	wave = next_wave
+	wave_damage_taken = 0
+	wave_min_hp = player_hp
 	if capture_mode:
 		print("PACING_WAVE wave=%d t=%.2f" % [wave, capture_clock])
 	if wave > 10:
@@ -434,6 +438,8 @@ func _start_wave(next_wave: int) -> void:
 	_update_hud()
 
 func _finish_wave() -> void:
+	if capture_mode:
+		print("PACING_DAMAGE wave=%d damage_taken=%d min_hp=%d max_hp=%d min_hp_pct=%.1f" % [wave, wave_damage_taken, wave_min_hp, player_max_hp, 100.0 * float(wave_min_hp) / maxf(1.0, float(player_max_hp))])
 	wave_active = false
 	if progression != null:
 		progression.vacuum_all_gems()
@@ -538,6 +544,7 @@ func _physics_process(delta: float) -> void:
 			var xp_drop: int = progression.xp_dropped_total if progression != null else 0
 			var xp_collect: int = progression.xp_collected_total if progression != null else 0
 			print("PACING_SUMMARY enemies_avg=%.2f enemies_max=%d xp_dropped=%d xp_collected=%d" % [avg_enemies, capture_enemy_max, xp_drop, xp_collect])
+			print("PACING_DAMAGE wave=%d damage_taken=%d min_hp=%d max_hp=%d min_hp_pct=%.1f partial=true" % [wave, wave_damage_taken, wave_min_hp, player_max_hp, 100.0 * float(wave_min_hp) / maxf(1.0, float(player_max_hp))])
 			print("PACING_CAPTURE_COMPLETE t=%.2f wave=%d level=%d kills=%d" % [capture_clock, wave, progression.level if progression != null else 1, kills])
 			if phase_ui != null:
 				phase_ui.god_mode = false
@@ -900,6 +907,8 @@ func _apply_player_contact_damage(enemy: Dictionary) -> void:
 			return
 		incoming_damage_this_window += effective_damage
 	player_hp = maxi(0, player_hp - effective_damage)
+	wave_damage_taken += effective_damage
+	wave_min_hp = mini(wave_min_hp, player_hp)
 	var difficulty: Dictionary = progression.config.get("difficulty", {}) if progression != null else {}
 	player_hit_invulnerability = float(difficulty.get("player_hit_invulnerability_seconds", 0.5))
 	enemy["contact_cooldown"] = float(difficulty.get("enemy_contact_cooldown_seconds", 0.8))
