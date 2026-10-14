@@ -405,11 +405,19 @@ func _build_main_menu() -> void:
 func show_game_over(time_survived: float, wave_number: int, player_level: int, kill_count: int, run_score: int, scrap: int) -> void:
 	panel.visible = false
 	debug_panel.visible = false
+	var total_seconds := maxi(0, floori(time_survived))
 	game_over_stats.text = "TIME SURVIVED   %02d:%02d\nWAVE   %d\nLEVEL   %d\nKILLS   %d\nSCORE   %d\nSCRAP EARNED   %d" % [
-		int(time_survived) / 60, int(time_survived) % 60, wave_number, player_level, kill_count, run_score, scrap
+		total_seconds / 60, total_seconds % 60, wave_number, player_level, kill_count, run_score, scrap
 	]
 	game_over_panel.visible = true
 	get_tree().paused = true
+	if capture_mode:
+		_capture_finish_after_game_over()
+
+func _capture_finish_after_game_over() -> void:
+	await get_tree().create_timer(2.0, true, false, true).timeout
+	print("PACING_GAME_OVER_VISIBLE")
+	get_tree().quit()
 
 func _retry_run() -> void:
 	get_tree().paused = false
