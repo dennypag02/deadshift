@@ -194,6 +194,14 @@ var capture_mode := false
 var capture_clock := 0.0
 var opening_spawn_remaining := 0
 var opening_spawn_clock := 0.0
+var wave_clock := 0.0
+var break_clock := 0.0
+var final_surge_started := false
+var next_enemy_uid := 1
+var damage_numbers_enabled := true
+var capture_enemy_integral := 0.0
+var capture_enemy_sample_time := 0.0
+var capture_enemy_max := 0
 
 func _ready() -> void:
 	capture_mode = OS.get_cmdline_user_args().has("--pacing-capture")
@@ -390,35 +398,36 @@ func _start_wave(next_wave: int) -> void:
 	if wave > 10:
 		return
 	wave_active = true
+	wave_clock = 0.0
+	break_clock = 0.0
+	final_surge_started = false
 	wave_spawned = 0
-	opening_spawn_remaining = 6 if wave == 1 else 0
-	opening_spawn_clock = 0.25 if wave == 1 else 0.0
 	runners_spawned = 0
 	trucker_spawned = false
 	var plan: Dictionary = wave_plan[wave]
 	wave_total = int(plan["shamblers"]) + int(plan["runners"]) + int(plan["trucker"])
-	spawn_clock = 0.12
+	spawn_clock = 0.0
 	_reset_pumps()
 	if wave == 10:
 		tanker_event = true
 		fire_hazard = true
 		banner.text = "WAVE 10: TANKER DOWN!\nTRUCKER INCOMING - SURVIVE!"
-	elif wave == 6:
-		banner.text = "WAVE 6: MOTEL DOORS ARE NOT SAFE"
-	elif wave == 5:
-		banner.text = "WAVE 5: RUNNERS - PRIORITIZE FAST TARGETS"
-	elif wave == 4:
-		banner.text = "WAVE 4: CHECK BEHIND YOU - SCRUBLAND ACTIVE"
-	elif wave == 3:
-		banner.text = "WAVE 3: SHOOT A GAS PUMP WHEN THEY CROWD IT"
 	elif wave == 2:
-		banner.text = "WAVE 2: WATCH BOTH HIGHWAY ENDS"
+		banner.text = "WAVE 2: PRESSURE RISING"
 	else:
 		banner.text = "WAVE 1: THE HORDE IS HERE\nPOWER THE MINI-MART GENERATOR"
 	_update_hud()
 
 func _finish_wave() -> void:
 	wave_active = false
+	if progression != null:
+		progression.vacuum_all_gems()
+	if wave == 1:
+		break_clock = float(progression.config.get("pacing", {}).get("break_seconds", 8.0)) if progression != null else 8.0
+		banner.text = "WAVE 1 CLEARED - NEXT WAVE IN %.0f" % break_clock
+		if capture_mode:
+			print("PACING_WAVE_END wave=1 t=%.2f remaining=%d" % [capture_clock, enemies.size()])
+		return
 	if wave == 10:
 		wave10_survived = true
 		fire_hazard = false
@@ -484,10 +493,26 @@ func _physics_process(delta: float) -> void:
 	if not capture_mode:
 		direction += Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	direction = direction.limit_length(1.0)
-	if capture_mode and capture_clock >= 120.0:
-		print("PACING_CAPTURE_COMPLETE t=%.2f wave=%d level=%d kills=%d" % [capture_clock, wave, progression.level if progression != null else 1, kills])
-		get_tree().quit()
-		return
+	if capture_mode:
+		var on_screen := _onscreen_enemy_count()
+		capture_enemy_integral += float(on_screen) * delta
+		capture_enemy_sample_time += delta
+		capture_enemy_max = maxi(capture_enemy_max, on_screen)
+		if capture_clock >= 120.0:
+			var avg_enemies := capture_enemy_integral / maxf(0.001, capture_enemy_sample_time)
+			var xp_drop := progression.xp_dropped_total if progression != null else 0
+			var xp_collect := progression.xp_collected_total if progression != null else 0
+			print("PACING_SUMMARY enemies_avg=%.2f enemies_max=%d xp_dropped=%d xp_collected=%d" % [avg_enemies, capture_enemy_max, xp_drop, xp_collect])
+			print("PACING_CAPTURE_COMPLETE t=%.2f wave=%d level=%d kills=%d" % [capture_clock, wave, progression.level if progression != null else 1, kills])
+			get_tree().quit()
+			return
+
+	if not wave_active and break_clock > 0.0:
+		break_clock = maxf(0.0, break_clock - delta)
+		if progression != null:
+			progression.vacuum_all_gems()
+		if break_clock <= 0.0 and wave == 1:
+			_start_wave(2)
 
 	var hazard := _hazard_at(player_pos)
 	var speed_mult := float(hazard["speed_mult"])
@@ -510,22 +535,20 @@ func _physics_process(delta: float) -> void:
 			impact_marks.remove_at(i)
 
 	if wave_active:
+		wave_clock += delta
+		var pacing: Dictionary = progression.config.get("pacing", {}) if progression != null else {}
 		var active_target := _active_horde_target()
-		if wave == 1 and opening_spawn_remaining > 0:
-			opening_spawn_clock -= delta
-			if opening_spawn_clock <= 0.0:
-				_spawn_opening_shambler()
-				opening_spawn_remaining -= 1
-				opening_spawn_clock = 1.85
-		else:
-			spawn_clock -= delta
-			if spawn_clock <= 0.0 and wave_spawned < wave_total and enemies.size() < active_target:
-				var room := active_target - enemies.size()
-				var burst_size := mini(mini(26 + wave * 3, room), wave_total - wave_spawned)
-				for _n in range(burst_size):
-					_spawn_next_enemy()
-				spawn_clock = maxf(0.14, 0.22 - float(wave) * 0.006)
-		if wave_spawned >= wave_total and enemies.is_empty():
+		spawn_clock -= delta
+		if wave == 1 and wave_clock >= float(pacing.get("wave1_duration_seconds", 60.0)):
+			if not final_surge_started:
+				final_surge_started = true
+				_spawn_pressure_group(int(pacing.get("final_surge_size", 10)))
+			elif enemies.is_empty():
+				_finish_wave()
+		elif spawn_clock <= 0.0 and _onscreen_enemy_count() < active_target and enemies.size() < int(progression.config.get("limits", {}).get("active_enemies", 250)):
+			_spawn_pressure_group()
+			spawn_clock = float(pacing.get("spawn_interval_seconds", 0.75))
+		elif wave > 1 and wave_spawned >= wave_total and enemies.is_empty():
 			_finish_wave()
 
 	fire_clock -= delta
@@ -535,22 +558,30 @@ func _physics_process(delta: float) -> void:
 			if player_pos.distance_squared_to(enemies[i]["pos"]) < player_pos.distance_squared_to(enemies[nearest]["pos"]):
 				nearest = i
 		var heading: Vector2 = (enemies[nearest]["pos"] - player_pos).normalized()
-		var ammo_level := int(progression.passives.get("ammo_belt", 0)) if progression != null else 0
 		var smg_level := int(progression.weapons.get("scrap_smg", 1)) if progression != null else 1
-		var ammo_bonus := int(float(ammo_level + 1) / 2.0)
-		var smg_burst := 1 + (1 if smg_level >= 2 else 0) + (1 if smg_level >= 5 else 0)
+		var ammo_bonus := progression.ammo_bonus() if progression != null else 0
+		var smg_burst := 1
+		if smg_level >= 2:
+			smg_burst += maxi(1, roundi(progression.weapon_step_mult("scrap_smg", 2)))
+		if smg_level >= 5:
+			smg_burst += maxi(1, roundi(progression.weapon_step_mult("scrap_smg", 5)))
 		var shot_count := smg_burst + ammo_bonus
-		var smg_hits := 2 if smg_level >= 4 else 1
-		var smg_damage_mult := 1.25 if smg_level >= 5 else 1.0
+		var smg_hits := 1 + (maxi(1, roundi(progression.weapon_step_mult("scrap_smg", 4))) if smg_level >= 4 else 0)
+		var smg_damage_mult := 1.0 + (0.25 * progression.weapon_step_mult("scrap_smg", 5) if smg_level >= 5 else 0.0)
 		for shot in range(shot_count):
 			var spread := (float(shot) - float(shot_count - 1) * 0.5) * 0.12
 			bullets.append({"pos": player_pos, "dir": heading.rotated(spread), "life": 1.6, "hits_left": smg_hits, "damage_mult": smg_damage_mult, "knockback": 0.0})
 		if progression != null and progression.weapons.has("boomstick"):
 			var boom_level := int(progression.weapons["boomstick"])
-			var pellet_count := 3 + (2 if boom_level >= 2 else 0) + (2 if boom_level >= 5 else 0) + ammo_bonus
-			var boom_damage_mult := 1.20 if boom_level >= 3 else 1.0
-			var cone_step := 0.18 if boom_level >= 4 else 0.14
-			var boom_knockback := 72.0 if boom_level >= 5 else 36.0
+			var boom_data: Dictionary = progression.config["weapons"]["boomstick"]
+			var pellet_count := int(boom_data.get("base_pellets", 3)) + ammo_bonus
+			if boom_level >= 2:
+				pellet_count += maxi(1, roundi(2.0 * progression.weapon_step_mult("boomstick", 2)))
+			if boom_level >= 5:
+				pellet_count += maxi(1, roundi(2.0 * progression.weapon_step_mult("boomstick", 5)))
+			var boom_damage_mult := 1.0 + (0.20 * progression.weapon_step_mult("boomstick", 3) if boom_level >= 3 else 0.0)
+			var cone_step := float(boom_data.get("base_cone_step", 0.14)) * (1.30 if boom_level >= 4 else 1.0)
+			var boom_knockback := float(boom_data.get("base_knockback", 36.0)) * (2.0 if boom_level >= 5 else 1.0)
 			for pellet in range(pellet_count):
 				var angle := (float(pellet) - float(pellet_count-1)*0.5) * cone_step
 				bullets.append({"pos": player_pos, "dir": heading.rotated(angle), "life": 0.48, "hits_left": 1, "damage_mult": boom_damage_mult, "knockback": boom_knockback})
@@ -558,9 +589,10 @@ func _physics_process(delta: float) -> void:
 			juice_fx.call("shot", player_pos, heading)
 			recoil_vector = -heading * 3.0
 			last_aim = heading
-		var trigger_bonus := 1.0 + 0.08 * int(progression.passives.get("trigger_finger",0)) if progression != null else 1.0
-		var smg_rate_bonus := 1.20 if smg_level >= 3 else 1.0
-		fire_clock = fire_period / (trigger_bonus * smg_rate_bonus)
+		var trigger_bonus := progression.attack_speed_multiplier() if progression != null else 1.0
+		var smg_rate_bonus := 1.0 + (0.20 * progression.weapon_step_mult("scrap_smg", 3) if smg_level >= 3 else 0.0)
+		var smg_base_period := float(progression.config["weapons"]["scrap_smg"].get("base_fire_period", fire_period)) if progression != null else fire_period
+		fire_clock = smg_base_period / (trigger_bonus * smg_rate_bonus)
 
 	_update_bullets(delta)
 	_update_enemies(delta)
@@ -571,83 +603,94 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 
 func _active_horde_target() -> int:
-	return mini(170, 90 + wave * 8)
+	if progression == null:
+		return 20
+	var pacing: Dictionary = progression.config.get("pacing", {})
+	var start_target := int(pacing.get("pressure_start", 20))
+	var end_target := int(pacing.get("pressure_at_60s", 40))
+	var later_bonus := int(pacing.get("pressure_per_later_wave", 6)) * maxi(0, wave - 1)
+	var t := clampf(wave_clock / 60.0, 0.0, 1.0)
+	var target := roundi(lerpf(float(start_target), float(end_target), t)) + later_bonus
+	return mini(int(progression.config.get("limits", {}).get("active_enemies", 250)), target)
 
-func _spawn_opening_shambler() -> void:
-	if wave_spawned >= wave_total:
-		return
-	var slot := 6 - opening_spawn_remaining
-	var angle := -PI * 0.75 + float(slot) * (PI * 1.5 / 5.0)
-	var spawn := player_pos + Vector2.from_angle(angle) * 80.0
-	spawn = _nearest_walkable_position(spawn, 18.0)
+func _onscreen_enemy_count() -> int:
+	var radius := float(progression.config.get("pacing", {}).get("spawn_distance", 720.0)) if progression != null else 720.0
+	var count := 0
+	for enemy in enemies:
+		if Vector2(enemy["pos"]).distance_to(player_pos) <= radius:
+			count += 1
+	return count
+
+func _next_uid() -> int:
+	var value := next_enemy_uid
+	next_enemy_uid += 1
+	return value
+
+func _enemy_stats(kind: String) -> Dictionary:
+	if kind == "runner":
+		return {"hp": 2.0, "speed": 195.0, "radius": 15.0}
+	if kind == "trucker":
+		return {"hp": 30.0, "speed": 46.0, "radius": 34.0}
+	return {"hp": 1.0, "speed": 108.0, "radius": 18.0}
+
+func _append_enemy(kind: String, pos: Vector2) -> void:
+	var stats := _enemy_stats(kind)
 	enemies.append({
-		"pos": spawn,
-		"kind": "shambler",
-		"hp": 1,
-		"speed": 108.0,
-		"radius": 18.0,
+		"uid": _next_uid(),
+		"pos": pos,
+		"kind": kind,
+		"hp": float(stats["hp"]),
+		"speed": float(stats["speed"]),
+		"radius": float(stats["radius"]),
 		"charge": 0.0,
 	})
+
+func _pressure_kind() -> String:
+	if wave == 1:
+		return "runner" if rng.randf() < 0.08 else "shambler"
+	if wave >= 2 and rng.randf() < minf(0.30, 0.10 + float(wave) * 0.025):
+		return "runner"
+	return "shambler"
+
+func _spawn_pressure_group(forced_size: int = -1) -> void:
+	if progression == null:
+		return
+	var pacing: Dictionary = progression.config.get("pacing", {})
+	var group_size := forced_size if forced_size > 0 else rng.randi_range(int(pacing.get("spawn_group_min", 4)), int(pacing.get("spawn_group_max", 10)))
+	var dir_count := rng.randi_range(int(pacing.get("spawn_directions_min", 2)), int(pacing.get("spawn_directions_max", 3)))
+	var base_angle := rng.randf_range(0.0, TAU)
+	var spawn_distance := float(pacing.get("spawn_distance", 720.0))
+	var cap := int(progression.config.get("limits", {}).get("active_enemies", 250))
+	for n in range(group_size):
+		if enemies.size() >= cap:
+			break
+		if wave > 1 and wave_spawned >= wave_total:
+			break
+		var lane := n % maxi(1, dir_count)
+		var angle := base_angle + TAU * float(lane) / float(maxi(1, dir_count)) + rng.randf_range(-0.20, 0.20)
+		var pos := player_pos + Vector2.from_angle(angle) * (spawn_distance + rng.randf_range(-45.0, 65.0))
+		pos = Vector2(clampf(pos.x, 45.0, MAP_SIZE.x - 45.0), clampf(pos.y, 45.0, MAP_SIZE.y - 45.0))
+		pos = _nearest_walkable_position(pos, 18.0)
+		_append_enemy(_pressure_kind(), pos)
+		wave_spawned += 1
+
+func _spawn_opening_shambler() -> void:
+	_append_enemy("shambler", _nearest_walkable_position(player_pos + Vector2.RIGHT * 80.0, 18.0))
 	wave_spawned += 1
 
 func _spawn_next_enemy() -> void:
-	var plan: Dictionary = wave_plan[wave]
-	var kind := "shambler"
-	if wave == 10 and int(plan["trucker"]) > 0 and not trucker_spawned and wave_spawned >= wave_total / 2:
-		kind = "trucker"
-		trucker_spawned = true
-	elif runners_spawned < int(plan["runners"]) and (wave_spawned % 4 == 1 or wave_spawned >= int(plan["shamblers"])):
-		kind = "runner"
-		runners_spawned += 1
-
-	var spawn := _pick_spawn_point()
-	var hp := 1
-	var speed := 108.0
-	var radius := 18.0
-	if kind == "runner":
-		speed = 195.0
-		radius = 15.0
-	elif kind == "trucker":
-		hp = 30
-		speed = 46.0
-		radius = 34.0
-	enemies.append({
-		"pos": spawn,
-		"kind": kind,
-		"hp": hp,
-		"speed": speed,
-		"radius": radius,
-		"charge": 0.0,
-	})
+	var spawn := _nearest_walkable_position(_pick_spawn_point(), 18.0)
+	_append_enemy(_pressure_kind(), spawn)
 	wave_spawned += 1
 
 func _pick_spawn_point() -> Vector2:
-	var points: Array[Vector2] = []
-
-	# Wave 1 teaches movement under pressure: slow enemies, but from five readable approach lanes.
-	if wave == 1:
-		points = [HIGHWAY_WEST, HIGHWAY_EAST, SOUTH_CENTER, WEST_MID, EAST_MID]
-	else:
-		points = [HIGHWAY_WEST, HIGHWAY_EAST, SOUTH_CENTER, WEST_MID, EAST_MID]
-
-	# From wave 3 onward the open northern scrub becomes an active threat.
-	if wave >= 3:
-		points.append(SCRUB_WEST)
-		points.append(SCRUB_EAST)
-		points.append(NORTH_WEST)
-		points.append(NORTH_EAST)
-
-	# Motel pressure starts on wave 6 and is always part of the active pool.
-	if wave >= 6:
-		points.append(MOTEL_A)
-		points.append(MOTEL_B)
-
-	var base := points[rng.randi_range(0, points.size() - 1)]
-	# Scatter each spawn so zombies arrive as a loose group rather than a single-file line.
-	var jitter := Vector2(rng.randf_range(-90.0, 90.0), rng.randf_range(-90.0, 90.0))
+	if progression == null:
+		return player_pos + Vector2.RIGHT * 720.0
+	var distance := float(progression.config.get("pacing", {}).get("spawn_distance", 720.0))
+	var angle := rng.randf_range(0.0, TAU)
 	return Vector2(
-		clampf(base.x + jitter.x, 45.0, MAP_SIZE.x - 45.0),
-		clampf(base.y + jitter.y, 45.0, MAP_SIZE.y - 45.0)
+		clampf(player_pos.x + cos(angle) * distance, 45.0, MAP_SIZE.x - 45.0),
+		clampf(player_pos.y + sin(angle) * distance, 45.0, MAP_SIZE.y - 45.0)
 	)
 
 func _update_bullets(delta: float) -> void:
@@ -675,20 +718,22 @@ func _update_bullets(delta: float) -> void:
 			var enemy: Dictionary = enemies[j]
 			if bullet["pos"].distance_to(enemy["pos"]) <= float(enemy["radius"]) + BULLET_RADIUS:
 				var bullet_mult := float(bullet.get("damage_mult", 1.0))
-				enemy["hp"] = float(enemy["hp"]) - float(bullet_damage) * bullet_mult * (progression.damage_multiplier() if progression != null else 1.0)
-				if str(enemy["kind"]) == "trucker":
-					enemy["charge"] = 1.1
+				var raw_damage := float(bullet_damage) * bullet_mult * (progression.damage_multiplier() if progression != null else 1.0)
+				var crit := progression.roll_crit() if progression != null else false
+				var killed := phase_b_damage_enemy(j, raw_damage, crit, "bullet")
+				if not killed and j < enemies.size() and str(enemies[j]["kind"]) == "trucker":
+					enemies[j]["charge"] = 1.1
 				var knockback := float(bullet.get("knockback", 0.0))
-				if knockback > 0.0:
-					var pushed := Vector2(enemy["pos"]) + Vector2(bullet["dir"]).normalized() * knockback
-					enemy["pos"] = _move_with_blockers(Vector2(enemy["pos"]), pushed - Vector2(enemy["pos"]), float(enemy["radius"]))
-				impact_marks.append({"pos": enemy["pos"], "life": 0.22})
-				enemy["visual_hit"] = 0.06
-				enemy["visual_dir"] = Vector2(bullet["dir"])
-				if juice_fx != null:
-					juice_fx.call("hit", Vector2(enemy["pos"]), Vector2(bullet["dir"]))
-				if float(enemy["hp"]) <= 0:
-					_phase_a_kill_enemy(j)
+				if not killed and j < enemies.size():
+					var live_enemy: Dictionary = enemies[j]
+					if knockback > 0.0:
+						var pushed := Vector2(live_enemy["pos"]) + Vector2(bullet["dir"]).normalized() * knockback
+						live_enemy["pos"] = _move_with_blockers(Vector2(live_enemy["pos"]), pushed - Vector2(live_enemy["pos"]), float(live_enemy["radius"]))
+					impact_marks.append({"pos": live_enemy["pos"], "life": 0.22})
+					live_enemy["visual_hit"] = 0.06
+					live_enemy["visual_dir"] = Vector2(bullet["dir"])
+					if juice_fx != null:
+						juice_fx.call("hit", Vector2(live_enemy["pos"]), Vector2(bullet["dir"]))
 				var hits_left := int(bullet.get("hits_left", 1)) - 1
 				bullet["hits_left"] = hits_left
 				if hits_left <= 0:
@@ -1259,6 +1304,21 @@ func _draw_trap_countdown(p: Vector2) -> void:
 		remaining = float(maxi(0, trap_required_kills - trap_guard_kills))
 	draw_arc(p, 72.0, -PI / 2.0, -PI / 2.0 + TAU * clampf(remaining / total, 0.0, 1.0), 40, Color("#F2A23A"), 8.0)
 	_label(p + Vector2(-15, 8), str(ceili(remaining)), 26, Color("#F2E8D8"))
+
+func phase_b_damage_enemy(index: int, raw_damage: float, crit: bool, source: String) -> bool:
+	if index < 0 or index >= enemies.size():
+		return false
+	var enemy: Dictionary = enemies[index]
+	if not enemy.has("uid"):
+		enemy["uid"] = _next_uid()
+	var actual := raw_damage * (progression.crit_multiplier() if crit and progression != null else 1.0)
+	enemy["hp"] = float(enemy["hp"]) - actual
+	if juice_fx != null and damage_numbers_enabled:
+		juice_fx.call("damage_number", int(enemy["uid"]), Vector2(enemy["pos"]), actual, crit)
+	if float(enemy["hp"]) <= 0.0:
+		_phase_a_kill_enemy(index)
+		return true
+	return false
 
 func _phase_a_kill_enemy(index: int) -> void:
 	if index < 0 or index >= enemies.size():
