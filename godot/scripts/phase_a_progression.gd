@@ -254,6 +254,14 @@ func roll_crit() -> bool:
 func crit_multiplier() -> float:
 	return float(config.get("passives", {}).get("sharpened_edge", {}).get("crit_multiplier", 2.0))
 
+func debug_grant(id: String) -> void:
+	if not config.get("weapons", {}).has(id) and not config.get("passives", {}).has(id):
+		return
+	choice_rarities[id] = "COMMON"
+	pending_levels += 1
+	choosing = true
+	choose(id)
+
 func choose(id: String) -> void:
 	if id == "fallback_gold":
 		if game != null:
