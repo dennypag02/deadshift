@@ -11,6 +11,9 @@ var xp := 0
 var gems: Array[Dictionary] = []
 var weapons: Dictionary = {"scrap_smg": 1}
 var passives: Dictionary = {}
+var evolutions: Dictionary = {}
+const EVOLUTION_PARTNERS := {"scrap_smg": "ammo_belt", "boomstick": "muscle", "molotov": "fuel_tank", "buzzsaw": "ball_bearings", "lightning": "battery_pack", "rocket": "blast_radius", "drone": "trigger_finger", "chakram": "sharpened_edge"}
+const EVOLUTION_NAMES := {"scrap_smg": "Lead Hurricane", "boomstick": "Dragon\u2019s Breath", "molotov": "Napalm Rain", "buzzsaw": "Meat Grinder", "lightning": "Thunderdome", "rocket": "Carpet Bomber", "drone": "Drone Swarm", "chakram": "Chrome Tornado"}
 var weapon_steps: Dictionary = {"scrap_smg": [1.0]}
 var passive_steps: Dictionary = {}
 var invulnerability := 0.0
@@ -366,6 +369,16 @@ func choose(id: String) -> void:
 		game.player_hp = mini(game.player_max_hp, game.player_hp + roundi(float(game.player_max_hp) * heal_fraction))
 	finish_choice()
 
+func chest_evolution() -> String:
+	for weapon_id in EVOLUTION_PARTNERS:
+		if evolutions.has(weapon_id):
+			continue
+		if int(weapons.get(weapon_id, 0)) >= 5 and int(passives.get(EVOLUTION_PARTNERS[weapon_id], 0)) >= 1:
+			evolutions[weapon_id] = true
+			print("PHASE_C_EVOLUTION weapon=%s name=%s" % [weapon_id, EVOLUTION_NAMES[weapon_id]])
+			return str(EVOLUTION_NAMES[weapon_id])
+	return ""
+
 func _nearest_enemy_index(from: Vector2, excluded: Array[int] = []) -> int:
 	if game == null:
 		return -1
@@ -658,7 +671,7 @@ func _physics_process(delta: float) -> void:
 	if weapons.has("buzzsaw"):
 		var w: Dictionary = config["weapons"]["buzzsaw"]
 		var saw_level := int(weapons["buzzsaw"])
-		var count := int(w.get("base_blades", 1))
+		var count := 8 if evolutions.has("buzzsaw") else int(w.get("base_blades", 1))
 		if saw_level >= 2:
 			count += maxi(1, roundi(weapon_step_mult("buzzsaw", 2)))
 		if saw_level >= 5:
@@ -673,7 +686,7 @@ func _physics_process(delta: float) -> void:
 		if saw_level >= 3:
 			saw_damage *= 1.0 + 0.20 * weapon_step_mult("buzzsaw", 3)
 		for blade in range(count):
-			var theta := orbit_clock * orbit_speed + TAU * float(blade) / float(count)
+			var theta := orbit_clock * orbit_speed * (-1.0 if evolutions.has("buzzsaw") and blade % 2 == 1 else 1.0) + TAU * float(blade) / float(count)
 			var blade_pos: Vector2 = game.player_pos + Vector2.from_angle(theta) * orbit_radius
 			for i in range(game.enemies.size() - 1, -1, -1):
 				if i >= game.enemies.size():
