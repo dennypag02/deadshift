@@ -402,7 +402,7 @@ func _build_main_menu() -> void:
 	start.pressed.connect(_retry_run)
 	stack.add_child(start)
 
-func show_game_over(time_survived: float, wave_number: int, player_level: int, kill_count: int, run_score: int, scrap: int) -> void:
+func show_game_over(time_survived: float, wave_number: int, player_level: int, kill_count: int, run_score: int, scrap: int, pause_tree: bool = true) -> void:
 	panel.visible = false
 	debug_panel.visible = false
 	var total_seconds := maxi(0, floori(time_survived))
@@ -410,7 +410,8 @@ func show_game_over(time_survived: float, wave_number: int, player_level: int, k
 		total_seconds / 60, total_seconds % 60, wave_number, player_level, kill_count, run_score, scrap
 	]
 	game_over_panel.visible = true
-	get_tree().paused = true
+	if pause_tree:
+		get_tree().paused = true
 	if capture_mode:
 		_capture_finish_after_game_over()
 
