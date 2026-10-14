@@ -14,6 +14,9 @@ func _check() -> void:
 	get_root().add_child(game)
 	for i in range(18):
 		await process_frame
+	game.set_physics_process(false)
+	if game.progression != null:
+		game.progression.set_physics_process(false)
 
 	game.capture_mode = false
 	game.phase_ui.god_mode = false
@@ -120,4 +123,6 @@ func _check() -> void:
 	paused = false
 
 	print("SURVIVABILITY_UI_CHECK_PASS shambler=6 invuln=0.5 enemy_cd=0.8 damage_cap=35% density=20->40 game_over=PASS cards=PASS")
+	game.queue_free()
+	await process_frame
 	quit(0)
