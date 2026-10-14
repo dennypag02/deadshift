@@ -202,6 +202,7 @@ var damage_numbers_enabled := true
 var capture_enemy_integral := 0.0
 var capture_enemy_sample_time := 0.0
 var capture_enemy_max := 0
+var android_diag_clock := 0.0
 
 func _ready() -> void:
 	capture_mode = OS.get_cmdline_user_args().has("--pacing-capture")
@@ -486,6 +487,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		touch_position = event.position
 
 func _physics_process(delta: float) -> void:
+	if OS.get_name() == "Android":
+		android_diag_clock += delta
+		if android_diag_clock >= 5.0:
+			android_diag_clock = 0.0
+			var gem_count := progression.gems.size() if progression != null else 0
+			var effect_count := 0
+			if progression != null:
+				effect_count = progression.rockets.size() + progression.chakrams.size() + progression.molotov_pools.size() + progression.lightning_arcs.size() + progression.drone_shots.size()
+			print("ANDROID_RUNTIME fps=%d enemies=%d bullets=%d gems=%d effects=%d level=%d" % [Engine.get_frames_per_second(), enemies.size(), bullets.size(), gem_count, effect_count, progression.level if progression != null else 1])
 	if player_hp <= 0:
 		banner.text = "YOU DIED - RESTART THE APP TO RETRY"
 		return
