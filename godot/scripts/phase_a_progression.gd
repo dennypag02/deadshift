@@ -398,7 +398,7 @@ func _spawn_molotovs() -> void:
 		return
 	var w: Dictionary = config["weapons"]["molotov"]
 	var lv := int(weapons["molotov"])
-	var count := int(w.get("base_bottles", 1)) + ammo_bonus()
+	var count := (12 if evolutions.has("molotov") else int(w.get("base_bottles", 1))) + ammo_bonus()
 	if lv >= 2:
 		count += maxi(1, roundi(weapon_step_mult("molotov", 2)))
 	if lv >= 5:
@@ -423,7 +423,7 @@ func _fire_lightning() -> void:
 		return
 	var w: Dictionary = config["weapons"]["lightning"]
 	var lv := int(weapons["lightning"])
-	var chains := int(w.get("base_chains", 2)) + ammo_bonus()
+	var chains := (8 if evolutions.has("lightning") else int(w.get("base_chains", 2))) + ammo_bonus()
 	if lv >= 2:
 		chains += maxi(1, roundi(weapon_step_mult("lightning", 2)))
 	if lv >= 5:
@@ -449,7 +449,7 @@ func _spawn_rockets() -> void:
 		return
 	var w: Dictionary = config["weapons"]["rocket"]
 	var lv := int(weapons["rocket"])
-	var count := int(w.get("base_rockets", 1)) + ammo_bonus()
+	var count := (10 if evolutions.has("rocket") else int(w.get("base_rockets", 1))) + ammo_bonus()
 	if lv >= 2:
 		count += maxi(1, roundi(weapon_step_mult("rocket", 2)))
 	if lv >= 5:
@@ -463,7 +463,7 @@ func _fire_drones() -> void:
 		return
 	var w: Dictionary = config["weapons"]["drone"]
 	var lv := int(weapons["drone"])
-	var count := int(w.get("base_drones", 1))
+	var count := 8 if evolutions.has("drone") else int(w.get("base_drones", 1))
 	if lv >= 2:
 		count += maxi(1, roundi(weapon_step_mult("drone", 2)))
 	if lv >= 5:
@@ -490,12 +490,12 @@ func _spawn_chakrams() -> void:
 		return
 	var w: Dictionary = config["weapons"]["chakram"]
 	var lv := int(weapons["chakram"])
-	var count := int(w.get("base_hubcaps", 1)) + ammo_bonus()
+	var count := (6 if evolutions.has("chakram") else int(w.get("base_hubcaps", 1))) + ammo_bonus()
 	if lv >= 2:
 		count += maxi(1, roundi(weapon_step_mult("chakram", 2)))
 	if lv >= 5:
 		count += maxi(1, roundi(weapon_step_mult("chakram", 5)))
-	var range := float(w.get("base_range", 420.0))
+	var range := 850.0 if evolutions.has("chakram") else float(w.get("base_range", 420.0))
 	if lv >= 4:
 		range *= 1.0 + 0.30 * weapon_step_mult("chakram", 4)
 	for n in range(count):
