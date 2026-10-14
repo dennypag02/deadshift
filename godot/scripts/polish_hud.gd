@@ -233,6 +233,11 @@ func _ready() -> void:
 	vibration.button_pressed = true
 	vibration.toggled.connect(func(value: bool) -> void: vibration_enabled = value; if game != null: game.set("vibration_enabled", value))
 	menu.add_child(vibration)
+	var damage_numbers := CheckButton.new()
+	damage_numbers.text = "Damage numbers"
+	damage_numbers.button_pressed = true
+	damage_numbers.toggled.connect(func(value: bool) -> void: if game != null: game.set("damage_numbers_enabled", value))
+	menu.add_child(damage_numbers)
 	var dev := Button.new()
 	dev.text = "DEBUG (DEV BUILD)"
 	dev.pressed.connect(func() -> void:
