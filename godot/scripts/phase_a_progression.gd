@@ -494,6 +494,18 @@ func _damage_area(center: Vector2, radius: float, damage: float, source: String)
 		if center.distance_to(Vector2(game.enemies[i]["pos"])) <= radius:
 			game.phase_b_damage_enemy(i, damage, roll_crit(), source)
 
+func _trim_effect_array(items: Array, cap: int) -> void:
+	while items.size() > cap:
+		items.pop_front()
+
+func _enforce_weapon_effect_caps() -> void:
+	var cap := int(config.get("limits", {}).get("weapon_effects", 160))
+	_trim_effect_array(molotov_pools, cap)
+	_trim_effect_array(rockets, cap)
+	_trim_effect_array(chakrams, cap)
+	_trim_effect_array(lightning_arcs, cap)
+	_trim_effect_array(drone_shots, cap)
+
 func _update_weapon_effects(delta: float) -> void:
 	if game == null:
 		return
@@ -598,6 +610,7 @@ func _update_weapon_effects(delta: float) -> void:
 		lightning_arcs[i]["life"] = float(lightning_arcs[i]["life"]) - delta
 		if float(lightning_arcs[i]["life"]) <= 0.0:
 			lightning_arcs.remove_at(i)
+	_enforce_weapon_effect_caps()
 	for i in range(drone_shots.size() - 1, -1, -1):
 		drone_shots[i]["life"] = float(drone_shots[i]["life"]) - delta
 		if float(drone_shots[i]["life"]) <= 0.0:
