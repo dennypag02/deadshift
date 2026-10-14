@@ -634,11 +634,15 @@ func _next_uid() -> int:
 	return value
 
 func _enemy_stats(kind: String) -> Dictionary:
+	var hp_scale := 1.0
+	if progression != null:
+		var hp_per_wave := float(progression.config.get("difficulty", {}).get("enemy_hp_per_wave", 0.12))
+		hp_scale += hp_per_wave * float(wave)
 	if kind == "runner":
-		return {"hp": 2.0, "speed": 195.0, "radius": 15.0}
+		return {"hp": 2.0 * hp_scale, "speed": 195.0, "radius": 15.0}
 	if kind == "trucker":
-		return {"hp": 30.0, "speed": 46.0, "radius": 34.0}
-	return {"hp": 1.0, "speed": 108.0, "radius": 18.0}
+		return {"hp": 30.0 * hp_scale, "speed": 46.0, "radius": 34.0}
+	return {"hp": 1.0 * hp_scale, "speed": 108.0, "radius": 18.0}
 
 func _append_enemy(kind: String, pos: Vector2) -> void:
 	var stats := _enemy_stats(kind)
