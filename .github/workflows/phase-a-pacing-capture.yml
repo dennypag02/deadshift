@@ -44,6 +44,7 @@ jobs:
           kill $XVFB_PID 2>/dev/null || true
           test -s pacing-capture/deadshift-first-three-minutes.mp4
           grep -q "PACING_CAPTURE_COMPLETE" pacing-capture/pacing.log
+          grep -q "PACING_GAME_OVER_VISIBLE" pacing-capture/pacing.log
           grep -q "PACING_LEVEL_UP level=2" pacing-capture/pacing.log
           grep -q "PACING_SUMMARY" pacing-capture/pacing.log
           grep -q "PACING_WAVE_END wave=1" pacing-capture/pacing.log
