@@ -232,31 +232,31 @@ var scrap_earned := 0
 var capture_death_triggered := false
 
 func _load_curated_art() -> void:
-    for kind in CURATED_ZOMBIE_ART:
-        var path: String = CURATED_ZOMBIE_ART[kind]
-        if ResourceLoader.exists(path):
-            curated_enemy_textures[kind] = load(path)
-    var pickup_paths := {
-        "Chest": "res://art/curated/icon_chest.png",
-        "Medkit": "res://art/curated/icon_pickup_medkit.png",
-        "Magnet": "res://art/curated/icon_pickup_magnet.png",
-        "Rage": "res://art/curated/icon_pickup_rage.png",
-        "Nuke": "res://art/curated/icon_pickup_nuke.png",
-        "Freeze": "res://art/curated/icon_pickup_freeze.png",
-    }
-    for kind in pickup_paths:
-        if ResourceLoader.exists(pickup_paths[kind]):
-            curated_pickup_textures[kind] = load(pickup_paths[kind])
+	for kind in CURATED_ZOMBIE_ART:
+		var path: String = CURATED_ZOMBIE_ART[kind]
+		if ResourceLoader.exists(path):
+			curated_enemy_textures[kind] = load(path)
+	var pickup_paths := {
+		"Chest": "res://art/curated/icon_chest.png",
+		"Medkit": "res://art/curated/icon_pickup_medkit.png",
+		"Magnet": "res://art/curated/icon_pickup_magnet.png",
+		"Rage": "res://art/curated/icon_pickup_rage.png",
+		"Nuke": "res://art/curated/icon_pickup_nuke.png",
+		"Freeze": "res://art/curated/icon_pickup_freeze.png",
+	}
+	for kind in pickup_paths:
+		if ResourceLoader.exists(pickup_paths[kind]):
+			curated_pickup_textures[kind] = load(pickup_paths[kind])
 
 func _draw_curated_texture(texture: Texture2D, center: Vector2, footprint: Vector2) -> void:
-    var dimensions := texture.get_size()
-    if dimensions.x <= 0 or dimensions.y <= 0:
-        return
-    var size := dimensions * minf(footprint.x / dimensions.x, footprint.y / dimensions.y)
-    draw_texture_rect(texture, Rect2(center - size * 0.5, size), false)
+	var dimensions := texture.get_size()
+	if dimensions.x <= 0 or dimensions.y <= 0:
+		return
+	var size := dimensions * minf(footprint.x / dimensions.x, footprint.y / dimensions.y)
+	draw_texture_rect(texture, Rect2(center - size * 0.5, size), false)
 
 func _ready() -> void:
-    _load_curated_art()
+	_load_curated_art()
 	capture_mode = OS.get_cmdline_user_args().has("--pacing-capture")
 	if capture_mode:
 		rng.seed = 20261014
@@ -1586,8 +1586,8 @@ func _draw_combat() -> void:
 		var kind := str(enemy["kind"])
 		var radius := float(enemy["radius"])
 		if curated_enemy_textures.has(kind):
-            _draw_curated_texture(curated_enemy_textures[kind], p, Vector2.ONE * radius * 2.4)
-        elif kind == "trucker":
+			_draw_curated_texture(curated_enemy_textures[kind], p, Vector2.ONE * radius * 2.4)
+		elif kind == "trucker":
 			draw_circle(p + Vector2(6, 12), radius + 10.0, Color(0.05, 0.05, 0.05, 0.55))
 			draw_circle(p, radius, Color("#7e392f"))
 		elif kind == "runner":
@@ -1628,9 +1628,9 @@ func _draw_combat() -> void:
 		var tint := Color("#F2C14E") if str(pickup["kind"]) == "Chest" else Color("#3D8BFF")
 		draw_circle(ppos + Vector2(0, bob), 23.0, tint * Color(1, 1, 1, 0.55))
 		draw_arc(ppos + Vector2(0, bob), 30.0, 0.0, TAU, 24, tint, 4.0)
-        var pickup_kind := str(pickup["kind"])
-        if curated_pickup_textures.has(pickup_kind):
-            _draw_curated_texture(curated_pickup_textures[pickup_kind], ppos + Vector2(0, bob), Vector2(42, 42))
+		var pickup_kind := str(pickup["kind"])
+		if curated_pickup_textures.has(pickup_kind):
+			_draw_curated_texture(curated_pickup_textures[pickup_kind], ppos + Vector2(0, bob), Vector2(42, 42))
 	for bullet in bullets:
 		draw_line(bullet["pos"] - bullet["dir"] * 22.0, bullet["pos"], Color("#F2A23A", 0.45), 7.0)
 		draw_line(bullet["pos"] - bullet["dir"] * 22.0, bullet["pos"], Color("#fff2b8"), 4.0)
