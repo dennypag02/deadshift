@@ -560,6 +560,7 @@ func _physics_process(delta: float) -> void:
 			var xp_drop: int = progression.xp_dropped_total if progression != null else 0
 			var xp_collect: int = progression.xp_collected_total if progression != null else 0
 			print("PACING_SUMMARY enemies_avg=%.2f enemies_max=%d xp_dropped=%d xp_collected=%d" % [avg_enemies, capture_enemy_max, xp_drop, xp_collect])
+			print("STAGE1_WAVE wave=%d partial=true min_hp_pct=%.1f damage=%s enemies_avg=%.1f enemies_max=%d dps=%.1f level=%d elapsed=%.1f" % [wave, 100.0 * float(wave_min_hp) / maxf(1.0, float(player_max_hp)), str(stage1_damage_sources), stage1_enemy_integral / maxf(0.01, stage1_sample_seconds), stage1_enemy_max, stage1_damage_dealt / maxf(0.01, wave_clock), progression.level if progression != null else 1, run_clock])
 			print("PACING_DAMAGE wave=%d damage_taken=%d min_hp=%d max_hp=%d min_hp_pct=%.1f partial=true" % [wave, wave_damage_taken, wave_min_hp, player_max_hp, 100.0 * float(wave_min_hp) / maxf(1.0, float(player_max_hp))])
 			print("PACING_CAPTURE_COMPLETE t=%.2f wave=%d level=%d kills=%d" % [capture_clock, wave, progression.level if progression != null else 1, kills])
 			if phase_ui != null:
