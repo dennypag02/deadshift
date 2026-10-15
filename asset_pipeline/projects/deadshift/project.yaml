@@ -1,0 +1,10 @@
+project_id: deadshift
+name: DeadShift
+engine: godot
+repository: dennypag02/deadshift
+general_scope: general
+art_direction:
+  policy: Standard ComfyUI Game Asset Workflow v2
+  inherit_references: true
+  palette: [rust_brown, olive_green, dusty_gray]
+  camera: top_down_for_environment_high_angle_for_characters
