@@ -426,6 +426,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate DeadShift assets with local ComfyUI")
     parser.add_argument("--only", help="Generate one named asset")
     parser.add_argument("--category", help="Generate only one category")
+    parser.add_argument("--seed-group", help="Generate only assets in this seed group")
     parser.add_argument("--count", type=int, help="Override the configured count per asset")
     parser.add_argument("--positive", help="Replace the full positive prompt")
     parser.add_argument("--negative", help="Replace the full negative prompt")
@@ -447,6 +448,7 @@ def apply_job_file(args: argparse.Namespace) -> argparse.Namespace:
 
     args.only = job.get("asset", args.only)
     args.category = job.get("category", args.category)
+    args.seed_group = job.get("seed_group", args.seed_group)
     args.count = int(job.get("count", args.count or 20))
     args.positive = job.get("positive", args.positive)
     args.negative = job.get("negative", args.negative)
@@ -464,6 +466,10 @@ def main() -> None:
     if not args.dry_run:
         ensure_workflows()
     selected = select_assets(config, only=args.only, category=args.category)
+    if args.seed_group:
+        selected = [item for item in selected if item.get("seed_group") == args.seed_group]
+        if not selected:
+            raise SystemExit(f"No assets matched seed group {args.seed_group!r}")
     manifest = [] if args.dry_run else load_manifest()
     seed_groups: dict[str, list[int]] = {}
 
