@@ -37,6 +37,8 @@ var vibration_enabled := true
 var debug_tap_count := 0
 var debug_tap_at := 0
 var edge_arrow_timer := 0.0
+var direction_label: Label
+var previous_wave := 0
 
 func _label(text: String, size_px: int, parent: Node) -> Label:
 	var label := Label.new()
@@ -138,7 +140,7 @@ func _ready() -> void:
 	score_label.custom_minimum_size = Vector2(84, 65)
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	score_label.add_theme_font_override("font", bebas_font if bebas_font != null else ThemeDB.fallback_font)
-	var objective_panel := _panel(root, Rect2(8, 158, 298, 128))
+	var objective_panel := _panel(root, Rect2(8, 148, 400, 130))
 	var card_style := StyleBoxFlat.new()
 	card_style.bg_color = Color("#14110F", 0.85)
 	card_style.border_color = Color("#3A322B")
@@ -154,18 +156,18 @@ func _ready() -> void:
 	card_layer.add_child(stripe)
 	var content := HBoxContainer.new()
 	content.position = Vector2(19, 9)
-	content.size = Vector2(270, 114)
+	content.size = Vector2(370, 114)
 	content.add_theme_constant_override("separation", 16)
 	card_layer.add_child(content)
 	objective_icon = _label("⚡", 30, content)
 	objective_icon.custom_minimum_size = Vector2(48, 48)
 	objective_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var stack := VBoxContainer.new()
-	stack.custom_minimum_size = Vector2(194, 114)
+	stack.custom_minimum_size = Vector2(306, 114)
 	stack.add_theme_constant_override("separation", 3)
 	content.add_child(stack)
-	objective_label = _label("POWER THE MINI-MART GENERATOR", 30, stack)
-	objective_label.custom_minimum_size = Vector2(194, 70)
+	objective_label = _label("POWER THE MINI-MART GENERATOR", 24, stack)
+	objective_label.custom_minimum_size = Vector2(306, 32)
 	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	objective_label.max_lines_visible = 2
 	var crates := HBoxContainer.new()
@@ -178,8 +180,10 @@ func _ready() -> void:
 		crate.scale = Vector2(0.6, 0.75)
 		crates.add_child(crate)
 		crate_slots.append(crate)
-	supplies_label = _label("SUPPLIES 0/3", 26, crates)
-	supplies_label.custom_minimum_size = Vector2(115, 34)
+	supplies_label = _label("SUPPLIES 0/3", 22, crates)
+	supplies_label.custom_minimum_size = Vector2(115, 26)
+	direction_label = _label("", 20, stack)
+	direction_label.add_theme_color_override("font_color", AMBER)
 	var event_panel := _panel(root, Rect2(0, 296, 412, 125), PANEL)
 	var banner_style := StyleBoxFlat.new()
 	banner_style.bg_color = PANEL
@@ -307,18 +311,21 @@ func _process(delta: float) -> void:
 		crate_slots[i].set("collected", i < supplies)
 		crate_slots[i].queue_redraw()
 	supplies_label.text = "SUPPLIES %d/3" % supplies
-	if not game.generator_active:
-		objective_icon.text = "⚡"
-		objective_label.text = "POWER THE MINI-MART GENERATOR"
-	elif supplies < 3:
-		objective_icon.text = "▣"
-		objective_label.text = "RECOVER THE SUPPLY CRATES"
-	elif not game.puzzle_complete:
-		objective_icon.text = "⚠"
-		objective_label.text = "SURVIVE THE RELAY TRAPS"
-	else:
-		objective_icon.text = "◆"
-		objective_label.text = "DETONATOR CORE SECURED"
+	if game.guidance != null:
+		objective_label.text = game.guidance.label_text().to_upper()
+		var kind: String = game.guidance.target.get("kind", "exit")
+		objective_icon.text = {"crate": "▣", "bolt": "⚡", "skull": "☠", "relay": "◇"}.get(kind, "◆")
+		var direction: Vector2 = game.guidance.direction_vector()
+		var arrows := ["→", "↘", "↓", "↙", "←", "↖", "↑", "↗"]
+		var direction_index := posmod(roundi(direction.angle() / (PI / 4.0)), 8)
+		direction_label.text = "%d m %s  |  TAP MAP" % [game.guidance.distance_metres(), arrows[direction_index]] if not game.guidance.target.is_empty() else "SURVIVE THE HORDE"
+	if previous_wave != game.wave:
+		previous_wave = game.wave
+		banner_queue.clear()
+		event_time = 0.0
+		previous_event = ""
+	if event_time > 0.0 and banner_title.text.begins_with("WAVE ") and not "CLEARED" in banner_title.text and game.guidance != null:
+		banner_subtitle.text = game.guidance.label_text()
 	var message: String = game.banner.text
 	if message != previous_event:
 		previous_event = message
@@ -329,6 +336,9 @@ func _process(delta: float) -> void:
 		var parts := next.split("\n", false, 1)
 		var headline: String = parts[0]
 		var detail: String = parts[1] if parts.size() > 1 else ""
+		if headline.begins_with("WAVE ") and not "CLEARED" in headline:
+			headline = "WAVE %d: THE HORDE IS HERE" % game.wave
+			detail = game.guidance.label_text() if game.guidance != null else detail
 		if headline.length() > 28:
 			var split_at := headline.rfind(" ", 28)
 			if split_at < 8:
@@ -392,36 +402,8 @@ func _draw() -> void:
 	var bottom_edge := view.y - inset_max.y - margin
 	var safe_rect := Rect2(Vector2(inset_min.x + margin, top_edge), Vector2(view.x - inset_min.x - inset_max.x - margin * 2.0, maxf(1.0, bottom_edge - top_edge)))
 	var center := safe_rect.get_center()
-	var target: Vector2 = game.GENERATOR_POS
-	var icon := "⚡"
-	var found: bool = not game.generator_active
-	if not found:
-		for cache in game.supply_caches:
-			if not bool(cache["collected"]):
-				target = Vector2(cache["pos"])
-				icon = "▣"
-				found = true
-				break
-	if not found:
-		for nest in game.infestation_nests:
-			if not bool(nest["destroyed"]):
-				target = Vector2(nest["pos"])
-				icon = "!"
-				found = true
-				break
-	if not found and not game.puzzle_complete:
-		for color in ["RED", "BLUE", "YELLOW"]:
-			if not game.trap_finished.has(color):
-				target = game._relay_position(color)
-				icon = "!"
-				found = true
-				break
-	if not found and game.district_cleared:
-		target = game.NORTH_EXIT.get_center()
-		icon = "◆"
-		found = true
-	if found:
-		_draw_edge_arrow(target, AMBER, icon, safe_rect, center, game.camera.zoom)
+	if game.guidance != null and not game.guidance.target.is_empty():
+		_draw_edge_arrow(game.guidance.target["pos"], AMBER, "!", safe_rect, center, game.camera.zoom)
 	var runner_arrows := 0
 	for enemy in game.enemies:
 		if str(enemy["kind"]) != "runner":

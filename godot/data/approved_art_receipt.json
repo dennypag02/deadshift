@@ -1,0 +1,272 @@
+[
+  {
+    "asset": "zombie_shambler",
+    "path": "art/characters/zombie_shambler.png",
+    "candidate_id": "legacy-03eb7eac807579288e306ae8",
+    "sha256": "2cb372518dad346e9c3269a4bd942d4d568f8f713c25c72752486e4aeb1d6750"
+  },
+  {
+    "asset": "icon_evo_carpet_bomber",
+    "path": "art/curated/icon_evo_carpet_bomber.png",
+    "candidate_id": "legacy-0ed8931d3327aa9456808936",
+    "sha256": "b18be41808d2cd4016f3c426704426375b60e0ca70e45b61a7aa6d4fc499b5ee"
+  },
+  {
+    "asset": "icon_thick_hide",
+    "path": "art/curated/icon_thick_hide.png",
+    "candidate_id": "legacy-100a347eecb91409ab4b4b1f",
+    "sha256": "8c595a932c589d05359c8b659f4e2d8afde303141c0dffe95cd8b835de6e3a01"
+  },
+  {
+    "asset": "icon_evo_lead_hurricane",
+    "path": "art/curated/icon_evo_lead_hurricane.png",
+    "candidate_id": "legacy-13a05528a878cce380c49833",
+    "sha256": "db634d40c50634b1495c6adcb7a631654113a1e87f6e14b9178c82921393d0e6"
+  },
+  {
+    "asset": "icon_fuel_tank",
+    "path": "art/curated/icon_fuel_tank.png",
+    "candidate_id": "legacy-1bbda24f8cc35f9817261b26",
+    "sha256": "88062af7b19ee425080b76fd732f14568954d12943dcdc6e7d450fd09ecb48fe"
+  },
+  {
+    "asset": "icon_magnet",
+    "path": "art/curated/icon_magnet.png",
+    "candidate_id": "legacy-1d002c78f50d7818c5c0ff62",
+    "sha256": "9b526bdff3a121ea6bf113ae099ae8807a82dedb1d12c4692d63ab7fdf9d347b"
+  },
+  {
+    "asset": "icon_ball_bearings",
+    "path": "art/curated/icon_ball_bearings.png",
+    "candidate_id": "legacy-278b95e03ee711e55c41e3ff",
+    "sha256": "1714622c5579c00d7aa9134fce6df62190ae8480f7b36189232de5f27b61b332"
+  },
+  {
+    "asset": "icon_trigger_finger",
+    "path": "art/curated/icon_trigger_finger.png",
+    "candidate_id": "legacy-348ca9e06f14fbe2da9ce4d1",
+    "sha256": "243480f6aa09da4a8182402dbe02f648ec231035bcb839b32981a499987b6b4b"
+  },
+  {
+    "asset": "icon_evo_dragons_breath",
+    "path": "art/curated/icon_evo_dragons_breath.png",
+    "candidate_id": "legacy-42914846bff4ea0e852bad59",
+    "sha256": "2771a2dcdce18d6cb0d0944048bdffb938ca92d8f96f647dabcab83812f10802"
+  },
+  {
+    "asset": "icon_scrap_smg",
+    "path": "art/curated/icon_scrap_smg.png",
+    "candidate_id": "legacy-43bb0641171efd5841b862a2",
+    "sha256": "dc82aa97e78c9a2355c29ced4939313a59ba929fda9cc518c79fb5e419d352f7"
+  },
+  {
+    "asset": "icon_pickup_nuke",
+    "path": "art/curated/icon_pickup_nuke.png",
+    "candidate_id": "legacy-4657bdbebf468528b4075e98",
+    "sha256": "0cf300b9e5ade5975c7b17a86c2566df39bc1db8f64705effabfd27b727f6e00"
+  },
+  {
+    "asset": "zombie_runner",
+    "path": "art/characters/zombie_runner.png",
+    "candidate_id": "legacy-599a9e0d7a033f55a1c1c56f",
+    "sha256": "f4cd4ad9e20d1719e20fb49dba15584bc54f127b2cac49af634268799f8620ba"
+  },
+  {
+    "asset": "icon_hubcap",
+    "path": "art/curated/icon_hubcap.png",
+    "candidate_id": "legacy-5d545660b4d91211c333071c",
+    "sha256": "f6705f8bb286e04803a2379f2cdd9832f95867cda20e0d3691f603553ba62f22"
+  },
+  {
+    "asset": "icon_evo_meat_grinder",
+    "path": "art/curated/icon_evo_meat_grinder.png",
+    "candidate_id": "legacy-63e3236a9e285783f9a7c09e",
+    "sha256": "f58937802c045b189d9b72e36acbd988406817dae43da7a0bd67848a4e188a0d"
+  },
+  {
+    "asset": "icon_rocket_pod",
+    "path": "art/curated/icon_rocket_pod.png",
+    "candidate_id": "legacy-65519c674509b81e635a0659",
+    "sha256": "3e3cc9a020880715314aa8fa833a9605856082ef22b87148641e3fed2ac174eb"
+  },
+  {
+    "asset": "icon_pickup_freeze",
+    "path": "art/curated/icon_pickup_freeze.png",
+    "candidate_id": "legacy-68dfdfee1fc1530fe1c185af",
+    "sha256": "7e265bbdb9f6403a72d2fab11b9e110e2bf2b11cd151017288f60729b03243aa"
+  },
+  {
+    "asset": "icon_evo_chrome_tornado",
+    "path": "art/curated/icon_evo_chrome_tornado.png",
+    "candidate_id": "legacy-7189972a99f9326c4718f396",
+    "sha256": "19f20d0de1a38690a1f9e45b442505eb809de444b5d0e8df85214a142f5eec6e"
+  },
+  {
+    "asset": "icon_sharpened_edge",
+    "path": "art/curated/icon_sharpened_edge.png",
+    "candidate_id": "legacy-7eb0892884f1eabaa94dc7a4",
+    "sha256": "3c57d9864ff3c7bf648e57a4fa6ef436a151cd6367fe274b41f135ecd9445db5"
+  },
+  {
+    "asset": "mech_miniboss",
+    "path": "art/characters/mech_miniboss.png",
+    "candidate_id": "legacy-7f16601a21b3c1541f8b73d9",
+    "sha256": "cca3961b9c36f397e9cc44cfc93ce9402a7186a40b0d642ffcbc9b79ad7e6987"
+  },
+  {
+    "asset": "icon_ammo_belt",
+    "path": "art/curated/icon_ammo_belt.png",
+    "candidate_id": "legacy-8555d1584e020ba6cefbd9f9",
+    "sha256": "087fbd55c26939dd6762bba7ebdb14653b68d986ccf724e14ab8e2b168a4e429"
+  },
+  {
+    "asset": "icon_pickup_mega_gun",
+    "path": "art/curated/icon_pickup_mega_gun.png",
+    "candidate_id": "legacy-8c384dab7195557e4178dc91",
+    "sha256": "4a7b639b9c75a439258955adf0005a26cd4c405939e4ac4f872f331cd74b80a8"
+  },
+  {
+    "asset": "icon_battery_pack",
+    "path": "art/curated/icon_battery_pack.png",
+    "candidate_id": "legacy-8c57223c6e8e40c3f013fd52",
+    "sha256": "80ed9eac4e50e7c02471580e7097eb44ce7500186004c328ee5364e21120e824"
+  },
+  {
+    "asset": "icon_pickup_rage",
+    "path": "art/curated/icon_pickup_rage.png",
+    "candidate_id": "legacy-8cacd6cccf92661105a31514",
+    "sha256": "2de6942b88d659491e5efb549174f656c4021d3fbb3135d8e1fb1492fe77fdbd"
+  },
+  {
+    "asset": "icon_pickup_magnet",
+    "path": "art/curated/icon_pickup_magnet.png",
+    "candidate_id": "legacy-9367f71e99eea4516c1a82dd",
+    "sha256": "7499c594cebc79a28941cc054e2f64b4556c056344f03a06a2def78f05d55bcd"
+  },
+  {
+    "asset": "icon_arsenal_airstrike",
+    "path": "art/curated/icon_arsenal_airstrike.png",
+    "candidate_id": "legacy-970f2526e8fe23f89f597133",
+    "sha256": "9fba0398b30d362c642e2585033ddbbfdd20177debc43c8391f81ab4077b05bd"
+  },
+  {
+    "asset": "icon_attack_drone",
+    "path": "art/curated/icon_attack_drone.png",
+    "candidate_id": "legacy-9aa965a98651fcb75c33d30e",
+    "sha256": "2cebb7b8cab23b42ac45dd7fd7e315eeea39d7c7c53e7b68927f3a631765229d"
+  },
+  {
+    "asset": "icon_buzzsaw",
+    "path": "art/curated/icon_buzzsaw.png",
+    "candidate_id": "legacy-9d185e8112ea3092241b13b2",
+    "sha256": "3945a56643309e612e144143f7e90160a6898c6f7153cc8f1c641560d08610b1"
+  },
+  {
+    "asset": "icon_pickup_medkit",
+    "path": "art/curated/icon_pickup_medkit.png",
+    "candidate_id": "legacy-9f1c2bc2f78466ca469a45ab",
+    "sha256": "172582c409611711377cc2d8ffc0a4613cda627c1e8df01db7015de15fc63979"
+  },
+  {
+    "asset": "icon_evo_napalm_rain",
+    "path": "art/curated/icon_evo_napalm_rain.png",
+    "candidate_id": "legacy-abfa4dfbfc6a71228986de7d",
+    "sha256": "8d5767319d441e09a946f60f78e1ac68117eeba35c01942ab460f892d88dd817"
+  },
+  {
+    "asset": "icon_evo_thunderdome",
+    "path": "art/curated/icon_evo_thunderdome.png",
+    "candidate_id": "legacy-b04b0875430db633bf4246db",
+    "sha256": "45f389221b0e0f954f0e360a6555dfc00967ec8ccc84b8652afdab4a0e896700"
+  },
+  {
+    "asset": "icon_molotov",
+    "path": "art/curated/icon_molotov.png",
+    "candidate_id": "legacy-b6c7a2278971e71efb3dcd23",
+    "sha256": "4d8651e069e05762ca73d1900ce4fd48e43f1945952d923535fb2f58b9e87f92"
+  },
+  {
+    "asset": "zombie_bloater",
+    "path": "art/characters/zombie_bloater.png",
+    "candidate_id": "legacy-c6f300debe3bfdb117e27318",
+    "sha256": "6d19059c8dbc60d072de522d9e776438d0482f9f6a24270d7f9cebb8a1afcd8f"
+  },
+  {
+    "asset": "icon_arsenal_nest_down",
+    "path": "art/curated/icon_arsenal_nest_down.png",
+    "candidate_id": "legacy-cfb687569e9c91a427aa96d5",
+    "sha256": "955175fa1be87b09ad52a1647c793df3c5824bd38f5a84fd34d2a90873eec294"
+  },
+  {
+    "asset": "zombie_brute",
+    "path": "art/characters/zombie_brute.png",
+    "candidate_id": "legacy-d03e27d8c84e6f84b32ede57",
+    "sha256": "dd2389df986d560d41ece0d774aa923110b32dd3a4864b5852806d141b28df4f"
+  },
+  {
+    "asset": "zombie_elite",
+    "path": "art/characters/zombie_elite.png",
+    "candidate_id": "legacy-d71da9007f414bba21466bc8",
+    "sha256": "d0874a5905fc253836a9630eab75aae19979e6727b5effb4d86d919ede6e2fea"
+  },
+  {
+    "asset": "icon_muscle",
+    "path": "art/curated/icon_muscle.png",
+    "candidate_id": "legacy-dd10d492f53c3c75774ddcc9",
+    "sha256": "35a66467673d8a1f8e4ad663fb06e0d77e7940b88c45b19d6df1dcb7a2e815b8"
+  },
+  {
+    "asset": "icon_evo_drone_swarm",
+    "path": "art/curated/icon_evo_drone_swarm.png",
+    "candidate_id": "legacy-e0ab49206b201ae0246c9005",
+    "sha256": "af1701e42cf31fec988570bcb35cb6f28c9303038d0d704a9df7a7b35e4c167b"
+  },
+  {
+    "asset": "icon_lightning_rod",
+    "path": "art/curated/icon_lightning_rod.png",
+    "candidate_id": "legacy-e3c391e4c817745169fe251c",
+    "sha256": "8de19c3c1d2c499c9f01f5852f38b7e49fa59305b26f53debece2d3c543fb0ad"
+  },
+  {
+    "asset": "icon_chest",
+    "path": "art/curated/icon_chest.png",
+    "candidate_id": "legacy-e4fbdfb0a841e771942a8545",
+    "sha256": "ddf2ab3c003b33595960c3fc154c9b3ffe70df269a89d2ec1687727b2370321d"
+  },
+  {
+    "asset": "icon_blast_radius",
+    "path": "art/curated/icon_blast_radius.png",
+    "candidate_id": "legacy-e84014f0469e276828d86cd7",
+    "sha256": "bb8d8ca86638e1351c7369628373ba274b2582fa37ecf2136e4cc98f6ff9b219"
+  },
+  {
+    "asset": "icon_arsenal_floodlights",
+    "path": "art/curated/icon_arsenal_floodlights.png",
+    "candidate_id": "legacy-ebcb67479698696a7deea2ca",
+    "sha256": "5abcad6289d3f439077885795f5781b80e6c0533adc305e1d0bb8c4a6972a548"
+  },
+  {
+    "asset": "icon_pickup_scrap",
+    "path": "art/curated/icon_pickup_scrap.png",
+    "candidate_id": "legacy-f05716d399dd428179b9751a",
+    "sha256": "3c0d96c43980d8e56134acaede5b038548ffc35b974fda999c50c55ed0aacb82"
+  },
+  {
+    "asset": "icon_rabbit_foot",
+    "path": "art/curated/icon_rabbit_foot.png",
+    "candidate_id": "legacy-f15d72d33ff44715f00f1bb9",
+    "sha256": "932aa18d2355613982be3cff08743d46a47ad960403452c1f6d408dbdc2be56f"
+  },
+  {
+    "asset": "icon_boomstick",
+    "path": "art/curated/icon_boomstick.png",
+    "candidate_id": "legacy-f44ae9541e922fe62d3cef95",
+    "sha256": "51bef84808660db33f9a935dea8ded4f2145a0d7699453d26bf868f6ad14d14d"
+  },
+  {
+    "asset": "zombie_spitter",
+    "path": "art/characters/zombie_spitter.png",
+    "candidate_id": "legacy-f5a49c21f56df5c291812bf0",
+    "sha256": "07d38ba39cda288241368fd1181a9e153fba461426010ca966a056fee41cbf75"
+  }
+]

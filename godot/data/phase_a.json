@@ -21,7 +21,8 @@
     "target_level_at_180_seconds": [
       10,
       12
-    ]
+    ],
+    "collection_multiplier": 0.6
   },
   "pacing": {
     "wave1_duration_seconds": 75,
