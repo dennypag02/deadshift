@@ -6,6 +6,8 @@ PACKAGE="${PACKAGE:-com.dennypag02.deadshift}"
 DURATION_SECONDS="${DURATION_SECONDS:-180}"
 TAP_X="${TAP_X:-540}"
 TAP_Y="${TAP_Y:-650}"
+START_X="${START_X:-540}"
+START_Y="${START_Y:-1363}"
 
 mkdir -p android-stability
 CRASH_LOG="android-stability/crash.log"
@@ -51,10 +53,16 @@ adb logcat -c
 echo "Launching $PACKAGE..." | tee -a "$STATUS_FILE"
 adb shell monkey -p "$PACKAGE" 1 | tee -a "$STATUS_FILE"
 sleep 8
+# Pixel 6 is 1080x2400: the production 432x960 title button is at (216,545).
+# The old (540,650) tap is a level-up-card location, NOT the title's START RUN.
+adb exec-out screencap -p > android-stability/title-screen.png
+adb shell input tap "$START_X" "$START_Y"
+echo "MILESTONE - tapped actual START RUN at $START_X,$START_Y; normal damage, no debug commands" | tee -a "$STATUS_FILE"
 
 START=$(date +%s)
 END=$((START + DURATION_SECONDS))
 SAMPLES=0
+LAST_HEARTBEAT=$START
 
 while [ "$(date +%s)" -lt "$END" ]; do
   PID=$(adb shell pidof "$PACKAGE" 2>/dev/null | tr -d '\r' || true)
@@ -67,8 +75,17 @@ while [ "$(date +%s)" -lt "$END" ]; do
   printf '%s\n' "$PID" > "$PID_FILE"
   adb shell input tap "$TAP_X" "$TAP_Y" >/dev/null 2>&1 || true
   SAMPLES=$((SAMPLES + 1))
+  NOW=$(date +%s)
+  if [ "$((NOW - LAST_HEARTBEAT))" -ge 30 ]; then
+    echo "RUNNING - Android process alive; elapsed=$((NOW - START))s samples=$SAMPLES" | tee -a "$STATUS_FILE"
+    adb logcat -d | grep 'ANDROID_RUNTIME' | tail -1 | tee -a "$STATUS_FILE" || true
+    LAST_HEARTBEAT=$NOW
+  fi
   sleep 5
 done
+adb exec-out screencap -p > android-stability/end-screen.png
+# Preserve actual local telemetry from this isolated emulator installation.
+adb exec-out run-as "$PACKAGE" sh -c 'cd files; tar -cf - runs' > android-stability/local-runs.tar 2>/dev/null || true
 
 capture_logs
 
@@ -91,10 +108,10 @@ fps = [int(x) for x in re.findall(r"fps=(\d+)", text)]
 enemies = [int(x) for x in re.findall(r"enemies=(\d+)", text)]
 if not fps or not enemies:
     raise SystemExit("missing Android runtime telemetry")
+if max(enemies) < 40:
+    raise SystemExit(f"dense horde not reached; enemies_max={max(enemies)}")
 line = f"ANDROID_STABILITY_PASS samples={len(fps)} fps_min={min(fps)} fps_avg={sum(fps)/len(fps):.1f} enemies_max={max(enemies)}"
 print(line)
 with open(status_path, "a", encoding="utf-8") as fh:
     fh.write(line + "\n")
-if max(enemies) < 40:
-    raise SystemExit(f"dense horde not reached; enemies_max={max(enemies)}")
 PY
