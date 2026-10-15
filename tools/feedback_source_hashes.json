@@ -1,0 +1,15 @@
+{
+  "godot/scripts/actor_presentation.gd": "393a0ba41f9f99cc953739806050e76707389bb01c30077f4d57089153e636bc",
+  "godot/scripts/objective_guidance.gd": "ae07f72a3324cfc91801d49fb236fbece4b1220a37d7ce84b40730464d5a51a0",
+  "godot/scripts/feedback_tests.gd": "818232f31ecb5ccd361594954e58e58d647dbb5c43002faf1b513740b587f11b",
+  "godot/scripts/feedback_evidence.gd": "f3d8a5a9997261e7dc7431e0305c2a7c4c4a112124152e7a483538d8369d58ef",
+  "godot/scripts/outskirts.gd": "4a89aad6617c50ddb091a50e4c1af66b0f707de6ae64f19b9358e4c4ba2c2c71",
+  "godot/scripts/polish_hud.gd": "53625b3895e489e871fb5b6458669ec942940cec7b0e6056c684c49ac71a3c67",
+  "godot/scripts/phase_a_progression.gd": "c1c9b2412fd244cd1077937e29513f86356edf430974d3bbb80cdc7f0cf096af",
+  "godot/scripts/phase_a_ui.gd": "c0ebc7136c8e781137853afb00b76d6dd94b8dcc6788e26042114a4979629a61",
+  "godot/scripts/gameplay_config_fallback.gd": "3d33e0190ed20cfc1c04c010f99159674355c5a6620e10624351aa0983561a43",
+  "godot/scripts/tactical_minimap.gd": "cd0fd68dd3b62884708bcf9c4bf2d8afbc887eef8b65011a1c0bb8a18fe468ae",
+  "godot/data/phase_a.json": "f49495803cba32c5a1d73aaad8372d274b15f7bf75ec6474eda4c51b54e8ce1f",
+  "godot/shaders/actor_outline.gdshader": "45d737baf44194e5f405ac2a3c88626d8f1b6e4cf413567e41c33186ca84ebce",
+  ".github/workflows/v3-godot-android-apk.yml": "d80ffb8919ad429c0610f036ba08e4923112d57a1e15a92ff66f069476fe7ee5"
+}
