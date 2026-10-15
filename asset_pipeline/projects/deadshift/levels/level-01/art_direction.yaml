@@ -1,0 +1,6 @@
+scope: levels/level-01
+inherits: general
+name: Mini-Mart
+purpose: Level-specific artwork
+reference_policy: Use approved DeadShift references and level-specific references
+palette_override: null
