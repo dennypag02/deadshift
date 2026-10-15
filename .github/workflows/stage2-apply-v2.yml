@@ -8,7 +8,6 @@ on:
       - .github/workflows/stage2-apply-v2.yml
 permissions:
   contents: write
-  issues: write
 concurrency:
   group: stage2-cleanup-apply
   cancel-in-progress: false
@@ -21,10 +20,10 @@ jobs:
         with:
           fetch-depth: 0
       - name: RUNNING - Stage 2 source verification
-        env:
-          GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          gh api repos/dennypag02/deadshift/issues/19/comments -f body="RUNNING - Stage 2 deterministic apply/validation run $GITHUB_RUN_ID; source $GITHUB_SHA. Human action required: no."
+          set -euo pipefail
+          echo "RUNNING - Stage 2 deterministic apply/validation run $GITHUB_RUN_ID; source $GITHUB_SHA. Human action required: no." | tee -a "$GITHUB_STEP_SUMMARY"
           python3 tools/apply_stage2_v2.py
           python3 tools/verify_mobile_contract.py | tee stage2-evidence/contract.log
       - name: Install pinned Godot 4.4.1
@@ -43,7 +42,7 @@ jobs:
           "$G" --headless --audio-driver Dummy --path godot --editor --quit 2>&1 | tee stage2-evidence/import.log
           ! grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|Shader compilation failed' stage2-evidence/import.log
           for test in stage2_tests performance_tests feedback_tests phase_a_xp_check phase_b_check survivability_ui_check hud_layout_check; do
-            echo "MILESTONE: running $test"
+            echo "MILESTONE: running $test" | tee -a "$GITHUB_STEP_SUMMARY"
             timeout 120s "$G" --headless --audio-driver Dummy --path godot --script "res://scripts/$test.gd" 2>&1 | tee "stage2-evidence/$test.log"
             ! grep -E 'SCRIPT ERROR|Parse Error|STAGE2_FAIL|PERFORMANCE_FAIL|FEEDBACK_FAIL' "stage2-evidence/$test.log"
           done
@@ -79,11 +78,10 @@ jobs:
       - name: COMPLETE or FAILED - publish verified result
         if: always()
         env:
-          GH_TOKEN: ${{ github.token }}
           RESULT: ${{ job.status }}
         shell: bash
         run: |
           state=FAILED
           if [ "$RESULT" = success ]; then state=COMPLETE; fi
           sha=$(cat stage2-evidence/source-sha.txt 2>/dev/null || echo "$GITHUB_SHA")
-          gh api repos/dennypag02/deadshift/issues/19/comments -f body="$state - Stage 2 apply/validation run $GITHUB_RUN_ID: $RESULT; verified source $sha. APK and recording delivery are separate remaining milestones; this is not device acceptance."
+          echo "$state - Stage 2 apply/validation run $GITHUB_RUN_ID: $RESULT; source $sha. APK and recording delivery are separate milestones; this is not device acceptance." | tee -a "$GITHUB_STEP_SUMMARY"
