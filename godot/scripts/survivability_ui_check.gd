@@ -12,6 +12,8 @@ func _check() -> void:
 	var scene: PackedScene = load("res://scenes/Outskirts.tscn")
 	var game = scene.instantiate()
 	get_root().add_child(game)
+	game.events.interrupt("base_combat_fixture") # Tutorial multiplier is separately checked by stage2_tests.
+	game.telemetry.set_process(false)
 	game.set_physics_process(false)
 	if game.progression != null:
 		game.progression.set_physics_process(false)

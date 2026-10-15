@@ -36,8 +36,10 @@ func _process(delta: float) -> void:
 	wall_seconds += actual
 	var clock_delta := delta/maxf(.02,Engine.time_scale) if offline else actual
 	if not get_tree().paused and game.player_hp>0:
+		if game.run_log != null: game.run_log.begin()
 		active_seconds += clock_delta
 		game.run_clock = active_seconds
+		if game.events != null: game.events.tick(clock_delta)
 		game._tick_wave_clock(clock_delta)
 	else:
 		pause_seconds += clock_delta

@@ -2,6 +2,9 @@ extends SceneTree
 const ACTORS = preload("res://scripts/actor_presentation.gd")
 var output := ""
 var game: Node2D
+var capture_seed := 20261015
+var target_seconds := 180.0
+var death_frames := 0
 func _initialize() -> void:
 	output = OS.get_environment("DEADSHIFT_EVIDENCE_DIR")
 	if output == "":
@@ -9,7 +12,9 @@ func _initialize() -> void:
 	DirAccess.make_dir_recursive_absolute(output)
 	call_deferred("_run")
 func _run() -> void:
-	seed(20261015) # Deterministic capture choices only, not production gameplay.
+	if OS.get_environment("DEADSHIFT_VALIDATION_SEED") != "": capture_seed = int(OS.get_environment("DEADSHIFT_VALIDATION_SEED"))
+	if OS.get_environment("DEADSHIFT_CAPTURE_SECONDS") != "": target_seconds = float(OS.get_environment("DEADSHIFT_CAPTURE_SECONDS"))
+	seed(capture_seed) # Deterministic capture choices only, not production gameplay.
 	if OS.get_cmdline_user_args().has("--compare"):
 		root.content_scale_size = Vector2i(1280, 600)
 		root.size = Vector2i(1280, 600)
@@ -109,14 +114,14 @@ func _record() -> void:
 	game.phase_ui._start_capture_title()
 	game.phase_ui.god_mode = false
 	game.guidance.disabled_for_test = false
-	game.rng.seed = 20261015
+	game.rng.seed = capture_seed
 	var shown_map := false
 	var map_frames := 0
 	var card_frames := 0
 	var picking := false
 	var saved_gameplay := false
 	var deaths := 0
-	for frame in range(6600):
+	for frame in range(12000):
 		await process_frame
 		if game.phase_ui.panel.visible and not game.phase_ui.current_choices.is_empty():
 			card_frames += 1
@@ -162,6 +167,9 @@ func _record() -> void:
 						best = i
 				var next := mini(best + (1 if near < 75 else 0), route.size() - 1)
 				desired = (route[next] - Vector2(game.player_pos)).normalized()
+			# A normal player can stand still in the charge ring; no teleporting or invulnerability.
+			if game.events.kind() in ["generator","relay"] and game.player_pos.distance_to(game.events.target()["pos"]) < 45.0:
+				desired = Vector2.ZERO
 			var repulsion := Vector2.ZERO
 			var avoidance_radius := 240.0 if game.wave >= 2 else 200.0
 			var avoidance_weight := 3.8 if game.wave >= 2 else 2.8
@@ -185,9 +193,12 @@ func _record() -> void:
 		if game.player_hp <= 0 and deaths == 0:
 			deaths += 1
 			print("FEEDBACK_RECORDING_DEATH t=%.1f; game-over remains visible; no revival" % game.run_clock)
-		if frame >= 5399 and (game.run_clock >= 180.0 or game.player_hp <= 0):
+		if game.player_hp <= 0:
+			death_frames += 1
+		if game.run_clock >= target_seconds or death_frames >= 90:
 			break
-	var report := {"recording": "desktop scripted input, normal damage, god mode OFF; fixed-FPS/offline capture is not a performance benchmark", "gameplay_seconds": game.run_clock, "level": game.progression.level, "hp": game.player_hp, "kills": game.kills, "deaths": deaths, "level_up_times": game.progression.level_times, "active_seconds":game.telemetry.active_seconds, "wall_seconds":game.telemetry.wall_seconds, "explicit_pause_seconds":game.telemetry.pause_seconds}
+	game.run_log.finish("death" if deaths > 0 else "capture_complete")
+	var report := {"seed":capture_seed,"requested_active_seconds":target_seconds,"run_log_directory":game.run_log.directory,"recording": "desktop scripted input, normal damage, god mode OFF; fixed-FPS/offline capture is not a performance benchmark", "gameplay_seconds": game.run_clock, "level": game.progression.level, "hp": game.player_hp, "kills": game.kills, "deaths": deaths, "level_up_times": game.progression.level_times, "active_seconds":game.telemetry.active_seconds, "wall_seconds":game.telemetry.wall_seconds, "explicit_pause_seconds":game.telemetry.pause_seconds}
 	FileAccess.open(output.path_join("playthrough.json"), FileAccess.WRITE).store_string(JSON.stringify(report, "  "))
 	print("FEEDBACK_RECORDING_COMPLETE ", JSON.stringify(report))
 	quit()
