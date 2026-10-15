@@ -790,6 +790,7 @@ func _spawn_pressure_group(forced_size: int = -1) -> void:
 	spawn_group_index += 1
 	var cap := int(progression.config.get("limits", {}).get("active_enemies", 250))
 	var min_spawn_distance := float(pacing.get("min_spawn_distance_tiles", 1.5)) * TILE
+	var runner_pack := wave >= 2 and rng.randf() < 0.35
 	for n in range(group_size):
 		if enemies.size() >= cap:
 			break
@@ -801,7 +802,7 @@ func _spawn_pressure_group(forced_size: int = -1) -> void:
 		if pos.distance_to(player_pos) < min_spawn_distance:
 			pos = player_pos + Vector2.from_angle(angle) * min_spawn_distance
 		pos = _nearest_walkable_position(pos, 18.0)
-		_append_enemy(_pressure_kind(), pos)
+		_append_enemy("runner" if runner_pack else _pressure_kind(), pos)
 		wave_spawned += 1
 
 func _spawn_opening_shambler() -> void:
