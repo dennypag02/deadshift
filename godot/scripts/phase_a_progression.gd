@@ -28,6 +28,8 @@ var rerolls_left := 2
 var banishes_left := 1
 var xp_dropped_total := 0
 var xp_collected_total := 0
+var xp_collected_raw := 0
+var xp_credit_remainder := 0.0
 var level_times: Array[Dictionary] = []
 
 var weapon_clocks: Dictionary = {
@@ -139,8 +141,13 @@ func vacuum_all_gems() -> void:
 		gem["age"] = float(config.get("xp", {}).get("vacuum_age_seconds", 6.0)) + 1.0
 
 func _collect_xp(amount: int) -> void:
-	xp_collected_total += amount
-	add_xp(amount)
+	xp_collected_raw += amount
+	var multiplier := 1.0 if level < 2 else float(config.get("xp", {}).get("collection_multiplier", 0.60))
+	xp_credit_remainder += amount * multiplier
+	var credited := floori(xp_credit_remainder + 0.00001)
+	xp_credit_remainder -= credited
+	xp_collected_total += credited
+	add_xp(credited)
 
 func add_xp(amount: int) -> void:
 	xp += amount

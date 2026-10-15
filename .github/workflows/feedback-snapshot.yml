@@ -1,0 +1,28 @@
+name: Feedback validation snapshot
+on:
+  push:
+    branches: [feature/stage2-guidance-zombie-feedback]
+    paths: [.github/workflows/feedback-snapshot.yml]
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare exact source and approved artwork
+        run: |
+          git fetch origin d070c9a05072436d14a826f05bfe434607ea82c7
+          git checkout d070c9a05072436d14a826f05bfe434607ea82c7 -- asset_pipeline
+          python3 asset_pipeline/install_curated_godot.py
+          mkdir -p evidence
+          git rev-parse HEAD > evidence/source-sha.txt
+          git archive HEAD > evidence/source.tar
+          tar -rf evidence/source.tar asset_pipeline godot/art/curated
+          curl -fL --retry 3 -o evidence/godot.zip https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: feedback-source-and-engine
+          path: evidence/
+          retention-days: 3

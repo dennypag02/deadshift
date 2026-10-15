@@ -68,6 +68,8 @@ func _ready() -> void:
 	last_level = progression.level
 	if capture_mode:
 		_start_capture_title()
+	elif not get_tree().has_meta("deadshift_run_started") and not OS.get_cmdline_user_args().has("--no-title") and not OS.get_cmdline_args().has("--script"):
+		_show_main_menu()
 
 func show_chest_reveal(reward: String) -> void:
 	modal_queue.append({"kind": "chest", "reward": reward})
@@ -129,41 +131,21 @@ func _run_chest_reveal(reward: String) -> void:
 	_advance_modal()
 
 func _start_capture_title() -> void:
-	get_tree().paused = true
-	capture_title = ColorRect.new()
-	capture_title.color = Color("#090B0C")
-	capture_title.position = Vector2.ZERO
-	capture_title.size = Vector2(432, 960)
-	capture_title.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(capture_title)
-	var title := Label.new()
-	title.text = "DEADSHIFT"
-	title.position = Vector2(36, 385)
-	title.size = Vector2(360, 95)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 58)
-	title.add_theme_color_override("font_color", Color("#F2E8D8"))
-	if bebas_font != null:
-		title.add_theme_font_override("font", bebas_font)
-	capture_title.add_child(title)
-	var subtitle := Label.new()
-	subtitle.text = "OUTSKIRTS"
-	subtitle.position = Vector2(36, 475)
-	subtitle.size = Vector2(360, 45)
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.add_theme_font_size_override("font_size", 24)
-	subtitle.add_theme_color_override("font_color", AMBER)
-	if barlow_font != null:
-		subtitle.add_theme_font_override("font", barlow_font)
-	capture_title.add_child(subtitle)
+	_show_main_menu()
 	_finish_capture_title()
 
 func _finish_capture_title() -> void:
-	await get_tree().create_timer(1.6, true, false, true).timeout
-	if capture_title != null:
-		capture_title.queue_free()
+	await get_tree().create_timer(3.0, true, false, true).timeout
+	_start_from_title()
 	capture_start_msec = Time.get_ticks_msec()
 	print("PACING_CAPTURE_GAMEPLAY_START")
+
+func _start_from_title() -> void:
+	if game.player_hp <= 0:
+		_retry_run()
+		return
+	main_menu_panel.visible = false
+	get_tree().set_meta("deadshift_run_started", true)
 	get_tree().paused = false
 
 func _capture_elapsed() -> float:
@@ -461,7 +443,7 @@ func _build_main_menu() -> void:
 	start.text = "START RUN"
 	start.custom_minimum_size = Vector2(300, 72)
 	start.add_theme_font_size_override("font_size", 30)
-	start.pressed.connect(_retry_run)
+	start.pressed.connect(_start_from_title)
 	stack.add_child(start)
 
 func show_game_over(time_survived: float, wave_number: int, player_level: int, kill_count: int, run_score: int, scrap: int, pause_tree: bool = true) -> void:
@@ -475,7 +457,7 @@ func show_game_over(time_survived: float, wave_number: int, player_level: int, k
 	if pause_tree:
 		get_tree().paused = true
 	if capture_mode:
-		_capture_finish_after_game_over()
+		print("PACING_GAME_OVER_VISIBLE")
 
 func _capture_finish_after_game_over() -> void:
 	await get_tree().create_timer(2.0, true, false, true).timeout
@@ -483,6 +465,7 @@ func _capture_finish_after_game_over() -> void:
 	get_tree().quit()
 
 func _retry_run() -> void:
+	get_tree().set_meta("deadshift_run_started", true)
 	get_tree().paused = false
 	get_tree().reload_current_scene()
 

@@ -1,0 +1,49 @@
+name: Apply validated feedback source
+on:
+  push:
+    branches: [feature/stage2-guidance-zombie-feedback]
+    paths: [tools/apply_feedback.py]
+permissions:
+  contents: write
+concurrency:
+  group: feedback-source-apply
+  cancel-in-progress: false
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply validated text changes and pinned approved art
+        run: |
+          python3 tools/apply_feedback.py
+          git fetch origin d070c9a05072436d14a826f05bfe434607ea82c7
+          git checkout d070c9a05072436d14a826f05bfe434607ea82c7 -- asset_pipeline/submitted_curations asset_pipeline/submitted_artwork
+          python3 tools/prepare_feedback_art.py
+          python3 tools/verify_feedback_contract.py
+          python3 - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          expected=json.loads(Path('tools/feedback_source_hashes.json').read_text())
+          for name, digest in expected.items():
+              source='tools/feedback_apk_workflow.yml' if name.startswith('.github/workflows/') else name
+              actual=hashlib.sha256(Path(source).read_bytes()).hexdigest()
+              if actual != digest: raise ValueError('Tested source mismatch: '+name+' got '+actual)
+          print('SOURCE_IDENTITY_PASS: all locally tested files match GitHub source')
+          PY
+      - name: Commit source and exact selected PNGs
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git reset -- asset_pipeline/submitted_curations asset_pipeline/submitted_artwork
+          git add godot/scripts godot/shaders godot/data/phase_a.json godot/data/approved_art_receipt.json godot/art/characters godot/art/curated
+          git commit -m 'Implement approved zombie presentation and Stage 2 objective guidance'
+          git push origin HEAD:feature/stage2-guidance-zombie-feedback
+          git rev-parse HEAD > feedback-source-sha.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: feedback-source-receipt
+          path: feedback-source-sha.txt
+          retention-days: 7

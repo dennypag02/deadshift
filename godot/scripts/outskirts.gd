@@ -1,5 +1,11 @@
 extends Node2D
 
+const ActorPresentation = preload("res://scripts/actor_presentation.gd")
+const ObjectiveGuidance = preload("res://scripts/objective_guidance.gd")
+var actors: Node2D
+var guidance: Node2D
+var tactical_map: Control
+
 const TILE := 128.0
 const MAP_W := 32
 const MAP_H := 40
@@ -7,6 +13,7 @@ const MAP_SIZE := Vector2(MAP_W * TILE, MAP_H * TILE)
 
 const SURVIVOR_ART := preload("res://art/survivor_wasteland.svg")
 const ZOMBIE_ART := preload("res://art/zombie_shambler.svg")
+var curated_pickup_textures: Dictionary = {}
 const CAR_SEDAN_ART := preload("res://art/cars/car_sedan.png")
 const CAR_SUV_ART := preload("res://art/cars/car_suv.png")
 const OUT_DINER_ART := preload("res://art/outskirts/out_diner.svg")
@@ -221,7 +228,28 @@ var game_over_shown := false
 var scrap_earned := 0
 var capture_death_triggered := false
 
+func _load_curated_art() -> void:
+	var pickup_paths := {
+		"Chest": "res://art/curated/icon_chest.png",
+		"Medkit": "res://art/curated/icon_pickup_medkit.png",
+		"Magnet": "res://art/curated/icon_pickup_magnet.png",
+		"Rage": "res://art/curated/icon_pickup_rage.png",
+		"Nuke": "res://art/curated/icon_pickup_nuke.png",
+		"Freeze": "res://art/curated/icon_pickup_freeze.png",
+	}
+	for kind in pickup_paths:
+		if ResourceLoader.exists(pickup_paths[kind]):
+			curated_pickup_textures[kind] = load(pickup_paths[kind])
+
+func _draw_curated_texture(texture: Texture2D, center: Vector2, footprint: Vector2) -> void:
+	var dimensions := texture.get_size()
+	if dimensions.x <= 0 or dimensions.y <= 0:
+		return
+	var size := dimensions * minf(footprint.x / dimensions.x, footprint.y / dimensions.y)
+	draw_texture_rect(texture, Rect2(center - size * 0.5, size), false)
+
 func _ready() -> void:
+	_load_curated_art()
 	capture_mode = OS.get_cmdline_user_args().has("--pacing-capture")
 	if capture_mode:
 		rng.seed = 20261014
@@ -233,6 +261,12 @@ func _ready() -> void:
 	_setup_objectives()
 	_setup_camera()
 	_setup_ui()
+	actors = ActorPresentation.new()
+	actors.game = self
+	add_child(actors)
+	guidance = ObjectiveGuidance.new()
+	guidance.game = self
+	add_child(guidance)
 	if capture_mode and phase_ui != null:
 		phase_ui.god_mode = false
 	_start_wave(1)
@@ -322,7 +356,7 @@ func _setup_ui() -> void:
 	ui.add_child(banner)
 	banner.visible = false
 
-	var tactical_map := Control.new()
+	tactical_map = Control.new()
 	tactical_map.set_script(load("res://scripts/tactical_minimap.gd"))
 	tactical_map.set("game", self)
 	tactical_map.position = Vector2(310, 12)
@@ -413,9 +447,9 @@ func _start_wave(next_wave: int) -> void:
 		fire_hazard = true
 		banner.text = "WAVE 10: TANKER DOWN!\nTRUCKER INCOMING - SURVIVE!"
 	elif wave == 2:
-		banner.text = "WAVE 2: PRESSURE RISING"
+		banner.text = "WAVE %d: PRESSURE RISING\n%s" % [wave, guidance.label_text().to_upper() if guidance != null else "FIND THE OBJECTIVE"]
 	else:
-		banner.text = "WAVE 1: THE HORDE IS HERE\nPOWER THE MINI-MART GENERATOR"
+		banner.text = "WAVE %d: THE HORDE IS HERE\n%s" % [wave, guidance.label_text().to_upper() if guidance != null else "POWER THE MINI-MART GENERATOR"]
 	_update_hud()
 
 func _finish_wave() -> void:
@@ -486,8 +520,6 @@ func _physics_process(delta: float) -> void:
 	if player_hp <= 0:
 		if capture_mode and not capture_death_triggered:
 			print("STAGE1_CAPTURE_DEATH wave=%d t=%.1f level=%d" % [wave, run_clock, progression.level if progression != null else 1])
-			player_hp = player_max_hp
-			player_hit_invulnerability = 1.0
 		if player_hp <= 0 and not game_over_shown:
 			print("STAGE1_RUN_END death_wave=%d elapsed=%.1f min_hp_pct=%.1f damage=%s" % [wave, run_clock, 100.0 * float(wave_min_hp) / maxf(1.0, float(player_max_hp)), str(stage1_damage_sources)])
 			game_over_shown = true
@@ -699,7 +731,7 @@ func _enemy_stats(kind: String) -> Dictionary:
 	var speed_scale := 1.0 + minf(float(difficulty.get("enemy_speed_bonus_cap", 0.20)), float(difficulty.get("enemy_speed_per_wave", 0.02)) * float(wave))
 	var roster: Dictionary = difficulty.get("enemy_types", {})
 	var base: Dictionary = roster.get(kind, {"hp": 30.0, "speed": 46.0, "radius": 34.0})
-	return {"hp": float(base.get("hp", 1.0)) * hp_scale, "speed": float(base.get("speed", 108.0)) * speed_scale, "radius": float(base.get("radius", 18.0))}
+	return {"hp": float(base.get("hp", 1.0)) * hp_scale, "speed": float(base.get("speed", 108.0)) * speed_scale, "radius": ActorPresentation.radius_for(kind) if ActorPresentation.HEIGHT_RATIOS.has(kind) else float(base.get("radius", 18.0))}
 
 func _append_enemy(kind: String, pos: Vector2) -> void:
 	var stats := _enemy_stats(kind)
@@ -1026,7 +1058,7 @@ func _update_phase_c(delta: float) -> void:
 			var elite: Dictionary = enemies[enemies.size() - 1]
 			elite["elite"] = true
 			elite["hp"] = float(elite["hp"]) * 4.0
-			elite["radius"] = float(elite["radius"]) * 1.35
+			elite["radius"] = ActorPresentation.radius_for(str(elite["kind"]), true)
 			print("PHASE_C_ELITE wave=%d t=%.1f" % [wave, run_clock])
 	for i in range(powerups.size() - 1, -1, -1):
 		var pickup: Dictionary = powerups[i]
@@ -1198,8 +1230,8 @@ func _start_trap(color: String) -> void:
 		var angle := TAU * float(i) / float(shambler_count + runner_count)
 		var candidate := center + Vector2.RIGHT.rotated(angle) * rng.randf_range(290.0, 460.0)
 		var is_runner := i >= shambler_count
-		var spawn := _nearest_walkable_position(candidate, 15.0 if is_runner else 18.0)
-		enemies.append({"pos": spawn, "kind": "runner" if is_runner else "shambler", "hp": 2 if is_runner else 1, "speed": 205.0 if is_runner else 108.0, "radius": 15.0 if is_runner else 18.0, "charge": 0.0, "trap_guard": color})
+		var spawn := _nearest_walkable_position(candidate, ActorPresentation.radius_for("runner" if is_runner else "shambler"))
+		enemies.append({"uid": _next_uid(), "pos": spawn, "kind": "runner" if is_runner else "shambler", "hp": 2 if is_runner else 1, "speed": 205.0 if is_runner else 108.0, "radius": ActorPresentation.radius_for("runner" if is_runner else "shambler"), "charge": 0.0, "trap_guard": color})
 	if color == "RED":
 		banner.text = "RED AMBUSH! SURVIVE 16 SECONDS"
 	elif color == "BLUE":
@@ -1251,9 +1283,10 @@ func _spawn_puzzle_guard_surge(shamblers: int, runners: int) -> void:
 		spawn.x = clampf(spawn.x, 45.0, MAP_SIZE.x - 45.0)
 		spawn.y = clampf(spawn.y, 45.0, MAP_SIZE.y - 45.0)
 		var is_runner := i >= shamblers
-		var spawn_radius := 15.0 if is_runner else 18.0
+		var spawn_radius := ActorPresentation.radius_for("runner" if is_runner else "shambler")
 		spawn = _nearest_walkable_position(spawn, spawn_radius)
 		enemies.append({
+			"uid": _next_uid(),
 			"pos": spawn,
 			"kind": "runner" if is_runner else "shambler",
 			"hp": 1,
@@ -1551,30 +1584,9 @@ func _draw_combat() -> void:
 		var kind := str(enemy["kind"])
 		var radius := float(enemy["radius"])
 		if kind == "trucker":
-			draw_circle(p + Vector2(6, 12), radius + 10.0, Color(0.05, 0.05, 0.05, 0.55))
-			draw_circle(p, radius, Color("#7e392f"))
-		elif kind == "runner":
-			draw_circle(p, radius, Color("#e5f0ee"))
-			var trail: Vector2 = (player_pos - p).normalized()
-			draw_line(p - trail * 18.0, p - trail * 58.0, Color("#e5f0ee", 0.85), 4.0)
-			draw_circle(p + Vector2(-4, -5), 3.0, Color("#263e44"))
-		elif kind == "bloater":
-			draw_circle(p, radius + 7.0, Color("#214b24"))
-			draw_circle(p, radius, Color("#72c849"))
-			draw_circle(p + Vector2(-9, -8), 7.0, Color("#b5e65c"))
-		elif kind == "spitter":
-			draw_colored_polygon(PackedVector2Array([p + Vector2(0, -radius), p + Vector2(radius * 0.55, radius), p + Vector2(-radius * 0.55, radius)]), Color("#43594d"))
-			draw_circle(p + Vector2(0, -radius * 0.55), radius * 0.60, Color("#a3ff39"))
-			draw_arc(p, radius + 5.0, 0.0, TAU, 18, Color("#a3ff39"), 3.0)
-		elif kind == "brute":
-			draw_circle(p, radius + 5.0, Color("#252b31"))
-			draw_circle(p, radius, Color("#555f68"))
-			var face: Vector2 = Vector2(enemy.get("facing", Vector2.RIGHT))
-			draw_line(p + face * radius * 0.55 + face.orthogonal() * radius * 0.65, p + face * radius * 0.55 - face.orthogonal() * radius * 0.65, Color("#b6bec4"), 11.0)
-			if float(enemy.get("charge", 0.0)) < 0.0:
-				draw_line(p, p + Vector2(enemy.get("charge_target", Vector2.RIGHT)) * 450.0, Color.ORANGE, 12.0)
-		else:
-			draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(25, 25), Vector2(50, 50)), false)
+			draw_circle(p, radius, Color("#7e392f")) # Deferred boss placeholder, unchanged.
+		if kind == "brute" and float(enemy.get("charge", 0.0)) < 0.0:
+			draw_line(p, p + Vector2(enemy.get("charge_target", Vector2.RIGHT)) * 450.0, Color.ORANGE, 12.0)
 		if bool(enemy.get("elite", false)):
 			var aura := 0.55 + 0.25 * sin(run_clock * 7.0)
 			draw_arc(p, radius + 12.0, 0.0, TAU, 32, Color(1.0, 0.74, 0.12, aura), 7.0, true)
@@ -1591,6 +1603,9 @@ func _draw_combat() -> void:
 		var tint := Color("#F2C14E") if str(pickup["kind"]) == "Chest" else Color("#3D8BFF")
 		draw_circle(ppos + Vector2(0, bob), 23.0, tint * Color(1, 1, 1, 0.55))
 		draw_arc(ppos + Vector2(0, bob), 30.0, 0.0, TAU, 24, tint, 4.0)
+		var pickup_kind := str(pickup["kind"])
+		if curated_pickup_textures.has(pickup_kind):
+			_draw_curated_texture(curated_pickup_textures[pickup_kind], ppos + Vector2(0, bob), Vector2(42, 42))
 	for bullet in bullets:
 		draw_line(bullet["pos"] - bullet["dir"] * 22.0, bullet["pos"], Color("#F2A23A", 0.45), 7.0)
 		draw_line(bullet["pos"] - bullet["dir"] * 22.0, bullet["pos"], Color("#fff2b8"), 4.0)
@@ -1602,7 +1617,7 @@ func _draw_combat() -> void:
 		var radius := 28.0 if not is_blast else 115.0 * clampf(life / 0.55, 0.2, 1.0)
 		draw_circle(mark["pos"], radius, Color(1.0,0.35,0.08,0.42 if is_blast else 0.55))
 
-	draw_circle(player_pos + Vector2(6,14), 35, Color(0.02,0.02,0.02,0.58))
+	# Shared actor renderer supplies foot-anchored survivor shadow and texture.
 	recoil_vector = recoil_vector.move_toward(Vector2.ZERO, 120.0 * get_physics_process_delta_time())
 	var bounce := sin(float(Time.get_ticks_msec()) * TAU / 250.0) * 0.05 if player_velocity.length() > 40.0 else 0.0
 	var visual_scale := Vector2(1.0, 0.99 + bounce)
@@ -1610,7 +1625,7 @@ func _draw_combat() -> void:
 	if player_hit_invulnerability > 0.0:
 		var flicker_on := int(Time.get_ticks_msec() / 70) % 2 == 0
 		survivor_tint.a = 0.30 if flicker_on else 1.0
-	draw_texture_rect(SURVIVOR_ART, Rect2(player_pos + recoil_vector - Vector2(48,48) * visual_scale, Vector2(96,96) * visual_scale), false, survivor_tint)
+	# Survivor art is rendered in the same Y-sorted actor layer as enemies.
 
 func _draw_dusk() -> void:
 	if wave < 7:
