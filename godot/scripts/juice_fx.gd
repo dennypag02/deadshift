@@ -1,6 +1,7 @@
 extends Node2D
 const J = preload("res://scripts/juice_config.gd")
 var game: Node2D
+var record_pool=preload("res://scripts/record_pool.gd").new()
 var effects: Array[Dictionary] = []
 var decals: Array[Dictionary] = []
 var popups: Array[Dictionary] = []
@@ -19,7 +20,9 @@ var base_zoom := Vector2.ONE
 var rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
-	rng.randomize()
+	for kind in {"effects":96,"decals":40,"popups":20,"damage_numbers":40}: record_pool.warm(kind,{"effects":96,"decals":40,"popups":20,"damage_numbers":40}[kind])
+	if OS.get_environment("DEADSHIFT_VALIDATION_SEED") != "": rng.seed=int(OS.get_environment("DEADSHIFT_VALIDATION_SEED"))+202
+	else: rng.randomize()
 	if game != null:
 		base_zoom = game.camera.zoom
 		last_wave = game.wave
@@ -28,13 +31,13 @@ func _ready() -> void:
 	z_index = 5
 
 func emit(kind: String, position: Vector2, direction: Vector2, duration: float) -> void:
-	if effects.size() >= 120:
-		effects.pop_front()
-	effects.append({"kind":kind,"pos":position,"dir":direction,"life":duration,"total":duration})
+	if effects.size() >= 96:
+		record_pool.remove(effects,0,"effects")
+	record_pool.push(effects,"effects",{"kind":kind,"pos":position,"dir":direction,"life":duration,"total":duration},96)
 
 func shot(position: Vector2, direction: Vector2) -> void:
 	emit("muzzle",position+direction*34.0,direction,J.MUZZLE_LIFE)
-	if effects.size() < 100:
+	if effects.size() < 80:
 		emit("casing",position+direction*20.0,direction.orthogonal(),J.CASING_LIFE)
 
 func hit(position: Vector2, direction: Vector2) -> void:
@@ -50,21 +53,21 @@ func kill(position: Vector2, value: int) -> void:
 	var life := float(blood_cfg.get("lifetime_seconds", 8.0))
 	var scale_min := float(blood_cfg.get("scale_min", 0.5))
 	var scale_max := float(blood_cfg.get("scale_max", 1.0))
-	decals.append({"pos":position,"life":life,"total":life,"scorch":false,"variant":rng.randi_range(0,3),"scale":rng.randf_range(scale_min,scale_max),"rotation":rng.randf_range(0.0,TAU)})
+	record_pool.push(decals,"decals",{"pos":position,"life":life,"total":life,"scorch":false,"variant":rng.randi_range(0,3),"scale":rng.randf_range(scale_min,scale_max),"rotation":rng.randf_range(0.0,TAU)},40)
 	if game != null and game.progression != null:
 		var decal_cap := int(game.progression.config.get("limits", {}).get("blood_decals", 40))
 		while decals.size() > decal_cap:
-			decals.pop_front()
+			record_pool.remove(decals,0,"decals")
 	if decals.size() > J.BLOOD_DECAL_CAP:
-		decals.pop_front()
+		record_pool.remove(decals,0,"decals")
 	for popup in popups:
 		if popup["pos"].distance_to(position) < 85.0 and popup["age"] < J.SCORE_POPUP_MERGE_WINDOW:
 			popup["value"] += value
 			popup["age"] = 0.0
 			return
-	popups.append({"pos":position,"value":value,"age":0.0})
+	record_pool.push(popups,"popups",{"pos":position,"value":value,"age":0.0},20)
 	if popups.size() > J.SCORE_POPUP_CAP:
-		popups.pop_front()
+		record_pool.remove(popups,0,"popups")
 
 func damage_number(uid: int, position: Vector2, amount: float, crit: bool) -> void:
 	if game == null or game.progression == null:
@@ -80,16 +83,16 @@ func damage_number(uid: int, position: Vector2, amount: float, crit: bool) -> vo
 			return
 	var cap := int(game.progression.config.get("limits", {}).get("damage_numbers", 40))
 	if damage_numbers.size() >= cap:
-		damage_numbers.pop_front()
-	damage_numbers.append({"uid": uid, "pos": position, "amount": amount, "crit": crit, "age": 0.0})
+		record_pool.remove(damage_numbers,0,"damage_numbers")
+	record_pool.push(damage_numbers,"damage_numbers",{"uid": uid, "pos": position, "amount": amount, "crit": crit, "age": 0.0},40)
 
 func explosion(position: Vector2, count: int) -> void:
 	emit("blast",position,Vector2.ZERO,0.55)
 	for i in range(14):
 		emit("debris",position,Vector2.RIGHT.rotated(TAU*float(i)/14.0),0.5)
-	decals.append({"pos":position,"life":1200.0,"total":1200.0,"scorch":true,"variant":0,"scale":1.0,"rotation":0.0})
+	record_pool.push(decals,"decals",{"pos":position,"life":1200.0,"total":1200.0,"scorch":true,"variant":0,"scale":1.0,"rotation":0.0},40)
 	if decals.size() > J.BLOOD_DECAL_CAP:
-		decals.pop_front()
+		record_pool.remove(decals,0,"decals")
 	shake_clock = J.EXPLOSION_SHAKE_LIFE
 	shake_strength = J.EXPLOSION_SHAKE_PX
 	if count >= J.HITSTOP_MIN_KILLS:
@@ -106,21 +109,21 @@ func _process(delta: float) -> void:
 	for i in range(effects.size()-1,-1,-1):
 		effects[i]["life"] -= delta
 		if effects[i]["life"] <= 0.0:
-			effects.remove_at(i)
+			record_pool.remove(effects,i,"effects")
 	for i in range(decals.size()-1,-1,-1):
 		decals[i]["life"] -= delta
 		if decals[i]["life"] <= 0.0:
-			decals.remove_at(i)
+			record_pool.remove(decals,i,"decals")
 	for i in range(popups.size()-1,-1,-1):
 		popups[i]["age"] += delta
 		if popups[i]["age"] >= J.SCORE_POPUP_LIFE:
-			popups.remove_at(i)
+			record_pool.remove(popups,i,"popups")
 	if game.progression != null:
 		var number_life := float(game.progression.config.get("damage_numbers", {}).get("lifetime_seconds", 0.75))
 		for i in range(damage_numbers.size()-1,-1,-1):
 			damage_numbers[i]["age"] = float(damage_numbers[i]["age"]) + delta
 			if float(damage_numbers[i]["age"]) >= number_life:
-				damage_numbers.remove_at(i)
+				record_pool.remove(damage_numbers,i,"damage_numbers")
 	if game.player_hp < last_hp:
 		hurt()
 	last_hp = game.player_hp

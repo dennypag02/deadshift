@@ -10,12 +10,13 @@ func _check() -> void:
 		await process_frame
 	game.wave_active = false
 	game.enemies.clear()
-	game.phase_a_debug_six_shambler_kills()
+	var required: int = game.progression.xp_required(1)
+	game.phase_a_debug_six_shambler_kills(required)
 	for i in range(30):
 		await process_frame
 	var ok: bool = int(game.progression.level) == 2
 	if ok:
-		print("PHASE_A_XP_6_KILL_PASS")
+		print("PHASE_A_CONFIGURED_FIRST_LEVEL_PASS")
 	else:
-		push_error("PHASE_A_XP_6_KILL_FAIL level=%d xp=%d gems=%d" % [game.progression.level, game.progression.xp, game.progression.gems.size()])
+		push_error("PHASE_A_CONFIGURED_FIRST_LEVEL_FAIL level=%d xp=%d gems=%d" % [game.progression.level, game.progression.xp, game.progression.gems.size()])
 	quit(0 if ok else 1)

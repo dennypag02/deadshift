@@ -5,6 +5,12 @@ const ObjectiveGuidance = preload("res://scripts/objective_guidance.gd")
 var actors: Node2D
 var guidance: Node2D
 var tactical_map: Control
+var telemetry: Node
+var terrain_batches: Node2D
+var transient_pool = preload("res://scripts/record_pool.gd").new()
+var enemy_grid: Dictionary = {}
+var grid_dirty := true
+var route_cells: Array[Vector2i] = []
 
 const TILE := 128.0
 const MAP_W := 32
@@ -250,8 +256,12 @@ func _draw_curated_texture(texture: Texture2D, center: Vector2, footprint: Vecto
 
 func _ready() -> void:
 	_load_curated_art()
+	for kind in {"enemies":250,"bullets":400,"impact_marks":120,"stage1_hazards":64,"powerups":30}:
+		transient_pool.warm(kind, {"enemies":250,"bullets":400,"impact_marks":120,"stage1_hazards":64,"powerups":30}[kind])
 	capture_mode = OS.get_cmdline_user_args().has("--pacing-capture")
-	if capture_mode:
+	if OS.get_environment("DEADSHIFT_VALIDATION_SEED") != "":
+		rng.seed = int(OS.get_environment("DEADSHIFT_VALIDATION_SEED"))
+	elif capture_mode:
 		rng.seed = 20261014
 	else:
 		rng.randomize()
@@ -259,6 +269,10 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_setup_pumps()
 	_setup_objectives()
+	_clear_objective_routes()
+	terrain_batches = preload("res://scripts/terrain_batches.gd").new()
+	terrain_batches.game = self
+	add_child(terrain_batches)
 	_setup_camera()
 	_setup_ui()
 	actors = ActorPresentation.new()
@@ -269,6 +283,9 @@ func _ready() -> void:
 	add_child(guidance)
 	if capture_mode and phase_ui != null:
 		phase_ui.god_mode = false
+	telemetry = preload("res://scripts/pacing_telemetry.gd").new()
+	telemetry.game = self
+	add_child(telemetry)
 	_start_wave(1)
 	if capture_mode:
 		print("PACING_CAPTURE_READY")
@@ -411,6 +428,7 @@ func _setup_objectives() -> void:
 
 func _start_wave(next_wave: int) -> void:
 	wave = next_wave
+	if telemetry != null: telemetry.event("wave_start",{"duration_s":_wave_duration(),"carried_enemies":enemies.size()})
 	wave_damage_taken = 0
 	wave_min_hp = player_hp
 	stage1_damage_sources = {"contact": 0, "spitter": 0, "bloater": 0, "brute": 0, "explosion": 0}
@@ -452,31 +470,35 @@ func _start_wave(next_wave: int) -> void:
 		banner.text = "WAVE %d: THE HORDE IS HERE\n%s" % [wave, guidance.label_text().to_upper() if guidance != null else "POWER THE MINI-MART GENERATOR"]
 	_update_hud()
 
+func _wave_duration() -> float:
+	var data: Dictionary = progression.config.get("pacing", {})
+	return float(data.get("wave1_duration_seconds",60.0) if wave==1 else data.get("wave_duration_seconds",67.5))
+
+func _tick_wave_clock(dt: float) -> void:
+	if wave_active:
+		wave_clock += dt
+		if wave_clock >= _wave_duration():
+			_finish_wave()
+	elif break_clock > 0:
+		break_clock = maxf(0,break_clock-dt)
+		if break_clock<=0 and wave<10: _start_wave(wave+1)
+
 func _finish_wave() -> void:
-	if capture_mode:
-		print("PACING_DAMAGE wave=%d damage_taken=%d min_hp=%d max_hp=%d min_hp_pct=%.1f" % [wave, wave_damage_taken, wave_min_hp, player_max_hp, 100.0 * float(wave_min_hp) / maxf(1.0, float(player_max_hp))])
-	print("STAGE1_WAVE wave=%d min_hp_pct=%.1f damage=%s enemies_avg=%.1f enemies_max=%d dps=%.1f level=%d elapsed=%.1f" % [wave, stage1_wave_min_hp_pct, str(stage1_damage_sources), stage1_enemy_integral / maxf(0.01, stage1_sample_seconds), stage1_enemy_max, stage1_damage_dealt / maxf(0.01, wave_clock), progression.level if progression != null else 1, run_clock])
+	if not wave_active: return
 	wave_active = false
-	if progression != null:
-		progression.vacuum_all_gems()
-	if wave == 1:
-		break_clock = float(progression.config.get("pacing", {}).get("break_seconds", 8.0)) if progression != null else 8.0
-		banner.text = "WAVE 1 CLEARED - NEXT WAVE IN %.0f" % break_clock
-		if capture_mode:
-			print("PACING_WAVE_END wave=1 t=%.2f remaining=%d" % [capture_clock, enemies.size()])
-		return
-	if wave == 10:
-		wave10_survived = true
-		fire_hazard = false
+	print("STAGE1_WAVE wave=%d min_hp_pct=%.1f damage=%s enemies_avg=%.1f enemies_max=%d dps=%.1f level=%d elapsed=%.1f" % [wave, stage1_wave_min_hp_pct, str(stage1_damage_sources), stage1_enemy_integral / maxf(0.01,stage1_sample_seconds), stage1_enemy_max, stage1_damage_dealt / maxf(0.01,wave_clock), progression.level, run_clock])
+	if telemetry != null:
+		telemetry.event("wave_end",{"duration_s":wave_clock,"remaining_enemies":enemies.size(),"level":progression.level})
+	print("PACING_WAVE_END wave=%d t=%.2f duration=%.2f remaining=%d" % [wave,run_clock,wave_clock,enemies.size()])
+	progression.vacuum_all_gems()
+	if wave>=10:
+		wave10_survived=true
+		fire_hazard=false
 		_try_unlock_district()
-		if not district_cleared:
-			banner.text = "HORDE BROKEN - FINISH DISTRICT OBJECTIVES"
-		_update_hud()
 		return
-	banner.text = "WAVE %d CLEARED - UPGRADE CRATE" % wave
-	if phase_ui != null:
-		phase_ui.call("queue_upgrade_crate")
-	_start_wave(wave + 1)
+	break_clock=float(progression.config.get("pacing",{}).get("break_seconds",4.0))
+	banner.text="WAVE %d CLEARED - NEXT WAVE IN %.0f" % [wave,break_clock]
+	if wave>=2 and phase_ui!=null: phase_ui.queue_upgrade_crate()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_H:
@@ -502,7 +524,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		touch_position = event.position
 
 func _physics_process(delta: float) -> void:
-	run_clock += delta
+
 	player_hit_invulnerability = maxf(0.0, player_hit_invulnerability - delta)
 	incoming_damage_window += delta
 	if incoming_damage_window >= 1.0:
@@ -557,12 +579,6 @@ func _physics_process(delta: float) -> void:
 			player_hp = 0
 			return
 
-	if not wave_active and break_clock > 0.0:
-		break_clock = maxf(0.0, break_clock - delta)
-		if progression != null:
-			progression.vacuum_all_gems()
-		if break_clock <= 0.0 and wave == 1:
-			_start_wave(2)
 
 	var hazard := _hazard_at(player_pos)
 	var speed_mult := float(hazard["speed_mult"])
@@ -585,23 +601,21 @@ func _physics_process(delta: float) -> void:
 	for i in range(impact_marks.size() - 1, -1, -1):
 		impact_marks[i]["life"] -= delta
 		if impact_marks[i]["life"] <= 0.0:
-			impact_marks.remove_at(i)
+			transient_pool.remove(impact_marks,i,"impact_marks")
 
 	if wave_active:
-		wave_clock += delta
+
 		stage1_enemy_integral += float(_onscreen_enemy_count()) * delta
 		stage1_sample_seconds += delta
 		stage1_enemy_max = maxi(stage1_enemy_max, _onscreen_enemy_count())
-		var wave_duration := float(progression.config.get("pacing", {}).get("wave_duration_seconds", 75.0))
+		var wave_duration := _wave_duration()
 		if not stage1_surge_triggered and wave_clock >= wave_duration - float(progression.config.get("pacing", {}).get("surge_last_seconds", 10.0)):
 			stage1_surge_triggered = true
 			_stage1_spawn_surge()
 		var pacing: Dictionary = progression.config.get("pacing", {}) if progression != null else {}
 		var active_target := _active_horde_target()
 		spawn_clock -= delta
-		if wave_clock >= wave_duration:
-			_finish_wave()
-		elif wave_clock < wave_duration and spawn_clock <= 0.0 and _onscreen_enemy_count() < active_target and enemies.size() < int(progression.config.get("limits", {}).get("active_enemies", 250)):
+		if wave_clock < wave_duration and spawn_clock <= 0.0 and _onscreen_enemy_count() < active_target and enemies.size() < int(progression.config.get("limits", {}).get("active_enemies", 250)):
 			var pressure_room := maxi(0, active_target - _onscreen_enemy_count())
 			if pressure_room > 0:
 				var group_cap := mini(int(pacing.get("spawn_group_max", 10)), pressure_room)
@@ -628,8 +642,8 @@ func _physics_process(delta: float) -> void:
 		var smg_damage_mult: float = 1.0 + (0.25 * progression.weapon_step_mult("scrap_smg", 5) if smg_level >= 5 else 0.0)
 		for shot in range(shot_count):
 			var spread := (TAU * float(shot) / float(shot_count) + run_clock * 2.0) if progression != null and progression.evolutions.has("scrap_smg") else (float(shot) - float(shot_count - 1) * 0.5) * 0.12
-			if progression == null or bullets.size() < int(progression.config.get("limits", {}).get("projectiles", 400)):
-				bullets.append({"pos": player_pos, "dir": heading.rotated(spread), "life": 1.6, "hits_left": smg_hits, "damage_mult": smg_damage_mult, "knockback": 0.0})
+			if progression == null or projectile_count() < int(progression.config.get("limits", {}).get("projectiles", 400)):
+				transient_pool.push(bullets,"bullets",{"pos": player_pos, "dir": heading.rotated(spread), "life": 1.6, "hits_left": smg_hits, "damage_mult": smg_damage_mult, "knockback": 0.0},400)
 		if progression != null and progression.weapons.has("boomstick"):
 			var boom_level := int(progression.weapons["boomstick"])
 			var boom_data: Dictionary = progression.config["weapons"]["boomstick"]
@@ -643,8 +657,8 @@ func _physics_process(delta: float) -> void:
 			var boom_knockback := float(boom_data.get("base_knockback", 36.0)) * (2.0 if boom_level >= 5 else 1.0)
 			for pellet in range(pellet_count):
 				var angle := (float(pellet) - float(pellet_count-1)*0.5) * cone_step
-				if progression == null or bullets.size() < int(progression.config.get("limits", {}).get("projectiles", 400)):
-					bullets.append({"pos": player_pos, "dir": heading.rotated(angle), "life": 0.48, "hits_left": 1, "damage_mult": boom_damage_mult, "knockback": boom_knockback})
+				if progression == null or projectile_count() < int(progression.config.get("limits", {}).get("projectiles", 400)):
+					transient_pool.push(bullets,"bullets",{"pos": player_pos, "dir": heading.rotated(angle), "life": 0.48, "hits_left": 1, "damage_mult": boom_damage_mult, "knockback": boom_knockback},400)
 		if juice_fx != null:
 			juice_fx.call("shot", player_pos, heading)
 			recoil_vector = -heading * 3.0
@@ -656,6 +670,7 @@ func _physics_process(delta: float) -> void:
 
 	_update_phase_c(delta)
 	_stage1_update_hazards(delta)
+	_rebuild_enemy_grid()
 	_update_bullets(delta)
 	_update_enemies(delta)
 	_update_health(delta)
@@ -672,7 +687,7 @@ func _active_horde_target() -> int:
 	var target_row: Array = targets[mini(maxi(0, wave - 1), targets.size() - 1)] if not targets.is_empty() else [20, 40]
 	var start_target := int(target_row[0])
 	var end_target := int(target_row[1])
-	var t := clampf(wave_clock / float(pacing.get("wave_duration_seconds", 75.0)), 0.0, 1.0)
+	var t := clampf(wave_clock / _wave_duration(), 0.0, 1.0)
 	var target := roundi(lerpf(float(start_target), float(end_target), t))
 	return mini(int(progression.config.get("limits", {}).get("active_enemies", 250)), target)
 
@@ -688,8 +703,10 @@ func _is_position_on_screen(pos: Vector2) -> bool:
 
 func _onscreen_enemy_count() -> int:
 	var count := 0
+	var half:=_camera_half_extents()
+	var view:=Rect2(player_pos-half,half*2)
 	for enemy in enemies:
-		if _is_position_on_screen(Vector2(enemy["pos"])):
+		if view.has_point(enemy["pos"]):
 			count += 1
 	return count
 
@@ -734,8 +751,10 @@ func _enemy_stats(kind: String) -> Dictionary:
 	return {"hp": float(base.get("hp", 1.0)) * hp_scale, "speed": float(base.get("speed", 108.0)) * speed_scale, "radius": ActorPresentation.radius_for(kind) if ActorPresentation.HEIGHT_RATIOS.has(kind) else float(base.get("radius", 18.0))}
 
 func _append_enemy(kind: String, pos: Vector2) -> void:
+	if enemies.size()>=250: return
+	grid_dirty=true
 	var stats := _enemy_stats(kind)
-	enemies.append({
+	transient_pool.push(enemies,"enemies",{
 		"uid": _next_uid(),
 		"pos": pos,
 		"kind": kind,
@@ -748,7 +767,7 @@ func _append_enemy(kind: String, pos: Vector2) -> void:
 		"attack_clock": 0.0,
 		"charge_target": Vector2.ZERO,
 		"facing": Vector2.RIGHT,
-	})
+	},250)
 
 func _pressure_kind() -> String:
 	if wave <= 1:
@@ -811,7 +830,7 @@ func _cap_impact_marks() -> void:
 		return
 	var cap := int(progression.config.get("limits", {}).get("impact_marks", 120))
 	while impact_marks.size() > cap:
-		impact_marks.pop_front()
+		transient_pool.remove(impact_marks,0,"impact_marks")
 
 func _update_bullets(delta: float) -> void:
 	for i in range(bullets.size() - 1, -1, -1):
@@ -822,7 +841,7 @@ func _update_bullets(delta: float) -> void:
 
 		var bullet_tile := _char_at_world(Vector2(bullet["pos"]))
 		if _bullet_blocked_by(bullet_tile):
-			bullets.remove_at(i)
+			transient_pool.remove(bullets,i,"bullets")
 			continue
 
 		for pump in pumps:
@@ -831,10 +850,11 @@ func _update_bullets(delta: float) -> void:
 				consumed = true
 				break
 		if consumed:
-			bullets.remove_at(i)
+			transient_pool.remove(bullets,i,"bullets")
 			continue
 
-		for j in range(enemies.size() - 1, -1, -1):
+		for j in enemy_indices_near(Vector2(bullet["pos"]), 75.0):
+			if j >= enemies.size(): continue
 			var enemy: Dictionary = enemies[j]
 			if bullet["pos"].distance_to(enemy["pos"]) <= float(enemy["radius"]) + BULLET_RADIUS:
 				var bullet_mult := float(bullet.get("damage_mult", 1.0))
@@ -848,8 +868,9 @@ func _update_bullets(delta: float) -> void:
 					var live_enemy: Dictionary = enemies[j]
 					if knockback > 0.0:
 						var pushed := Vector2(live_enemy["pos"]) + Vector2(bullet["dir"]).normalized() * knockback
+						grid_dirty = true
 						live_enemy["pos"] = _move_with_blockers(Vector2(live_enemy["pos"]), pushed - Vector2(live_enemy["pos"]), float(live_enemy["radius"]))
-					impact_marks.append({"pos": live_enemy["pos"], "life": 0.22})
+					transient_pool.push(impact_marks,"impact_marks",{"pos": live_enemy["pos"], "life": 0.22},120)
 					_cap_impact_marks()
 					live_enemy["visual_hit"] = 0.06
 					live_enemy["visual_dir"] = Vector2(bullet["dir"])
@@ -863,11 +884,11 @@ func _update_bullets(delta: float) -> void:
 					bullet["pos"] += Vector2(bullet["dir"]).normalized() * (float(enemy["radius"]) * 2.0 + 18.0)
 				break
 		if consumed or float(bullet["life"]) <= 0.0:
-			bullets.remove_at(i)
+			transient_pool.remove(bullets,i,"bullets")
 
 func _explode_pump(pump: Dictionary) -> void:
 	pump["alive"] = false
-	impact_marks.append({"pos": pump["pos"], "life": 0.55, "blast": true})
+	transient_pool.push(impact_marks,"impact_marks",{"pos": pump["pos"], "life": 0.55, "blast": true},120)
 	_cap_impact_marks()
 	var blast_kills := 0
 	for i in range(enemies.size() - 1, -1, -1):
@@ -977,8 +998,8 @@ func _stage1_update_hazards(delta: float) -> void:
 		if float(h["life"]) <= 0.0:
 			if str(h["kind"]) == "acid_warning":
 				var diff: Dictionary = progression.config.get("difficulty", {})
-				stage1_hazards.append({"kind": "acid", "pos": Vector2(h["pos"]), "radius": float(h["radius"]), "life": float(diff.get("spitter_puddle_seconds", 4.0)), "tick": 0.0})
-			stage1_hazards.remove_at(i)
+				transient_pool.push(stage1_hazards,"stage1_hazards",{"kind": "acid", "pos": Vector2(h["pos"]), "radius": float(h["radius"]), "life": float(diff.get("spitter_puddle_seconds", 4.0)), "tick": 0.0},64)
+			transient_pool.remove(stage1_hazards,i,"stage1_hazards")
 			continue
 		if str(h["kind"]) == "acid" and player_pos.distance_to(Vector2(h["pos"])) < float(h["radius"]) and float(h["tick"]) <= 0.0:
 			var diff: Dictionary = progression.config.get("difficulty", {})
@@ -996,47 +1017,63 @@ func _stage1_spawn_surge() -> void:
 	print("STAGE1_SURGE wave=%d t=%.1f count=%d" % [wave, run_clock, count])
 
 func _update_enemies(delta: float) -> void:
+	var half:=_camera_half_extents()+Vector2(80,80)
+	var view:=Rect2(player_pos-half,half*2)
 	for i in range(enemies.size() - 1, -1, -1):
 		var enemy: Dictionary = enemies[i]
-		enemy["visual_hit"] = maxf(0.0, float(enemy.get("visual_hit", 0.0)) - delta)
-		enemy["contact_cooldown"] = maxf(0.0, float(enemy.get("contact_cooldown", 0.0)) - delta)
-		var to_player: Vector2 = player_pos - enemy["pos"]
-		if str(enemy["kind"]) == "brute" and float(enemy.get("charge", 0.0)) == 0.0 and to_player.length() > 1.0:
-			enemy["facing"] = to_player.normalized()
-		var speed := 0.0 if freeze_clock > 0.0 else float(enemy["speed"])
-		var kind: String = str(enemy["kind"])
-		var diff: Dictionary = progression.config.get("difficulty", {})
-		if kind == "spitter" and freeze_clock <= 0.0:
-			enemy["attack_clock"] = float(enemy.get("attack_clock", 0.0)) - delta
-			if float(enemy["attack_clock"]) <= 0.0 and to_player.length() < 600.0:
-				enemy["attack_clock"] = 3.2
-				stage1_hazards.append({"kind": "acid_warning", "pos": player_pos + player_velocity * 0.5, "radius": 80.0, "life": float(diff.get("spitter_telegraph_seconds", 0.8)), "tick": 0.0})
-			if to_player.length() < 360.0:
-				speed = -speed * 0.6
-		elif kind == "brute" and freeze_clock <= 0.0:
-			enemy["attack_clock"] = float(enemy.get("attack_clock", 0.0)) - delta
-			if float(enemy["attack_clock"]) <= 0.0 and to_player.length() < 440.0:
-				enemy["attack_clock"] = 4.5
-				enemy["charge"] = -float(diff.get("brute_charge_telegraph_seconds", 0.9))
-				enemy["charge_target"] = to_player.normalized()
-			if float(enemy["charge"]) < 0.0:
-				enemy["charge"] = minf(0.0, float(enemy["charge"]) + delta)
-				speed = 0.0
-				if float(enemy["charge"]) >= 0.0:
-					enemy["charge"] = float(diff.get("brute_charge_seconds", 0.55))
-			elif float(enemy["charge"]) > 0.0:
-				enemy["charge"] = maxf(0.0, float(enemy["charge"]) - delta)
-				enemy["pos"] = _move_with_blockers(Vector2(enemy["pos"]), Vector2(enemy["charge_target"]) * float(diff.get("brute_charge_speed", 390.0)) * delta, float(enemy["radius"]))
-				speed = 0.0
-		if str(enemy["kind"]) == "trucker" and float(enemy["charge"]) > 0.0:
+		var step_dt := delta
+		if not view.has_point(enemy["pos"]) and player_pos.distance_squared_to(enemy["pos"])>640.0*640.0:
+			enemy["ai_accum"] = float(enemy.get("ai_accum",0.0))+delta
+			if float(enemy["ai_accum"])<1.0/float(progression.config.get("performance",{}).get("offscreen_ai_hz",15)): continue
+			step_dt = float(enemy["ai_accum"])
+			enemy["ai_accum"]=0.0
+		else:
+			step_dt += float(enemy.get("ai_accum",0.0))
+			enemy["ai_accum"]=0.0
+		_update_enemy(enemy,step_dt)
+	grid_dirty=true
+
+func _update_enemy(enemy: Dictionary, delta: float) -> void:
+	enemy["visual_hit"] = maxf(0.0, float(enemy.get("visual_hit", 0.0)) - delta)
+	enemy["contact_cooldown"] = maxf(0.0, float(enemy.get("contact_cooldown", 0.0)) - delta)
+	var to_player: Vector2 = player_pos - enemy["pos"]
+	if str(enemy["kind"]) == "brute" and float(enemy.get("charge", 0.0)) == 0.0 and to_player.length() > 1.0:
+		enemy["facing"] = to_player.normalized()
+	var speed := 0.0 if freeze_clock > 0.0 else float(enemy["speed"])
+	var kind: String = str(enemy["kind"])
+	var diff: Dictionary = progression.config.get("difficulty", {})
+	if kind == "spitter" and freeze_clock <= 0.0:
+		enemy["attack_clock"] = float(enemy.get("attack_clock", 0.0)) - delta
+		if float(enemy["attack_clock"]) <= 0.0 and to_player.length() < 600.0:
+			enemy["attack_clock"] = 3.2
+			transient_pool.push(stage1_hazards,"stage1_hazards",{"kind": "acid_warning", "pos": player_pos + player_velocity * 0.5, "radius": 80.0, "life": float(diff.get("spitter_telegraph_seconds", 0.8)), "tick": 0.0},64)
+		if to_player.length() < 360.0:
+			speed = -speed * 0.6
+	elif kind == "brute" and freeze_clock <= 0.0:
+		enemy["attack_clock"] = float(enemy.get("attack_clock", 0.0)) - delta
+		if float(enemy["attack_clock"]) <= 0.0 and to_player.length() < 440.0:
+			enemy["attack_clock"] = 4.5
+			enemy["charge"] = -float(diff.get("brute_charge_telegraph_seconds", 0.9))
+			enemy["charge_target"] = to_player.normalized()
+		if float(enemy["charge"]) < 0.0:
+			enemy["charge"] = minf(0.0, float(enemy["charge"]) + delta)
+			speed = 0.0
+			if float(enemy["charge"]) >= 0.0:
+				enemy["charge"] = float(diff.get("brute_charge_seconds", 0.55))
+		elif float(enemy["charge"]) > 0.0:
 			enemy["charge"] = maxf(0.0, float(enemy["charge"]) - delta)
-			speed = 165.0
-		var enemy_hazard := _hazard_at(Vector2(enemy["pos"]))
-		speed *= float(enemy_hazard["speed_mult"])
-		var enemy_step := to_player.normalized() * speed * delta
-		enemy["pos"] = _move_with_blockers(Vector2(enemy["pos"]), enemy_step, float(enemy["radius"]))
-		if to_player.length() < PLAYER_RADIUS + float(enemy["radius"]):
-			_apply_player_contact_damage(enemy)
+			enemy["pos"] = _move_with_blockers(Vector2(enemy["pos"]), Vector2(enemy["charge_target"]) * float(diff.get("brute_charge_speed", 390.0)) * delta, float(enemy["radius"]))
+			speed = 0.0
+	if str(enemy["kind"]) == "trucker" and float(enemy["charge"]) > 0.0:
+		enemy["charge"] = maxf(0.0, float(enemy["charge"]) - delta)
+		speed = 165.0
+	speed *= _speed_mult_for_char(_char_at_world(enemy["pos"]))
+	var enemy_step := to_player.normalized() * speed * delta
+	var substeps:=maxi(1,ceili(enemy_step.length()/12.0))
+	for sub in range(substeps):
+		enemy["pos"] = _move_with_blockers(Vector2(enemy["pos"]), enemy_step/substeps, float(enemy["radius"]))
+	if to_player.length() < PLAYER_RADIUS + float(enemy["radius"]):
+		_apply_player_contact_damage(enemy)
 
 func _haptic_pulse(duration_ms: int = 30) -> void:
 	if not vibration_enabled:
@@ -1065,11 +1102,11 @@ func _update_phase_c(delta: float) -> void:
 		pickup["age"] = float(pickup["age"]) + delta
 		if player_pos.distance_to(Vector2(pickup["pos"])) < 65.0:
 			_collect_phase_c_powerup(str(pickup["kind"]))
-			powerups.remove_at(i)
+			transient_pool.remove(powerups,i,"powerups")
 		elif float(pickup["age"]) > 35.0:
-			powerups.remove_at(i)
+			transient_pool.remove(powerups,i,"powerups")
 	if powerups.size() > 30:
-		powerups.pop_front()
+		transient_pool.remove(powerups,0,"powerups")
 
 func _collect_phase_c_powerup(kind: String) -> void:
 	match kind:
@@ -1105,7 +1142,7 @@ func _collect_phase_c_powerup(kind: String) -> void:
 				phase_ui.show_chest_reveal(chest_reward)
 	banner.text = "POWER-UP: %s!" % kind
 	banner.visible = true
-	impact_marks.append({"pos": player_pos, "life": 0.55, "blast": true})
+	transient_pool.push(impact_marks,"impact_marks",{"pos": player_pos, "life": 0.55, "blast": true},120)
 	_cap_impact_marks()
 	print("PHASE_C_PICKUP kind=%s t=%.1f" % [kind, run_clock])
 
@@ -1166,7 +1203,7 @@ func _update_objectives(delta: float) -> void:
 			objective_hint_cooldown = 0.0
 			score += 600
 			objective_flash_clock = 2.5
-			impact_marks.append({"pos": nest["pos"], "life": 0.55, "blast": true})
+			transient_pool.push(impact_marks,"impact_marks",{"pos": nest["pos"], "life": 0.55, "blast": true},120)
 			_kill_enemies_near(Vector2(nest["pos"]), 240.0)
 			banner.text = "INFESTATION NEST DESTROYED!"
 			_try_unlock_district()
@@ -1231,7 +1268,7 @@ func _start_trap(color: String) -> void:
 		var candidate := center + Vector2.RIGHT.rotated(angle) * rng.randf_range(290.0, 460.0)
 		var is_runner := i >= shambler_count
 		var spawn := _nearest_walkable_position(candidate, ActorPresentation.radius_for("runner" if is_runner else "shambler"))
-		enemies.append({"uid": _next_uid(), "pos": spawn, "kind": "runner" if is_runner else "shambler", "hp": 2 if is_runner else 1, "speed": 205.0 if is_runner else 108.0, "radius": ActorPresentation.radius_for("runner" if is_runner else "shambler"), "charge": 0.0, "trap_guard": color})
+		transient_pool.push(enemies,"enemies",{"uid": _next_uid(), "pos": spawn, "kind": "runner" if is_runner else "shambler", "hp": 2 if is_runner else 1, "speed": 205.0 if is_runner else 108.0, "radius": ActorPresentation.radius_for("runner" if is_runner else "shambler"), "charge": 0.0, "trap_guard": color},250)
 	if color == "RED":
 		banner.text = "RED AMBUSH! SURVIVE 16 SECONDS"
 	elif color == "BLUE":
@@ -1263,7 +1300,7 @@ func _complete_relay_step() -> void:
 		puzzle_complete = true
 		detonator_core = true
 		score += 2500
-		impact_marks.append({"pos": PUZZLE_CENTER, "life": 0.75, "blast": true})
+		transient_pool.push(impact_marks,"impact_marks",{"pos": PUZZLE_CENTER, "life": 0.75, "blast": true},120)
 		banner.text = "DETONATOR CORE SECURED! BOSS KEY ACQUIRED"
 		_try_unlock_district()
 	else:
@@ -1285,7 +1322,7 @@ func _spawn_puzzle_guard_surge(shamblers: int, runners: int) -> void:
 		var is_runner := i >= shamblers
 		var spawn_radius := ActorPresentation.radius_for("runner" if is_runner else "shambler")
 		spawn = _nearest_walkable_position(spawn, spawn_radius)
-		enemies.append({
+		transient_pool.push(enemies,"enemies",{
 			"uid": _next_uid(),
 			"pos": spawn,
 			"kind": "runner" if is_runner else "shambler",
@@ -1293,7 +1330,7 @@ func _spawn_puzzle_guard_surge(shamblers: int, runners: int) -> void:
 			"speed": 205.0 if is_runner else 112.0,
 			"radius": spawn_radius,
 			"charge": 0.0,
-		})
+		},250)
 
 func _kill_enemies_near(center: Vector2, radius: float) -> void:
 	for i in range(enemies.size() - 1, -1, -1):
@@ -1331,7 +1368,7 @@ func _update_hud() -> void:
 	]
 
 func _draw() -> void:
-	_draw_grid_map()
+	if hazard_debug: _draw_hazard_debug()
 	_draw_map_art()
 	_draw_objectives()
 	_draw_spawn_markers()
@@ -1690,19 +1727,20 @@ func phase_b_damage_enemy(index: int, raw_damage: float, crit: bool, source: Str
 	return false
 
 func _phase_a_kill_enemy(index: int) -> void:
+	grid_dirty=true
 	if index < 0 or index >= enemies.size():
 		return
 	var enemy: Dictionary = enemies[index]
 	var kind := str(enemy["kind"])
 	if bool(enemy.get("elite", false)):
-		powerups.append({"pos": Vector2(enemy["pos"]), "kind": "Chest", "age": 0.0})
+		transient_pool.push(powerups,"powerups",{"pos": Vector2(enemy["pos"]), "kind": "Chest", "age": 0.0},30)
 		if progression != null:
 			progression.add_xp(25)
 	elif rng.randf() < float(progression.config.get("difficulty", {}).get("normal_powerup_drop_chance", 0.004)):
 		var kinds := ["Rage", "Mega Gun", "Nuke", "Magnet", "Freeze", "Medkit"]
 		var chosen: String = kinds[rng.randi_range(0, kinds.size() - 1)]
 		if chosen != "Medkit" or rng.randf() < float(progression.config.get("difficulty", {}).get("medkit_drop_weight", 0.5)):
-			powerups.append({"pos": Vector2(enemy["pos"]), "kind": chosen, "age": 0.0})
+			transient_pool.push(powerups,"powerups",{"pos": Vector2(enemy["pos"]), "kind": chosen, "age": 0.0},30)
 	if progression != null:
 		progression.drop_xp(Vector2(enemy["pos"]), kind)
 	kills += 1
@@ -1714,13 +1752,13 @@ func _phase_a_kill_enemy(index: int) -> void:
 		juice_fx.call("kill", Vector2(enemy["pos"]), points)
 	if kind == "bloater":
 		var diff: Dictionary = progression.config.get("difficulty", {})
-		stage1_hazards.append({"kind": "goo", "pos": Vector2(enemy["pos"]), "radius": 115.0, "life": float(diff.get("bloater_goo_seconds", 5.0)), "tick": 0.0})
-	enemies.remove_at(index)
+		transient_pool.push(stage1_hazards,"stage1_hazards",{"kind": "goo", "pos": Vector2(enemy["pos"]), "radius": 115.0, "life": float(diff.get("bloater_goo_seconds", 5.0)), "tick": 0.0},64)
+	transient_pool.remove(enemies,index,"enemies")
 
 func phase_a_resume_shockwave() -> void:
 	var radius := 260.0
 	var push := 145.0
-	impact_marks.append({"pos": player_pos, "life": 0.45, "blast": true})
+	transient_pool.push(impact_marks,"impact_marks",{"pos": player_pos, "life": 0.45, "blast": true},120)
 	_cap_impact_marks()
 	for enemy in enemies:
 		var enemy_pos := Vector2(enemy["pos"])
@@ -1730,7 +1768,7 @@ func phase_a_resume_shockwave() -> void:
 			enemy["pos"] = _move_with_blockers(enemy_pos, direction * push, float(enemy["radius"]))
 	queue_redraw()
 
-func phase_a_debug_six_shambler_kills() -> void:
+func phase_a_debug_six_shambler_kills(count: int = 6) -> void:
 	if progression == null:
 		return
 	progression.level = 1
@@ -1738,6 +1776,63 @@ func phase_a_debug_six_shambler_kills() -> void:
 	progression.pending_levels = 0
 	progression.choosing = false
 	progression.gems.clear()
-	for i in range(6):
-		enemies.append({"pos": player_pos + Vector2(10.0 * float(i % 3), 10.0 * float(i / 3)), "kind":"shambler", "hp":1, "speed":0.0, "radius":18.0, "charge":0.0})
+	for i in range(count):
+		transient_pool.push(enemies,"enemies",{"pos": player_pos + Vector2(10.0 * float(i % 3), 10.0 * float(i / 3)), "kind":"shambler", "hp":1, "speed":0.0, "radius":18.0, "charge":0.0},250)
 		_phase_a_kill_enemy(enemies.size() - 1)
+
+func projectile_count() -> int:
+	return bullets.size()+(progression.rockets.size()+progression.chakrams.size()+progression.lightning_arcs.size()+progression.drone_shots.size() if progression!=null else 0)
+
+func _rebuild_enemy_grid() -> void:
+	for cell in enemy_grid: enemy_grid[cell].clear()
+	for i in range(enemies.size()):
+		var e: Dictionary=enemies[i]
+		e["grid_index"]=i
+		var cell:=Vector2i(Vector2(e["pos"])/128.0)
+		if not enemy_grid.has(cell): enemy_grid[cell]=[]
+		enemy_grid[cell].append(e)
+	grid_dirty=false
+
+func enemy_indices_near(center: Vector2, radius: float) -> Array[int]:
+	if grid_dirty: _rebuild_enemy_grid()
+	var found: Array[int]=[]
+	var lo:=Vector2i((center-Vector2.ONE*radius)/128.0)
+	var hi:=Vector2i((center+Vector2.ONE*radius)/128.0)
+	for y in range(lo.y,hi.y+1):
+		for x in range(lo.x,hi.x+1):
+			for e in enemy_grid.get(Vector2i(x,y),[]):
+				found.append(int(e["grid_index"]))
+	found.sort()
+	found.reverse()
+	return found
+
+func _clear_objective_routes() -> void:
+	# Clear only reachable corridors. Never move/remove a blocker or flatten all hazards.
+	var nav:=AStarGrid2D.new()
+	nav.region=Rect2i(0,0,MAP_W,MAP_H)
+	nav.cell_size=Vector2.ONE*TILE
+	nav.offset=Vector2.ONE*TILE*.5
+	nav.diagonal_mode=AStarGrid2D.DIAGONAL_MODE_NEVER
+	nav.update()
+	for y in range(MAP_H):
+		for x in range(MAP_W): nav.set_point_solid(Vector2i(x,y),_circle_hits_blocker(_tile_center(x,y),PLAYER_RADIUS))
+	var hub:=Vector2i(PLAYER_START/TILE)
+	var targets: Array[Vector2]=[GENERATOR_POS,SUPPLY_DINER,SUPPLY_AUTOSHOP,SUPPLY_MOTEL,NEST_WEST,NEST_EAST,NEST_NW,NEST_NE,PUZZLE_CENTER,RELAY_RED,RELAY_BLUE,RELAY_YELLOW]
+	route_cells.clear()
+	for pos in targets:
+		var to:=Vector2i(pos/TILE)
+		if nav.is_point_solid(to):
+			var best:=INF
+			for y in range(MAP_H):
+				for x in range(MAP_W):
+					if not nav.is_point_solid(Vector2i(x,y)) and _tile_center(x,y).distance_squared_to(pos)<best:
+						best=_tile_center(x,y).distance_squared_to(pos)
+						to=Vector2i(x,y)
+		for cell in nav.get_id_path(hub,to):
+			if not route_cells.has(cell): route_cells.append(cell)
+			for dy in range(-1,2):
+				for dx in range(-1,2):
+					if abs(dx)+abs(dy)>1: continue
+					var at:=cell+Vector2i(dx,dy)
+					if _tile_char(at.x,at.y) in ["x",":","o"]: _set_generated_tile(at.x,at.y,".")
+	print("PACING_ROUTE corridors=%d blockers_unchanged=true" % route_cells.size())
