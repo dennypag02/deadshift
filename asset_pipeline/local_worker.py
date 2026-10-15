@@ -547,7 +547,9 @@ class ReviewHandler(SimpleHTTPRequestHandler):
                 scope = str(fields.get("scope", [""])[0])
                 ids = [str(value) for value in fields.get("candidate_id", [])]
                 action = str(fields.get("action", [""])[0])
-                if action == "save":
+                if action in ("create_project", "create_level"):
+                    result = project_library.create_folder(action, project, str(fields.get("level", [""])[0]))
+                elif action == "save":
                     outcome = project_library.save_selection(project, scope, ids)
                     result = f"Saved {outcome['kept']} kept candidates in {outcome['folder']}."
                 elif action == "submit":
