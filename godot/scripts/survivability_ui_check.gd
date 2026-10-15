@@ -41,8 +41,8 @@ func _check() -> void:
 	game.enemies.append(enemy)
 	print("SURV_CHECK checkpoint=single_hit")
 	game._apply_player_contact_damage(game.enemies[0])
-	if game.player_hp != 94:
-		_fail("Wave 1 shambler should deal about 6 damage; hp=%d" % game.player_hp)
+	if game.player_hp != 100 - game._enemy_contact_damage("shambler"):
+		_fail("Wave 1 shambler damage should match data configuration; hp=%d" % game.player_hp)
 		return
 	if game.player_hit_invulnerability < 0.34:
 		_fail("missing configured 0.35s player hit invulnerability")
