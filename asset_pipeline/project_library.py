@@ -176,6 +176,34 @@ def image_bytes(project: str, scope: str, cid: str) -> bytes:
     raise ValueError("Candidate not found")
 
 
+def create_folder(action: str, project: str, level: str = "") -> str:
+    project = slug(project)
+    if action == "create_project":
+        destination = PROJECTS / project
+        if destination.exists():
+            raise ValueError("Project already exists")
+        (destination / "general").mkdir(parents=True)
+        (destination / "levels").mkdir()
+        (destination / "project.yaml").write_text(
+            "project_id: " + project + "\\nart_direction:\\n  policy: Standard ComfyUI Game Asset Workflow v2\\n",
+            encoding="utf-8")
+        (destination / "general" / "art_direction.yaml").write_text(
+            "scope: general\\ninherits: project\\n", encoding="utf-8")
+        return "Created project " + project
+    if action == "create_level":
+        level = slug(level)
+        if project not in project_scopes():
+            raise ValueError("Unknown project")
+        destination = PROJECTS / project / "levels" / level
+        if destination.exists():
+            raise ValueError("Level already exists")
+        destination.mkdir(parents=True)
+        (destination / "art_direction.yaml").write_text(
+            "scope: levels/" + level + "\\ninherits: general\\n", encoding="utf-8")
+        return "Created level " + level + " in " + project
+    raise ValueError("Unknown folder action")
+
+
 def render(project: str = DEFAULT_PROJECT, scope: str = "general") -> str:
     scopes = project_scopes()
     if project not in scopes or scope not in scopes[project]:
