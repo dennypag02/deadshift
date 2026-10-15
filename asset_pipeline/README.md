@@ -109,3 +109,44 @@ The local worker handles generation and opens the completed review automatically
 
 Local generated images, manifests, workflows, logs, worker state, and status are
 ignored by Git and remain on the PC.
+
+## Enemy, Trucker concept, and upgrade icon batch
+
+The 48-asset batch is configured in `assets.yaml` (7 enemies, 2 Trucker concept
+images, 39 icons). All have four versions by default, for 192 candidate images.
+The `enemies`, `trucker`, and `icons` seed groups reuse the same seed for
+the corresponding version across their members.
+
+Optional per-asset settings: `size: [width, height]`, `target:
+{long_side: N}` or `target: {width: W, height: H}`, `count: N`,
+`negative_extra`, and `seed_group`. Command-line `--count` takes
+precedence over the asset count. Old entries retain their previous defaults.
+Configuration is validated before any jobs are queued.
+
+From the repository root in PowerShell:
+
+```powershell
+git fetch origin
+git switch assets/enemies-icons-batch
+git pull --ff-only
+cd asset_pipeline
+python generate.py --seed-group enemies --dry-run
+python generate.py --seed-group trucker --dry-run
+python generate.py --seed-group icons --dry-run
+```
+
+The dry run is offline and does not contact ComfyUI or create images.
+The unfiltered `python generate.py --dry-run` includes all 83 assets
+(332 candidate jobs), not just the new batch. Use the three `--seed-group`
+commands above for the 48-asset batch (192 candidate jobs). The matching
+real generation commands are:
+
+```powershell
+python generate.py --seed-group enemies
+python generate.py --seed-group trucker
+python generate.py --seed-group icons
+```
+
+ComfyUI must be started before real generation. The local generator creates
+candidates only; review and promotion remain separate user-controlled steps.
+Do not wire candidate art into the game.

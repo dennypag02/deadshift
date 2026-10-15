@@ -121,15 +121,20 @@ def read_job(path: Path) -> dict:
     if not isinstance(data, dict):
         raise ValueError("job file must contain a YAML mapping")
 
-    required = ("asset", "category", "positive", "negative")
+    group = str(data.get("seed_group", "")).strip()
+    required = () if group else ("asset", "category", "positive", "negative")
     missing = [key for key in required if not str(data.get(key, "")).strip()]
     if missing:
         raise ValueError("missing required fields: " + ", ".join(missing))
 
     data["job_id"] = str(data.get("job_id") or path.stem)
-    data["count"] = int(data.get("count", 20))
-    if data["count"] < 1 or data["count"] > 100:
-        raise ValueError("count must be between 1 and 100")
+    if group:
+        if any(key in data for key in ("asset", "category", "positive", "negative", "count")):
+            raise ValueError("seed-group jobs cannot override asset, category, prompts, or count")
+    else:
+        data["count"] = int(data.get("count", 20))
+        if data["count"] < 1 or data["count"] > 100:
+            raise ValueError("count must be between 1 and 100")
     return data
 
 
@@ -265,7 +270,7 @@ def process_promotion_job(path: Path, job: dict) -> bool:
 
 def process_job(path: Path, job: dict) -> bool:
     job_id = str(job["job_id"])
-    asset = str(job["asset"])
+    asset = str(job.get("asset") or job.get("seed_group"))
 
     if not comfy_reachable():
         write_status(
@@ -280,8 +285,8 @@ def process_job(path: Path, job: dict) -> bool:
         state="running",
         job_id=job_id,
         asset=asset,
-        count=job["count"],
-        message=f"Generating {job['count']} candidates for {asset}.",
+        count=job.get("count"),
+        message=f"Generating candidates for {asset}.",
     )
 
     generate = run(
@@ -309,7 +314,7 @@ def process_job(path: Path, job: dict) -> bool:
         state="complete",
         job_id=job_id,
         asset=asset,
-        count=job["count"],
+        count=job.get("count"),
         review_file=review_file,
         message="Review batch is ready.",
     )

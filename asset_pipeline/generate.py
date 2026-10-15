@@ -74,6 +74,56 @@ def load_config() -> dict[str, Any]:
         raise SystemExit("assets.yaml must contain a YAML mapping")
     if not isinstance(data.get("categories"), dict) or not isinstance(data.get("assets"), list):
         raise SystemExit("assets.yaml must contain 'categories' and 'assets'")
+    categories = data["categories"]
+    seen = set()
+    def positive_int(value, label):
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise SystemExit(f"{label} must be a positive integer")
+    def valid_size(value, label):
+        if not isinstance(value, list) or len(value) != 2:
+            raise SystemExit(f"{label} must be [width, height]")
+        for dimension in value:
+            positive_int(dimension, label)
+    def valid_target(value, label):
+        if not isinstance(value, dict):
+            raise SystemExit(f"{label} must be a mapping")
+        if set(value) == {"long_side"}:
+            positive_int(value["long_side"], label)
+        elif set(value) == {"width", "height"}:
+            positive_int(value["width"], label)
+            positive_int(value["height"], label)
+        else:
+            raise SystemExit(f"{label} must have long_side or width and height")
+    for category_name, settings in categories.items():
+        if not isinstance(settings, dict) or settings.get("workflow") not in ("sprite", "scene"):
+            raise SystemExit(f"Invalid category {category_name!r}: workflow must be sprite or scene")
+        valid_size(settings.get("size"), f"category {category_name} size")
+        valid_target(settings.get("target"), f"category {category_name} target")
+        positive_int(settings.get("count"), f"category {category_name} count")
+        for field in ("style", "negative"):
+            if not isinstance(settings.get(field), str):
+                raise SystemExit(f"category {category_name} missing {field}")
+    for index, asset in enumerate(data["assets"], 1):
+        if not isinstance(asset, dict):
+            raise SystemExit(f"asset #{index} must be a mapping")
+        name = asset.get("name")
+        if not isinstance(name, str) or not name.strip():
+            raise SystemExit(f"asset #{index} missing name")
+        if name in seen:
+            raise SystemExit(f"Duplicate asset name: {name}")
+        seen.add(name)
+        if asset.get("category") not in categories:
+            raise SystemExit(f"Asset {name}: unknown category {asset.get('category')!r}")
+        if not isinstance(asset.get("prompt"), str) or not asset["prompt"].strip():
+            raise SystemExit(f"Asset {name}: missing prompt")
+        if "size" in asset:
+            valid_size(asset["size"], f"asset {name} size")
+        if "target" in asset:
+            valid_target(asset["target"], f"asset {name} target")
+        if "count" in asset:
+            positive_int(asset["count"], f"asset {name} count")
+        if "seed_group" in asset and (not isinstance(asset["seed_group"], str) or not asset["seed_group"].strip()):
+            raise SystemExit(f"Asset {name}: seed_group must be a nonempty string")
     return data
 
 
@@ -345,12 +395,16 @@ def generate_one(
         "version": version,
         "version_label": version_label,
         "seed": seed,
+        "seed_group": asset.get("seed_group"),
         "prompt": positive,
         "negative": negative,
         "settings": {
             "checkpoint": "sd_xl_base_1.0.safetensors",
             "workflow": workflow_kind,
             "source_size": [width, height],
+            "effective_size": [width, height],
+            "seed": seed,
+            "seed_group": asset.get("seed_group"),
             "steps": steps,
             "cfg": 6.5,
             "sampler": "dpmpp_2m",
@@ -372,6 +426,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate DeadShift assets with local ComfyUI")
     parser.add_argument("--only", help="Generate one named asset")
     parser.add_argument("--category", help="Generate only one category")
+    parser.add_argument("--seed-group", help="Generate only assets in this seed group")
     parser.add_argument("--count", type=int, help="Override the configured count per asset")
     parser.add_argument("--positive", help="Replace the full positive prompt")
     parser.add_argument("--negative", help="Replace the full negative prompt")
@@ -393,7 +448,9 @@ def apply_job_file(args: argparse.Namespace) -> argparse.Namespace:
 
     args.only = job.get("asset", args.only)
     args.category = job.get("category", args.category)
-    args.count = int(job.get("count", args.count or 20))
+    args.seed_group = job.get("seed_group", args.seed_group)
+    if "count" in job:
+        args.count = int(job["count"])
     args.positive = job.get("positive", args.positive)
     args.negative = job.get("negative", args.negative)
     args.job_id = str(job.get("job_id") or args.job_file.stem)
@@ -405,22 +462,34 @@ def main() -> None:
     if args.count is not None and args.count < 1:
         raise SystemExit("--count must be at least 1")
 
-    base_url = detect_server()
-    ensure_workflows()
     config = load_config()
+    base_url = "dry-run (offline)" if args.dry_run else detect_server()
+    if not args.dry_run:
+        ensure_workflows()
     selected = select_assets(config, only=args.only, category=args.category)
-    manifest = load_manifest()
+    if args.seed_group:
+        selected = [item for item in selected if item.get("seed_group") == args.seed_group]
+        if not selected:
+            raise SystemExit(f"No assets matched seed group {args.seed_group!r}")
+    manifest = [] if args.dry_run else load_manifest()
+    seed_groups: dict[str, list[int]] = {}
 
     print(f"ComfyUI: {base_url}")
     print(f"Assets selected: {len(selected)}")
 
     for asset in selected:
         category = config["categories"][asset["category"]]
-        count = args.count if args.count is not None else int(category["count"])
+        count = args.count if args.count is not None else int(asset.get("count", category["count"]))
         version = next_version(manifest, str(asset["name"]))
 
+        group = asset.get("seed_group")
+        if group is not None:
+            group_seeds = seed_groups.setdefault(group, [])
+            while len(group_seeds) < count:
+                group_seeds.append(secrets.randbits(63))
+
         for offset in range(count):
-            seed = secrets.randbits(63)
+            seed = seed_groups[group][offset] if group is not None else secrets.randbits(63)
             entry = generate_one(
                 base_url=base_url,
                 config=config,

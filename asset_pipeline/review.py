@@ -155,12 +155,16 @@ def main() -> None:
     if not filtered:
         raise SystemExit("No manifest entries matched the requested filters")
 
-    categories = sorted({str(item.get("category")) for item in filtered})
-    for category in categories:
-        entries = [item for item in filtered if item.get("category") == category]
-        output_name = args.job_id or args.asset or category
-        path = build_sheet(category, entries, output_name=output_name)
+    if args.job_id:
+        path = build_sheet("batch", filtered, output_name=args.job_id)
         print(f"Wrote {path}")
+    else:
+        categories = sorted({str(item.get("category")) for item in filtered})
+        for category in categories:
+            entries = [item for item in filtered if item.get("category") == category]
+            output_name = args.asset or category
+            path = build_sheet(category, entries, output_name=output_name)
+            print(f"Wrote {path}")
 
     print("Review pages complete.")
 
