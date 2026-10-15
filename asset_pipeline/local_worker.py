@@ -8,6 +8,7 @@ page, and serves review pages at http://127.0.0.1:8765/.
 from __future__ import annotations
 
 import html
+import asset_approval
 import json
 import logging
 import shutil
@@ -449,6 +450,24 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._send_status_page(status)
             return
 
+        if path == "/approvals":
+            try:
+                self._send_bytes(asset_approval.render().encode("utf-8"), "text/html; charset=utf-8")
+            except Exception as exc:
+                self.send_error(500, str(exc))
+            return
+
+        if path == "/candidate":
+            query = parse_qs(urlparse(self.path).query)
+            try:
+                image = asset_approval.image_bytes(
+                    str(query.get("asset", [""])[0]), str(query.get("seed", [""])[0])
+                )
+                self._send_bytes(image, "image/png")
+            except (ValueError, OSError) as exc:
+                self.send_error(404, str(exc))
+            return
+
         if path == "/library":
             query = parse_qs(urlparse(self.path).query)
             asset = str(query.get("asset", [""])[0]).strip()
@@ -466,6 +485,44 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             return
 
         super().do_GET()
+
+    def _send_bytes(self, payload: bytes, content_type: str) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(payload)))
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def do_POST(self) -> None:
+        if urlparse(self.path).path != "/asset-action":
+            self.send_error(404)
+            return
+        origin = self.headers.get("Origin", "")
+        if origin and origin not in ("http://127.0.0.1:8765", "http://localhost:8765"):
+            self.send_error(403, "Invalid origin")
+            return
+        host = self.headers.get("Host", "")
+        if host not in ("127.0.0.1:8765", "localhost:8765"):
+            self.send_error(403, "Invalid host")
+            return
+        if self.headers.get("Content-Type", "").split(";")[0].strip() != "application/x-www-form-urlencoded":
+            self.send_error(415)
+            return
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if length < 1 or length > 8192:
+                raise ValueError("Invalid form length")
+            fields = parse_qs(self.rfile.read(length).decode("utf-8"), keep_blank_values=True)
+            result = asset_approval.action(fields)
+        except (ValueError, OSError, KeyError) as exc:
+            self.send_error(400, str(exc))
+            return
+        page = ("<!doctype html><meta charset='utf-8'><title>DeadShift Approval</title>"
+                "<body style='font:18px Arial;background:#202020;color:white;padding:30px'>"
+                "<p>" + html.escape(result) + "</p><a style='color:#9ecbff' href='/approvals'>Back to approvals</a></body>")
+        self._send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
     def _send_status_page(self, status: dict) -> None:
         state = html.escape(str(status.get("state", "starting")))
@@ -491,7 +548,7 @@ code{{color:#ddd}} a{{color:#9ecbff}}
 <p>{message}</p>
 <p><strong>Job:</strong> {job_id or "none"}</p>
 <p><strong>Asset:</strong> {asset or "none"}</p>
-<p><a href="/library">Open Asset Library</a> &nbsp;|&nbsp; <a href="/latest">Open Latest Review</a></p>
+<p><a href="/library">Open Asset Library</a> &nbsp;|&nbsp; <a href="/approvals">Select / Approve Assets</a> &nbsp;|&nbsp; <a href="/latest">Open Latest Review</a></p>
 <p>This page refreshes automatically while work is in progress.</p>
 </div></body></html>"""
         encoded = body.encode("utf-8")
