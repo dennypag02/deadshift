@@ -18,7 +18,7 @@
     }
   },
   "pacing": {
-    "wave1_duration_seconds": 22,
+    "wave1_duration_seconds": 75,
     "break_seconds": 8,
     "pressure_start": 20,
     "pressure_at_60s": 40,
