@@ -974,6 +974,9 @@ func _stage1_update_hazards(delta: float) -> void:
 		h["life"] = float(h["life"]) - delta
 		h["tick"] = float(h.get("tick", 0.0)) - delta
 		if float(h["life"]) <= 0.0:
+			if str(h["kind"]) == "acid_warning":
+				var diff: Dictionary = progression.config.get("difficulty", {})
+				stage1_hazards.append({"kind": "acid", "pos": Vector2(h["pos"]), "radius": float(h["radius"]), "life": float(diff.get("spitter_puddle_seconds", 4.0)), "tick": 0.0})
 			stage1_hazards.remove_at(i)
 			continue
 		if str(h["kind"]) == "acid" and player_pos.distance_to(Vector2(h["pos"])) < float(h["radius"]) and float(h["tick"]) <= 0.0:
@@ -998,6 +1001,30 @@ func _update_enemies(delta: float) -> void:
 		enemy["contact_cooldown"] = maxf(0.0, float(enemy.get("contact_cooldown", 0.0)) - delta)
 		var to_player: Vector2 = player_pos - enemy["pos"]
 		var speed := 0.0 if freeze_clock > 0.0 else float(enemy["speed"])
+		var kind: String = str(enemy["kind"])
+		var diff: Dictionary = progression.config.get("difficulty", {})
+		if kind == "spitter" and freeze_clock <= 0.0:
+			enemy["attack_clock"] = float(enemy.get("attack_clock", 0.0)) - delta
+			if float(enemy["attack_clock"]) <= 0.0 and to_player.length() < 600.0:
+				enemy["attack_clock"] = 3.2
+				stage1_hazards.append({"kind": "acid_warning", "pos": player_pos + player_velocity * 0.5, "radius": 80.0, "life": float(diff.get("spitter_telegraph_seconds", 0.8)), "tick": 0.0})
+			if to_player.length() < 360.0:
+				speed = -speed * 0.6
+		elif kind == "brute" and freeze_clock <= 0.0:
+			enemy["attack_clock"] = float(enemy.get("attack_clock", 0.0)) - delta
+			if float(enemy["attack_clock"]) <= 0.0 and to_player.length() < 440.0:
+				enemy["attack_clock"] = 4.5
+				enemy["charge"] = -float(diff.get("brute_charge_telegraph_seconds", 0.9))
+				enemy["charge_target"] = to_player.normalized()
+			if float(enemy["charge"]) < 0.0:
+				enemy["charge"] = minf(0.0, float(enemy["charge"]) + delta)
+				speed = 0.0
+				if float(enemy["charge"]) >= 0.0:
+					enemy["charge"] = float(diff.get("brute_charge_seconds", 0.55))
+			elif float(enemy["charge"]) > 0.0:
+				enemy["charge"] = maxf(0.0, float(enemy["charge"]) - delta)
+				enemy["pos"] = _move_with_blockers(Vector2(enemy["pos"]), Vector2(enemy["charge_target"]) * float(diff.get("brute_charge_speed", 390.0)) * delta, float(enemy["radius"]))
+				speed = 0.0
 		if str(enemy["kind"]) == "trucker" and float(enemy["charge"]) > 0.0:
 			enemy["charge"] = maxf(0.0, float(enemy["charge"]) - delta)
 			speed = 165.0
@@ -1561,6 +1588,14 @@ func _draw_combat() -> void:
 			draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(23,23), Vector2(46,46)), false)
 		else:
 			draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(25,25), Vector2(50,50)), false)
+		if kind == "spitter":
+			draw_arc(p, radius + 6.0, 0.0, TAU, 18, Color.ORANGE, 3.0)
+		elif kind == "bloater":
+			draw_circle(p, radius + 5.0, Color(0.24, 0.55, 0.18, 0.7))
+		elif kind == "brute":
+			draw_circle(p, radius + 6.0, Color(0.55, 0.28, 0.25, 0.8))
+			if float(enemy.get("charge", 0.0)) < 0.0:
+				draw_line(p, p + Vector2(enemy.get("charge_target", Vector2.RIGHT)) * 450.0, Color.ORANGE, 12.0)
 		if bool(enemy.get("elite", false)):
 			var aura := 0.55 + 0.25 * sin(run_clock * 7.0)
 			draw_arc(p, radius + 12.0, 0.0, TAU, 32, Color(1.0, 0.74, 0.12, aura), 7.0, true)
