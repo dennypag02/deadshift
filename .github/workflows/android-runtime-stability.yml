@@ -15,9 +15,22 @@ permissions:
 jobs:
   android-runtime:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+
+      - name: RUNNING - enable hardware acceleration on this temporary runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p android-stability
+          echo "RUNNING - Android stability $GITHUB_RUN_ID, source $GITHUB_SHA" | tee android-stability/status.txt
+          test -c /dev/kvm
+          sudo chown "$(id -u):$(id -g)" /dev/kvm
+          sudo chmod 0600 /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm
+          ls -l /dev/kvm | tee android-stability/kvm.txt
+          echo 'MILESTONE - KVM available to the current temporary CI user only.' >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/setup-java@v4
         with:
@@ -90,9 +103,13 @@ jobs:
           api-level: 35
           arch: x86_64
           profile: pixel_6
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          emulator-boot-timeout: 180
+          disable-linux-hw-accel: false
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -no-metrics
           disable-animations: true
-          script: bash scripts/android_stability.sh
+          script: |
+            "$ANDROID_HOME/emulator/emulator" -accel-check | tee android-stability/acceleration.txt
+            bash scripts/android_stability.sh
 
       - name: Upload Android stability evidence
         if: always()
@@ -101,9 +118,15 @@ jobs:
           name: deadshift-android-emulator-stability
           path: |
             build/deadshift-v3-debug.apk
-            android-stability/crash.log
-            android-stability/android-runtime.log
-            android-stability/deadshift.pid
-            android-stability/status.txt
+            android-stability/**
             apk-contents.txt
           if-no-files-found: warn
+
+      - name: COMPLETE or FAILED - Android validation outcome
+        if: always()
+        env:
+          RESULT: ${{ job.status }}
+        run: |
+          state=FAILED
+          if [ "$RESULT" = success ]; then state=COMPLETE; fi
+          echo "$state - Android stability run $GITHUB_RUN_ID: $RESULT; source $GITHUB_SHA. Emulator evidence is not physical phone acceptance." | tee -a "$GITHUB_STEP_SUMMARY"
