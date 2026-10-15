@@ -612,8 +612,8 @@ func _physics_process(delta: float) -> void:
 		spawn_clock -= delta
 		if wave_clock >= wave_duration:
 			_finish_wave()
-		elif wave_clock < wave_duration and spawn_clock <= 0.0 and _pressure_population_count() < active_target and enemies.size() < int(progression.config.get("limits", {}).get("active_enemies", 250)):
-			var pressure_room := maxi(0, active_target - _pressure_population_count())
+		elif wave_clock < wave_duration and spawn_clock <= 0.0 and _onscreen_enemy_count() < active_target and enemies.size() < int(progression.config.get("limits", {}).get("active_enemies", 250)):
+			var pressure_room := maxi(0, active_target - _onscreen_enemy_count())
 			if pressure_room > 0:
 				var group_cap := mini(int(pacing.get("spawn_group_max", 10)), pressure_room)
 				_spawn_pressure_group(group_cap)
