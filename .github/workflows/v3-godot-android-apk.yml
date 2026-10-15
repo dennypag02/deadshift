@@ -7,6 +7,7 @@ on:
       - feature/phase-a-progression
       - feature/integrate-curated-artwork-45
       - feature/stage2-guidance-zombie-feedback
+      - feature/mobile-performance-pacing
     paths:
       - 'godot/**'
       - '.github/workflows/v3-godot-android-apk.yml'
@@ -67,65 +68,70 @@ jobs:
       - name: Stamp development version
         shell: bash
         run: |
-          sed -i "s/^version\\/code=.*/version\\/code=${GITHUB_RUN_NUMBER}/" godot/export_presets.cfg
-          sed -i "s/^version\\/name=.*/version\\/name=\\\"0.1.${GITHUB_RUN_NUMBER}\\\"/" godot/export_presets.cfg
-      - name: Verify pinned artwork and unchanged combat difficulty
-        run: |
-          git fetch origin 30d13cd4435911dfca2a80ab669b61cc905546b2
-          python3 tools/verify_feedback_contract.py
-      - name: Strict Godot import and feedback regression tests
+          sed -i "s/^version\/code=.*/version\/code=${GITHUB_RUN_NUMBER}/" godot/export_presets.cfg
+          sed -i "s/^version\/name=.*/version\/name=\"0.1.${GITHUB_RUN_NUMBER}\"/" godot/export_presets.cfg
+      - name: Verify unchanged approved art and combat data
         shell: bash
         run: |
           set -euo pipefail
+          git fetch origin 18fb452444978f09dba7c7335c4bb4ca1281d2b5
           mkdir -p build/evidence
-          GODOT=./Godot_v4.4.1-stable_linux.x86_64
-          "$GODOT" --headless --audio-driver Dummy --path godot --editor --quit 2>&1 | tee build/evidence/import.log
-          ! grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|Shader compilation failed' build/evidence/import.log
-          for test in feedback_tests phase_a_xp_check phase_b_check survivability_ui_check; do
-            timeout 180s "$GODOT" --headless --audio-driver Dummy --path godot --script "res://scripts/${test}.gd" 2>&1 | tee "build/evidence/${test}.log"
-            ! grep -E 'SCRIPT ERROR|Parse Error|FEEDBACK_FAIL' "build/evidence/${test}.log"
-          done
-          grep -q 'FEEDBACK_TESTS_PASS' build/evidence/feedback_tests.log
-      - name: Export Android debug APK
+          python3 tools/verify_mobile_contract.py | tee build/evidence/contract.log
+      - name: Strict import and mobile regression tests
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p build
-          ./Godot_v4.4.1-stable_linux.x86_64 --headless --verbose --path godot --export-debug Android "$GITHUB_WORKSPACE/build/deadshift-feedback-guidance.apk" 2>&1 | tee build/evidence/export.log
+          G=./Godot_v4.4.1-stable_linux.x86_64
+          "$G" --headless --audio-driver Dummy --path godot --editor --quit 2>&1 | tee build/evidence/import.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|Shader compilation failed' build/evidence/import.log
+          for test in performance_tests feedback_tests phase_a_xp_check phase_b_check survivability_ui_check; do
+            timeout 180s "$G" --headless --audio-driver Dummy --path godot --script "res://scripts/${test}.gd" 2>&1 | tee "build/evidence/${test}.log"
+            ! grep -E 'SCRIPT ERROR|Parse Error|PERFORMANCE_FAIL|FEEDBACK_FAIL' "build/evidence/${test}.log"
+          done
+          grep -q PERFORMANCE_TESTS_PASS build/evidence/performance_tests.log
+          grep -q FEEDBACK_TESTS_PASS build/evidence/feedback_tests.log
+      - name: Export signed Android APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --verbose --path godot --export-debug Android "$GITHUB_WORKSPACE/build/deadshift-mobile-performance.apk" 2>&1 | tee build/evidence/export.log
           ! grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|Shader compilation failed' build/evidence/export.log
-          test -s build/deadshift-feedback-guidance.apk
+          test -s build/deadshift-mobile-performance.apk
       - name: Verify permissions and packaged runtime resources
         shell: bash
         run: |
           set -euo pipefail
-          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest permissions build/deadshift-feedback-guidance.apk | tee build/evidence/manifest-permissions.txt
-          grep -Fxq 'android.permission.VIBRATE' build/evidence/manifest-permissions.txt
-          unzip -l build/deadshift-feedback-guidance.apk > build/evidence/apk-contents.txt
-          for resource in assets/data/phase_a.json BebasNeue-Regular.ttf BarlowCondensed-SemiBold.ttf gameplay_config_fallback actor_outline.gdshader approved_art_receipt.json; do
+          APK=build/deadshift-mobile-performance.apk
+          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest permissions "$APK" | tee build/evidence/manifest-permissions.txt
+          grep -Fxq android.permission.VIBRATE build/evidence/manifest-permissions.txt
+          unzip -l "$APK" > build/evidence/apk-contents.txt
+          for resource in assets/data/phase_a.json BebasNeue-Regular.ttf BarlowCondensed-SemiBold.ttf gameplay_config_fallback actor_batch.gdshader approved_art_receipt.json actors_atlas.png actors_atlas.json pacing_telemetry; do
             grep -q "$resource" build/evidence/apk-contents.txt
           done
           for name in zombie_shambler zombie_runner zombie_spitter zombie_elite zombie_bloater zombie_brute mech_miniboss; do
             grep -q "${name}.png" build/evidence/apk-contents.txt
           done
-      - name: Verify APK signing and hashes
+          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print "$APK" > build/evidence/AndroidManifest.xml
+      - name: Verify APK signing and source identity
         shell: bash
         run: |
           set -euo pipefail
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs build/deadshift-feedback-guidance.apk | tee build/evidence/apk-signature.txt
-          sha256sum build/deadshift-feedback-guidance.apk | tee build/evidence/SHA256SUMS.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs build/deadshift-mobile-performance.apk | tee build/evidence/apk-signature.txt
+          sha256sum build/deadshift-mobile-performance.apk | tee build/evidence/SHA256SUMS.txt
           git rev-parse HEAD > build/evidence/source-sha.txt
+          find godot/scripts godot/shaders godot/art/runtime -type f ! -name '*.uid' ! -name '*.import' -print0 | sort -z | xargs -0 sha256sum > build/evidence/runtime-source-hashes.txt
       - name: Upload verified APK
         uses: actions/upload-artifact@v4
         with:
-          name: deadshift-feedback-guidance-apk
-          path: build/deadshift-feedback-guidance.apk
+          name: deadshift-mobile-performance-apk
+          path: build/deadshift-mobile-performance.apk
           if-no-files-found: error
           retention-days: 14
       - name: Upload build evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: deadshift-feedback-build-evidence
+          name: deadshift-mobile-performance-evidence
           path: build/evidence/
           if-no-files-found: warn
           retention-days: 14
