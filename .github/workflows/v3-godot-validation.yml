@@ -36,13 +36,13 @@ jobs:
           set -o pipefail
           timeout 20s ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --quit-after 60 2>&1 | tee godot-smoke.log || test $? -eq 124
           ! grep -E "SCRIPT ERROR:|Parse Error:|Failed to load script|Invalid call|Invalid access" godot-smoke.log
-      - name: Verify six shambler kills reach level 2
+      - name: Verify configured first-level XP requirement
         shell: bash
         run: |
           set -o pipefail
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --script res://scripts/phase_a_xp_check.gd 2>&1 | tee phase-a-xp.log
-          grep -q "PHASE_A_XP_6_KILL_PASS" phase-a-xp.log
-          ! grep -E "SCRIPT ERROR:|Parse Error:|PHASE_A_XP_6_KILL_FAIL" phase-a-xp.log
+          grep -q "PHASE_A_CONFIGURED_FIRST_LEVEL_PASS" phase-a-xp.log
+          ! grep -E "SCRIPT ERROR:|Parse Error:|PHASE_A_CONFIGURED_FIRST_LEVEL_FAIL" phase-a-xp.log
       - name: Verify centralized haptics
         shell: bash
         run: |

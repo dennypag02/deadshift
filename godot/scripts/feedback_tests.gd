@@ -51,13 +51,17 @@ func run_tests() -> void:
 	require(paused and game.tactical_map.expanded, "map pauses combat")
 	game.tactical_map.close_map()
 	require(not paused, "map closes cleanly")
-	# Deterministic replay of raw XP input, not a performance or human-play claim.
+	# Backward-compatible legacy curve replay, not the new mobile pacing acceptance.
+	# New curve is checked by performance_tests and the normal-damage capture.
 	var p = game.progression
 	p.level = 1
 	p.xp = 0
 	p.pending_levels = 0
 	p.choosing = true
 	p.xp_credit_remainder = 0
+	var mobile_xp: Dictionary = p.config["xp"].duplicate(true)
+	p.config["xp"]["required_by_level"] = []
+	p.config["xp"]["collection_multiplier_by_level"] = {"1":1.0,"default":0.60}
 	p._collect_xp(6)
 	require(p.level == 2, "first six XP preserved")
 	for second in range(1, 181):
@@ -66,6 +70,7 @@ func run_tests() -> void:
 	var test_level: int = p.level
 	require(test_level >= 10 and test_level <= 12, "three-minute XP replay target")
 	print("FEEDBACK_XP_REPLAY level=%d raw=%d credited=%d" % [p.level, p.xp_collected_raw, p.xp_collected_total])
+	p.config["xp"] = mobile_xp
 	# Exercise pooled renderer with all 7 variants and 180 enemies.
 	game.enemies.clear()
 	for i in range(180):

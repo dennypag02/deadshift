@@ -6,6 +6,7 @@ const FALLBACK_CONFIG := preload("res://scripts/gameplay_config_fallback.gd")
 
 var game: Node2D
 var config: Dictionary = {}
+var record_pool = preload("res://scripts/record_pool.gd").new()
 var level := 1
 var xp := 0
 var gems: Array[Dictionary] = []
@@ -46,7 +47,13 @@ var lightning_arcs: Array[Dictionary] = []
 var drone_shots: Array[Dictionary] = []
 
 func _ready() -> void:
-	if OS.get_cmdline_user_args().has("--pacing-capture"):
+	for kind in ["gems","molotov_pools","rockets","chakrams","lightning_arcs","drone_shots"]: record_pool.warm(kind,200 if kind=="gems" else 96)
+	var batch=preload("res://scripts/gem_batch.gd").new()
+	batch.progression=self
+	add_child(batch)
+	if OS.get_environment("DEADSHIFT_VALIDATION_SEED") != "":
+		rng.seed = int(OS.get_environment("DEADSHIFT_VALIDATION_SEED"))+101
+	elif OS.get_cmdline_user_args().has("--pacing-capture"):
 		rng.seed = 20261014
 	else:
 		rng.randomize()
@@ -110,6 +117,11 @@ func _load_config_safe() -> Dictionary:
 
 func xp_required(n: int) -> int:
 	var c: Dictionary = config.get("xp", {})
+	var curve: Array=c.get("required_by_level",[])
+	if n>=1 and n<=curve.size(): return int(curve[n-1])
+	if not curve.is_empty() and n>curve.size():
+		var excess := n-curve.size()
+		return int(curve[-1])+roundi(float(c.get("tail_linear",24))*excess+float(c.get("tail_quadratic",2))*excess*excess)
 	return roundi(float(c.get("base", 6)) + float(c.get("linear", 4)) * (n - 1) + float(c.get("quadratic", 0.12)) * pow(n - 1, 2))
 
 func drop_xp(pos: Vector2, kind: String) -> void:
@@ -127,11 +139,12 @@ func drop_xp(pos: Vector2, kind: String) -> void:
 		should_drop = rng.randf() < clampf(chance, 0.0, 1.0)
 	if not should_drop:
 		return
-	gems.append({"pos": pos, "value": value, "age": 0.0})
+	record_pool.push(gems,"gems",{"pos": pos, "value": value, "age": 0.0},201)
 	xp_dropped_total += value
 	var threshold := int(xp_cfg.get("merge_threshold", 200))
 	while gems.size() > threshold:
-		var first: Dictionary = gems.pop_front()
+		var first: Dictionary = gems[0]
+		record_pool.remove(gems,0,"gems")
 		if not gems.is_empty():
 			gems[0]["value"] = int(gems[0]["value"]) + int(first["value"])
 	queue_redraw()
@@ -142,7 +155,8 @@ func vacuum_all_gems() -> void:
 
 func _collect_xp(amount: int) -> void:
 	xp_collected_raw += amount
-	var multiplier := 1.0 if level < 2 else float(config.get("xp", {}).get("collection_multiplier", 0.60))
+	var bonus: Dictionary=config.get("xp",{}).get("collection_multiplier_by_level",{})
+	var multiplier := float(bonus.get(str(level),bonus.get("default",config.get("xp",{}).get("collection_multiplier",.60))))
 	xp_credit_remainder += amount * multiplier
 	var credited := floori(xp_credit_remainder + 0.00001)
 	xp_credit_remainder -= credited
@@ -157,6 +171,7 @@ func add_xp(amount: int) -> void:
 		pending_levels += 1
 		var elapsed := float(game.run_clock) if game != null else 0.0
 		level_times.append({"level": level, "time": elapsed})
+		if game!=null and game.telemetry!=null: game.telemetry.event("level_up",{"level":level,"xp_required_next":xp_required(level)})
 		print("STAGE1_LEVEL_UP level=%d t=%.2f" % [level, elapsed])
 	if pending_levels > 0 and not choosing:
 		choosing = true
@@ -427,10 +442,11 @@ func _spawn_molotovs() -> void:
 		if idx < 0:
 			break
 		var target: Vector2 = (game.player_pos + Vector2.from_angle(TAU * float(n) / maxf(1.0, float(count))) * 360.0) if evolutions.has("molotov") else (Vector2(game.enemies[idx]["pos"]) + Vector2.from_angle(TAU * float(n) / maxf(1.0, float(count))) * 35.0)
-		molotov_pools.append({"pos": target, "life": duration, "radius": radius, "dps": dps, "tick": 0.0})
-		game.impact_marks.append({"pos": target, "life": 0.35, "blast": true})
+		record_pool.push(molotov_pools,"molotov_pools",{"pos": target, "life": duration, "radius": radius, "dps": dps, "tick": 0.0},96)
+		game.transient_pool.push(game.impact_marks,"impact_marks",{"pos": target, "life": 0.35, "blast": true},120)
 
 func _fire_lightning() -> void:
+	if game.projectile_count()>=int(config.get("limits",{}).get("projectiles",400)): return
 	if not weapons.has("lightning") or game.enemies.is_empty():
 		return
 	var w: Dictionary = config["weapons"]["lightning"]
@@ -452,11 +468,13 @@ func _fire_lightning() -> void:
 		var pos := Vector2(game.enemies[idx]["pos"])
 		var crit := roll_crit()
 		game.phase_b_damage_enemy(idx, damage, crit, "lightning")
-		lightning_arcs.append({"a": origin, "b": pos, "life": 0.12})
+		if game.projectile_count()>=int(config.get("limits",{}).get("projectiles",400)): break
+		record_pool.push(lightning_arcs,"lightning_arcs",{"a": origin, "b": pos, "life": 0.12},96)
 		origin = pos
 		used.append(idx)
 
 func _spawn_rockets() -> void:
+	if game.projectile_count()>=int(config.get("limits",{}).get("projectiles",400)): return
 	if not weapons.has("rocket") or game.enemies.is_empty():
 		return
 	var w: Dictionary = config["weapons"]["rocket"]
@@ -470,11 +488,13 @@ func _spawn_rockets() -> void:
 		if evolutions.has("rocket"):
 			var strike: Vector2 = game.player_pos + Vector2(-450.0 + float(n % 5) * 225.0, -220.0 + float(n / 5) * 320.0)
 			_damage_area(strike, 155.0 * area_multiplier(), 7.0 * damage_multiplier(), "carpet_bomber")
-			game.impact_marks.append({"pos": strike, "life": 0.55, "blast": true})
+			game.transient_pool.push(game.impact_marks,"impact_marks",{"pos": strike, "life": 0.55, "blast": true},120)
 		var angle := -0.12 * float(count - 1) * 0.5 + 0.12 * float(n)
-		rockets.append({"pos": game.player_pos, "dir": game.last_aim.rotated(angle), "life": 3.0})
+		if game.projectile_count()>=int(config.get("limits",{}).get("projectiles",400)): break
+		record_pool.push(rockets,"rockets",{"pos": game.player_pos, "dir": game.last_aim.rotated(angle), "life": 3.0},96)
 
 func _fire_drones() -> void:
+	if game.projectile_count()>=int(config.get("limits",{}).get("projectiles",400)): return
 	if not weapons.has("drone") or game.enemies.is_empty():
 		return
 	var w: Dictionary = config["weapons"]["drone"]
@@ -497,11 +517,13 @@ func _fire_drones() -> void:
 			var idx2 := _nearest_enemy_index(target, [idx])
 			if idx2 >= 0:
 				game.phase_b_damage_enemy(idx2, damage * 0.65, roll_crit(), "drone")
-		drone_shots.append({"a": game.player_pos, "b": target, "life": 0.10})
+		if game.projectile_count()>=int(config.get("limits",{}).get("projectiles",400)): break
+		record_pool.push(drone_shots,"drone_shots",{"a": game.player_pos, "b": target, "life": 0.10},96)
 		if lv >= 5:
 			_damage_area(target, float(w.get("mini_rocket_radius", 90.0)) * area_multiplier(), damage * 0.75, "drone_rocket")
 
 func _spawn_chakrams() -> void:
+	if game.projectile_count()>=int(config.get("limits",{}).get("projectiles",400)): return
 	if not weapons.has("chakram") or game.enemies.is_empty():
 		return
 	var w: Dictionary = config["weapons"]["chakram"]
@@ -516,7 +538,8 @@ func _spawn_chakrams() -> void:
 		range *= 1.0 + 0.30 * weapon_step_mult("chakram", 4)
 	for n in range(count):
 		var spread := (float(n) - float(count - 1) * 0.5) * 0.20
-		chakrams.append({
+		if game.projectile_count()>=int(config.get("limits",{}).get("projectiles",400)): break
+		record_pool.push(chakrams,"chakrams",{
 			"pos": game.player_pos,
 			"dir": game.last_aim.rotated(spread).normalized(),
 			"origin": game.player_pos,
@@ -527,12 +550,12 @@ func _spawn_chakrams() -> void:
 			"orbit_angle": TAU * float(n) / float(count),
 			"orbit_age": 0.0,
 			"hit_reset": 0.0,
-		})
+		},96)
 
 func _damage_area(center: Vector2, radius: float, damage: float, source: String) -> void:
 	if game == null:
 		return
-	for i in range(game.enemies.size() - 1, -1, -1):
+	for i in game.enemy_indices_near(center,radius):
 		if i >= game.enemies.size():
 			continue
 		if center.distance_to(Vector2(game.enemies[i]["pos"])) <= radius:
@@ -549,6 +572,11 @@ func _enforce_weapon_effect_caps() -> void:
 	_trim_effect_array(chakrams, cap)
 	_trim_effect_array(lightning_arcs, cap)
 	_trim_effect_array(drone_shots, cap)
+	var remaining: int=int(config.get("limits",{}).get("projectiles",400))-game.bullets.size()
+	for key in ["rockets","chakrams","lightning_arcs","drone_shots"]:
+		var items:Array=get(key)
+		while items.size()>maxi(0,remaining): record_pool.remove(items,items.size()-1,key)
+		remaining-=items.size()
 
 func _update_weapon_effects(delta: float) -> void:
 	if game == null:
@@ -586,16 +614,16 @@ func _update_weapon_effects(delta: float) -> void:
 			pool["tick"] = 0.25
 			_damage_area(Vector2(pool["pos"]), float(pool["radius"]), float(pool["dps"]) * 0.25, "molotov")
 		if float(pool["life"]) <= 0.0:
-			molotov_pools.remove_at(i)
+			record_pool.remove(molotov_pools,i,"molotov_pools")
 
 	for i in range(rockets.size() - 1, -1, -1):
 		if game.enemies.is_empty():
-			rockets.remove_at(i)
+			record_pool.remove(rockets,i,"rockets")
 			continue
 		var rocket: Dictionary = rockets[i]
 		var idx := _nearest_enemy_index(Vector2(rocket["pos"]))
 		if idx < 0:
-			rockets.remove_at(i)
+			record_pool.remove(rockets,i,"rockets")
 			continue
 		var target := Vector2(game.enemies[idx]["pos"])
 		var desired := (target - Vector2(rocket["pos"])).normalized()
@@ -612,8 +640,8 @@ func _update_weapon_effects(delta: float) -> void:
 			if lv >= 3:
 				radius *= 1.0 + 0.25 * weapon_step_mult("rocket", 3)
 			_damage_area(Vector2(rocket["pos"]), radius, damage, "rocket")
-			game.impact_marks.append({"pos": rocket["pos"], "life": 0.55, "blast": true})
-			rockets.remove_at(i)
+			game.transient_pool.push(game.impact_marks,"impact_marks",{"pos": rocket["pos"], "life": 0.55, "blast": true},120)
+			record_pool.remove(rockets,i,"rockets")
 
 	for i in range(chakrams.size() - 1, -1, -1):
 		var ch: Dictionary = chakrams[i]
@@ -626,14 +654,14 @@ func _update_weapon_effects(delta: float) -> void:
 				ch["hit"] = {}
 				ch["hit_reset"] = 0.0
 			if float(ch["orbit_age"]) > 8.0:
-				chakrams.remove_at(i)
+				record_pool.remove(chakrams,i,"chakrams")
 				continue
 		elif bool(ch["returning"]):
 			var to_player: Vector2 = game.player_pos - Vector2(ch["pos"])
 			ch["dir"] = to_player.normalized()
 			ch["pos"] = Vector2(ch["pos"]) + Vector2(ch["dir"]) * speed * delta
 			if to_player.length() < 28.0:
-				chakrams.remove_at(i)
+				record_pool.remove(chakrams,i,"chakrams")
 				continue
 		else:
 			var next_pos := Vector2(ch["pos"]) + Vector2(ch["dir"]) * speed * delta
@@ -644,7 +672,7 @@ func _update_weapon_effects(delta: float) -> void:
 				ch["pos"] = next_pos
 			if Vector2(ch["pos"]).distance_to(Vector2(ch["origin"])) >= float(ch["range"]):
 				ch["returning"] = true
-		for e in range(game.enemies.size() - 1, -1, -1):
+		for e in game.enemy_indices_near(Vector2(ch["pos"]),32.0):
 			if e >= game.enemies.size():
 				continue
 			var enemy: Dictionary = game.enemies[e]
@@ -663,12 +691,12 @@ func _update_weapon_effects(delta: float) -> void:
 	for i in range(lightning_arcs.size() - 1, -1, -1):
 		lightning_arcs[i]["life"] = float(lightning_arcs[i]["life"]) - delta
 		if float(lightning_arcs[i]["life"]) <= 0.0:
-			lightning_arcs.remove_at(i)
+			record_pool.remove(lightning_arcs,i,"lightning_arcs")
 	_enforce_weapon_effect_caps()
 	for i in range(drone_shots.size() - 1, -1, -1):
 		drone_shots[i]["life"] = float(drone_shots[i]["life"]) - delta
 		if float(drone_shots[i]["life"]) <= 0.0:
-			drone_shots.remove_at(i)
+			record_pool.remove(drone_shots,i,"drone_shots")
 
 func _physics_process(delta: float) -> void:
 	if game == null or config.is_empty() or choosing:
@@ -676,7 +704,8 @@ func _physics_process(delta: float) -> void:
 	invulnerability = maxf(0.0, invulnerability - delta)
 	var xp_cfg: Dictionary = config.get("xp", {})
 	var radius: float = float(xp_cfg.get("pickup_radius_tiles", 1.2)) * game.TILE * (1.0 + float(config.get("passives", {}).get("magnet", {}).get("per_level", 0.30)) * passive_points("magnet"))
-	var vacuum_age := float(xp_cfg.get("vacuum_age_seconds", 6.0))
+	var ages: Dictionary=xp_cfg.get("vacuum_age_seconds_by_level",{})
+	var vacuum_age := float(ages.get(str(level),ages.get("default",xp_cfg.get("vacuum_age_seconds",8.0))))
 	var pickup_speed := float(xp_cfg.get("pickup_speed", 850.0))
 	var vacuum_speed := float(xp_cfg.get("vacuum_speed", 1250.0))
 	var pickup_distance := float(xp_cfg.get("pickup_distance", 28.0))
@@ -694,7 +723,7 @@ func _physics_process(delta: float) -> void:
 			gem["pos"] = next_pos
 			if next_pos.distance_to(game.player_pos) < pickup_distance:
 				_collect_xp(int(gem["value"]))
-				gems.remove_at(i)
+				record_pool.remove(gems,i,"gems")
 
 	orbit_clock += delta * speed_multiplier()
 	if weapons.has("buzzsaw"):
@@ -717,7 +746,7 @@ func _physics_process(delta: float) -> void:
 		for blade in range(count):
 			var theta := orbit_clock * orbit_speed * (-1.0 if evolutions.has("buzzsaw") and blade % 2 == 1 else 1.0) + TAU * float(blade) / float(count)
 			var blade_pos: Vector2 = game.player_pos + Vector2.from_angle(theta) * (orbit_radius * (0.70 if evolutions.has("buzzsaw") and blade % 2 == 1 else 1.0))
-			for i in range(game.enemies.size() - 1, -1, -1):
+			for i in game.enemy_indices_near(blade_pos,30.0):
 				if i >= game.enemies.size():
 					continue
 				if blade_pos.distance_to(Vector2(game.enemies[i]["pos"])) < 30.0:
@@ -726,11 +755,6 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	for gem in gems:
-		var p: Vector2 = gem["pos"]
-		var v := int(gem["value"])
-		var tint := Color("#9c6cff") if v >= 10 else (Color("#6FBF4A") if v >= 2 else Color("#5bceff"))
-		draw_colored_polygon(PackedVector2Array([p + Vector2(0,-9), p + Vector2(7,0), p + Vector2(0,9), p + Vector2(-7,0)]), tint)
 
 	for pool in molotov_pools:
 		var life_alpha := clampf(float(pool["life"]) / 1.0, 0.15, 0.75)

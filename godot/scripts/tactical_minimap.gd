@@ -11,6 +11,7 @@ var full_canvas: Control
 var last_toggle := -1000
 var reward_textures: Dictionary = {}
 var terrain_texture: ImageTexture
+var enemy_points:=PackedVector2Array()
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -156,10 +157,17 @@ func _draw_map(canvas: Control, dimensions: Vector2, full: bool) -> void:
 			if texture != null:
 				var icon_size := texture.get_size() * (14.0 / maxf(texture.get_width(), texture.get_height()))
 				canvas.draw_texture_rect(texture, Rect2(point + Vector2(10, 2) + (Vector2(14, 14) - icon_size) * 0.5, icon_size), false)
+	enemy_points.resize(game.enemies.size()*2)
+	var ni:=0
 	for enemy in game.enemies:
-		var point: Vector2 = origin + Vector2(enemy["pos"]) * factor
+		var point: Vector2=origin+Vector2(enemy["pos"])*factor
 		if area.has_point(point):
-			canvas.draw_circle(point, 1.4 if full else 0.65, Color("#E69A57"))
+			enemy_points[ni]=point-Vector2(.3,0)
+			enemy_points[ni+1]=point+Vector2(.3,0)
+			ni+=2
+	enemy_points.resize(ni)
+	if ni>0: canvas.draw_multiline(enemy_points,Color("#E69A57"),2.8 if full else 1.3)
+
 	var player: Vector2 = origin + Vector2(game.player_pos) * factor
 	canvas.draw_circle(player, 4.0 if full else 3.0, Color("#5CF7AB"))
 	canvas.draw_arc(player, 6.0 if full else 4.0, 0, TAU, 16, Color("#5CF7AB"), 1)

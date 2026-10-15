@@ -22,11 +22,40 @@
       10,
       12
     ],
-    "collection_multiplier": 0.6
+    "collection_multiplier": 0.6,
+    "required_by_level": [
+      12,
+      12,
+      12,
+      22,
+      36,
+      40,
+      48,
+      64,
+      82,
+      118,
+      142,
+      170
+    ],
+    "collection_multiplier_by_level": {
+      "1": 1.0,
+      "2": 2.5,
+      "3": 1.8,
+      "4": 1.0,
+      "5": 1.0,
+      "6": 0.9,
+      "default": 0.6
+    },
+    "vacuum_age_seconds_by_level": {
+      "1": 6.5,
+      "default": 8.0
+    },
+    "tail_linear": 24,
+    "tail_quadratic": 2
   },
   "pacing": {
-    "wave1_duration_seconds": 75,
-    "break_seconds": 8,
+    "wave1_duration_seconds": 60,
+    "break_seconds": 4,
     "pressure_start": 20,
     "pressure_at_60s": 40,
     "pressure_per_later_wave": 6,
@@ -86,9 +115,9 @@
         220
       ]
     ],
-    "surge_last_seconds": 10,
+    "surge_last_seconds": 8,
     "surge_ring_count": 12,
-    "wave_duration_seconds": 75,
+    "wave_duration_seconds": 67.5,
     "runner_pack_min": 4,
     "runner_pack_max": 8
   },
@@ -100,7 +129,7 @@
     "damage_numbers": 40,
     "blood_decals": 40,
     "impact_marks": 120,
-    "weapon_effects": 160
+    "weapon_effects": 96
   },
   "rarity": {
     "common": {
@@ -174,7 +203,7 @@
         "+2 pellets",
         "+20% damage",
         "Wider cone",
-        "+2 pellets / knockback ×2"
+        "+2 pellets / knockback \u00d72"
       ]
     },
     "molotov": {
@@ -223,7 +252,7 @@
         "Unlock Lightning Rod",
         "+1 chain",
         "+20% damage",
-        "−15% cooldown",
+        "\u221215% cooldown",
         "+2 chains / stun 0.3 s"
       ]
     },
@@ -327,14 +356,14 @@
     "battery_pack": {
       "name": "Battery Pack",
       "max_level": 5,
-      "description": "−8% cooldowns",
+      "description": "\u22128% cooldowns",
       "per_level": 0.08,
       "level_adds": [
-        "−8% cooldown",
-        "−8% cooldown",
-        "−8% cooldown",
-        "−8% cooldown",
-        "−8% cooldown"
+        "\u22128% cooldown",
+        "\u22128% cooldown",
+        "\u22128% cooldown",
+        "\u22128% cooldown",
+        "\u22128% cooldown"
       ]
     },
     "blast_radius": {
@@ -515,5 +544,12 @@
     "opacity": 0.5,
     "scale_min": 0.5,
     "scale_max": 1
+  },
+  "performance": {
+    "offscreen_ai_hz": 15,
+    "particles": 96,
+    "score_popups": 20,
+    "hazards": 64,
+    "telemetry_seconds": 1
   }
 }
