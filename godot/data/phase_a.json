@@ -36,7 +36,54 @@
     "wave1_start_groups": 2,
     "later_wave_start_groups": 3,
     "min_spawn_distance_tiles": 1.5,
-    "spawn_group_angle_step_degrees": 72
+    "spawn_group_angle_step_degrees": 72,
+    "pressure_by_wave": [
+      [
+        20,
+        40
+      ],
+      [
+        40,
+        60
+      ],
+      [
+        55,
+        80
+      ],
+      [
+        70,
+        110
+      ],
+      [
+        70,
+        110
+      ],
+      [
+        100,
+        150
+      ],
+      [
+        100,
+        150
+      ],
+      [
+        140,
+        200
+      ],
+      [
+        140,
+        200
+      ],
+      [
+        160,
+        220
+      ]
+    ],
+    "surge_last_seconds": 10,
+    "surge_ring_count": 12,
+    "wave_duration_seconds": 75,
+    "runner_pack_min": 4,
+    "runner_pack_max": 8
   },
   "limits": {
     "weapons": 6,
@@ -393,18 +440,65 @@
     "banishes_per_run": 1
   },
   "difficulty": {
-    "enemy_hp_per_wave": 0.12,
-    "enemy_damage_per_wave": 0.06,
+    "enemy_hp_per_wave": 0.15,
+    "enemy_damage_per_wave": 0.08,
     "contact_damage": {
       "shambler_base": 5.66,
       "runner_base": 8,
       "trucker_base": 18
     },
-    "player_hit_invulnerability_seconds": 0.5,
+    "player_hit_invulnerability_seconds": 0.35,
     "enemy_contact_cooldown_seconds": 0.8,
     "incoming_damage_cap_fraction_per_second": 0.35,
     "hit_knockback_radius": 230,
-    "hit_knockback_distance": 125
+    "hit_knockback_distance": 125,
+    "enemy_hp_per_player_level": 0.03,
+    "enemy_speed_per_wave": 0.02,
+    "enemy_speed_bonus_cap": 0.2,
+    "medkit_heal_fraction": 0.2,
+    "normal_powerup_drop_chance": 0.004,
+    "medkit_drop_weight": 0.5,
+    "acid_damage_per_tick": 4,
+    "acid_tick_seconds": 0.8,
+    "spitter_telegraph_seconds": 0.8,
+    "spitter_puddle_seconds": 4,
+    "bloater_goo_seconds": 5,
+    "brute_front_damage_multiplier": 0.5,
+    "brute_charge_telegraph_seconds": 0.9,
+    "brute_charge_speed": 390,
+    "brute_charge_seconds": 0.55,
+    "enemy_types": {
+      "shambler": {
+        "hp": 1,
+        "speed": 108,
+        "radius": 18,
+        "from_wave": 1
+      },
+      "runner": {
+        "hp": 2,
+        "speed": 195,
+        "radius": 15,
+        "from_wave": 2
+      },
+      "bloater": {
+        "hp": 16,
+        "speed": 70,
+        "radius": 28,
+        "from_wave": 4
+      },
+      "spitter": {
+        "hp": 8,
+        "speed": 92,
+        "radius": 19,
+        "from_wave": 5
+      },
+      "brute": {
+        "hp": 36,
+        "speed": 80,
+        "radius": 34,
+        "from_wave": 6
+      }
+    }
   },
   "blood_decals": {
     "lifetime_seconds": 8,
