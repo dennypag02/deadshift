@@ -664,11 +664,12 @@ func _active_horde_target() -> int:
 	if progression == null:
 		return 20
 	var pacing: Dictionary = progression.config.get("pacing", {})
-	var start_target := int(pacing.get("pressure_start", 20))
-	var end_target := int(pacing.get("pressure_at_60s", 40))
-	var later_bonus := int(pacing.get("pressure_per_later_wave", 6)) * maxi(0, wave - 1)
-	var t := clampf(wave_clock / 60.0, 0.0, 1.0)
-	var target := roundi(lerpf(float(start_target), float(end_target), t)) + later_bonus
+	var targets: Array = pacing.get("pressure_by_wave", [])
+	var target_row: Array = targets[mini(maxi(0, wave - 1), targets.size() - 1)] if not targets.is_empty() else [20, 40]
+	var start_target := int(target_row[0])
+	var end_target := int(target_row[1])
+	var t := clampf(wave_clock / float(pacing.get("wave_duration_seconds", 75.0)), 0.0, 1.0)
+	var target := roundi(lerpf(float(start_target), float(end_target), t))
 	return mini(int(progression.config.get("limits", {}).get("active_enemies", 250)), target)
 
 func _camera_half_extents() -> Vector2:
@@ -721,15 +722,12 @@ func _next_uid() -> int:
 	return value
 
 func _enemy_stats(kind: String) -> Dictionary:
-	var hp_scale := 1.0
-	if progression != null:
-		var hp_per_wave := float(progression.config.get("difficulty", {}).get("enemy_hp_per_wave", 0.12))
-		hp_scale += hp_per_wave * float(wave)
-	if kind == "runner":
-		return {"hp": 2.0 * hp_scale, "speed": 195.0, "radius": 15.0}
-	if kind == "trucker":
-		return {"hp": 30.0 * hp_scale, "speed": 46.0, "radius": 34.0}
-	return {"hp": 1.0 * hp_scale, "speed": 108.0, "radius": 18.0}
+	var difficulty: Dictionary = progression.config.get("difficulty", {}) if progression != null else {}
+	var hp_scale := (1.0 + float(difficulty.get("enemy_hp_per_wave", 0.15)) * float(wave)) * (1.0 + float(difficulty.get("enemy_hp_per_player_level", 0.03)) * float(progression.level if progression != null else 1))
+	var speed_scale := 1.0 + minf(float(difficulty.get("enemy_speed_bonus_cap", 0.20)), float(difficulty.get("enemy_speed_per_wave", 0.02)) * float(wave))
+	var roster: Dictionary = difficulty.get("enemy_types", {})
+	var base: Dictionary = roster.get(kind, {"hp": 30.0, "speed": 46.0, "radius": 34.0})
+	return {"hp": float(base.get("hp", 1.0)) * hp_scale, "speed": float(base.get("speed", 108.0)) * speed_scale, "radius": float(base.get("radius", 18.0))}
 
 func _append_enemy(kind: String, pos: Vector2) -> void:
 	var stats := _enemy_stats(kind)
@@ -743,12 +741,21 @@ func _append_enemy(kind: String, pos: Vector2) -> void:
 		"elite": false,
 		"charge": 0.0,
 		"contact_cooldown": 0.0,
+		"attack_clock": 0.0,
+		"charge_target": Vector2.ZERO,
 	})
 
 func _pressure_kind() -> String:
-	if wave == 1:
-		return "runner" if rng.randf() < 0.08 else "shambler"
-	if wave >= 2 and rng.randf() < minf(0.30, 0.10 + float(wave) * 0.025):
+	if wave <= 1:
+		return "shambler"
+	var roll := rng.randf()
+	if wave >= 6 and roll < 0.07:
+		return "brute"
+	if wave >= 5 and roll < 0.17:
+		return "spitter"
+	if wave >= 4 and roll < 0.28:
+		return "bloater"
+	if roll < 0.53:
 		return "runner"
 	return "shambler"
 
@@ -993,7 +1000,7 @@ func _collect_phase_c_powerup(kind: String) -> void:
 		"Freeze":
 			freeze_clock = 5.0
 		"Medkit":
-			player_hp = mini(player_max_hp, player_hp + roundi(float(player_max_hp) * 0.30))
+			player_hp = mini(player_max_hp, player_hp + roundi(float(player_max_hp) * float(progression.config.get("difficulty", {}).get("medkit_heal_fraction", 0.20))))
 		"Chest":
 			var chest_reward := "50 SCRAP + 30 XP"
 			score += 250
@@ -1593,9 +1600,11 @@ func _phase_a_kill_enemy(index: int) -> void:
 		powerups.append({"pos": Vector2(enemy["pos"]), "kind": "Chest", "age": 0.0})
 		if progression != null:
 			progression.add_xp(25)
-	elif rng.randf() < 0.004:
+	elif rng.randf() < float(progression.config.get("difficulty", {}).get("normal_powerup_drop_chance", 0.004)):
 		var kinds := ["Rage", "Mega Gun", "Nuke", "Magnet", "Freeze", "Medkit"]
-		powerups.append({"pos": Vector2(enemy["pos"]), "kind": kinds[rng.randi_range(0, kinds.size() - 1)], "age": 0.0})
+		var chosen: String = kinds[rng.randi_range(0, kinds.size() - 1)]
+		if chosen != "Medkit" or rng.randf() < float(progression.config.get("difficulty", {}).get("medkit_drop_weight", 0.5)):
+			powerups.append({"pos": Vector2(enemy["pos"]), "kind": chosen, "age": 0.0})
 	if progression != null:
 		progression.drop_xp(Vector2(enemy["pos"]), kind)
 	kills += 1
