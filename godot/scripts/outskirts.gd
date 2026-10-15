@@ -350,40 +350,6 @@ func _setup_ui() -> void:
 	ui.add_child(phase_overlay)
 	phase_ui = phase_overlay
 
-	upgrade_panel = Panel.new()
-	upgrade_panel.position = Vector2(24, 570)
-	upgrade_panel.size = Vector2(384, 310)
-	upgrade_panel.visible = false
-	ui.add_child(upgrade_panel)
-
-	upgrade_title = Label.new()
-	upgrade_title.position = Vector2(18, 18)
-	upgrade_title.size = Vector2(348, 50)
-	upgrade_title.text = "MINI-MART UPGRADE CRATE\nChoose 1 upgrade"
-	upgrade_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	upgrade_title.add_theme_font_size_override("font_size", 18)
-	upgrade_panel.add_child(upgrade_title)
-
-	var rapid := Button.new()
-	rapid.position = Vector2(32, 88)
-	rapid.size = Vector2(320, 52)
-	rapid.text = "Rapid Fire  -  fire 12% faster"
-	rapid.pressed.connect(_choose_rapid_fire)
-	upgrade_panel.add_child(rapid)
-
-	var heavy := Button.new()
-	heavy.position = Vector2(32, 154)
-	heavy.size = Vector2(320, 52)
-	heavy.text = "Heavy Rounds  -  +1 damage"
-	heavy.pressed.connect(_choose_heavy_rounds)
-	upgrade_panel.add_child(heavy)
-
-	var fleet := Button.new()
-	fleet.position = Vector2(32, 220)
-	fleet.size = Vector2(320, 52)
-	fleet.text = "Fleet Feet  -  move 10% faster"
-	fleet.pressed.connect(_choose_fleet_feet)
-	upgrade_panel.add_child(fleet)
 
 func _setup_pumps() -> void:
 	pumps.clear()
@@ -473,24 +439,9 @@ func _finish_wave() -> void:
 			banner.text = "HORDE BROKEN - FINISH DISTRICT OBJECTIVES"
 		_update_hud()
 		return
-	banner.text = "WAVE %d CLEARED - RETURN TO THE MINI-MART" % wave
-	upgrade_panel.visible = true
-
-func _choose_rapid_fire() -> void:
-	fire_period = maxf(0.14, fire_period * 0.88)
-	_continue_after_upgrade("Rapid Fire")
-
-func _choose_heavy_rounds() -> void:
-	bullet_damage += 1
-	_continue_after_upgrade("Heavy Rounds")
-
-func _choose_fleet_feet() -> void:
-	player_speed *= 1.10
-	_continue_after_upgrade("Fleet Feet")
-
-func _continue_after_upgrade(choice: String) -> void:
-	upgrade_panel.visible = false
-	banner.text = "%s equipped" % choice
+	banner.text = "WAVE %d CLEARED - UPGRADE CRATE" % wave
+	if phase_ui != null:
+		phase_ui.call("queue_upgrade_crate")
 	_start_wave(wave + 1)
 
 func _unhandled_input(event: InputEvent) -> void:
