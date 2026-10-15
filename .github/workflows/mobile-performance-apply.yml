@@ -1,0 +1,54 @@
+name: Apply tested mobile performance source
+on:
+  push:
+    branches: [feature/mobile-performance-pacing]
+    paths: [tools/apply_mobile_source.py]
+permissions:
+  contents: write
+concurrency:
+  group: mobile-performance-apply
+  cancel-in-progress: false
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply hash-checked source and build derived atlas
+        run: |
+          python3 tools/apply_mobile_source.py
+          python3 -m pip install Pillow numpy
+          python3 tools/build_actor_atlas.py
+          python3 tools/verify_mobile_contract.py
+      - name: Strict Godot import and regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 -o godot.zip https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip -q godot.zip
+          chmod +x Godot_v4.4.1-stable_linux.x86_64
+          mkdir -p mobile-evidence
+          G=./Godot_v4.4.1-stable_linux.x86_64
+          "$G" --headless --audio-driver Dummy --path godot --editor --quit 2>&1 | tee mobile-evidence/import.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' mobile-evidence/import.log
+          for t in performance_tests feedback_tests phase_a_xp_check phase_b_check survivability_ui_check; do
+            "$G" --headless --audio-driver Dummy --path godot --script "res://scripts/$t.gd" 2>&1 | tee "mobile-evidence/$t.log"
+            ! grep -E 'SCRIPT ERROR|Parse Error|PERFORMANCE_FAIL|FEEDBACK_FAIL' "mobile-evidence/$t.log"
+          done
+          grep -q PERFORMANCE_TESTS_PASS mobile-evidence/performance_tests.log
+      - name: Commit the tested runtime source and derived atlas
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add godot/scripts godot/shaders godot/data godot/art/runtime tools/build_actor_atlas.py tools/verify_mobile_contract.py
+          git commit -m 'Implement batched mobile rendering, active-time waves and front-loaded XP'
+          git push origin HEAD:feature/mobile-performance-pacing
+          git rev-parse HEAD > mobile-evidence/source-sha.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobile-performance-apply-evidence
+          path: mobile-evidence/
+          retention-days: 7
