@@ -238,7 +238,17 @@ def render(project: str = DEFAULT_PROJECT, scope: str = "general") -> str:
 button{background:#45617e;color:white;border:0;border-radius:6px;padding:12px;margin:10px 8px 0 0;cursor:pointer}
 button.submit{background:#286a48}small{color:#aaa}</style></head><body>
 <h1>Game Project Asset Library</h1><p>Keep any number of candidates. Saving or submitting does not install artwork in the game.</p>
-<div class='layout'><aside><h2>Projects &amp; Folders</h2>""" + "".join(navigation) + """</aside>
+<div class='layout'><aside><h2>Projects &amp; Folders</h2>""" + "".join(navigation) + """
+<hr><h3>Create folders</h3>
+<form action='/curation-action' method='post'>
+<label>New project ID <input name='project' required pattern='[a-z0-9][a-z0-9_-]*'></label>
+<button name='action' value='create_project'>Create game project</button>
+</form>
+<form action='/curation-action' method='post'>
+<input type='hidden' name='project' value='""" + html.escape(project, quote=True) + """'>
+<label>New level ID <input name='level' required pattern='[a-z0-9][a-z0-9_-]*'></label>
+<button name='action' value='create_level'>Create level folder</button>
+</form></aside>
 <main><h2>""" + html.escape(project + " / " + scope) + """</h2>
 <form action='/curation-action' method='post'>
 <input type='hidden' name='project' value='""" + html.escape(project, quote=True) + """'>
