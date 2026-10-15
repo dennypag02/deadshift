@@ -5,7 +5,7 @@ APK_PATH="${APK_PATH:-build/deadshift-v3-debug.apk}"
 PACKAGE="${PACKAGE:-com.dennypag02.deadshift}"
 DURATION_SECONDS="${DURATION_SECONDS:-180}"
 TAP_X="${TAP_X:-540}"
-TAP_Y="${TAP_Y:-650}"
+TAP_Y="${TAP_Y:-750}"
 START_X="${START_X:-540}"
 START_Y="${START_Y:-1363}"
 
@@ -53,11 +53,39 @@ adb logcat -c
 echo "Launching $PACKAGE..." | tee -a "$STATUS_FILE"
 adb shell monkey -p "$PACKAGE" 1 | tee -a "$STATUS_FILE"
 sleep 8
-# Pixel 6 is 1080x2400: the production 432x960 title button is at (216,545).
-# The old (540,650) tap is a level-up-card location, NOT the title's START RUN.
+# Fresh Android installations show a system-owned immersive-mode teaching
+# overlay. Inspect its actual UI hierarchy and dismiss only its Got it button;
+# never assume an app has frozen merely because this system prompt is on top.
+adb exec-out screencap -p > android-stability/before-system-prompt.png
+timeout 20s adb shell uiautomator dump /sdcard/deadshift-system-ui.xml > android-stability/system-ui-dump.log 2>&1
+adb pull /sdcard/deadshift-system-ui.xml android-stability/system-ui.xml >/dev/null
+python3 - <<'PY'
+from pathlib import Path
+import re
+import subprocess
+import xml.etree.ElementTree as ET
+root = ET.parse('android-stability/system-ui.xml').getroot()
+for node in root.iter('node'):
+    text = node.attrib.get('text', '').strip().lower()
+    package = node.attrib.get('package', '')
+    if text == 'got it' and package in ('com.android.systemui', 'android'):
+        bounds = list(map(int, re.findall(r'\d+', node.attrib.get('bounds', ''))))
+        assert len(bounds) == 4, 'System prompt bounds unavailable'
+        x, y = (bounds[0]+bounds[2])//2, (bounds[1]+bounds[3])//2
+        subprocess.run(['adb','shell','input','tap',str(x),str(y)],check=True,timeout=10)
+        message=f'MILESTONE - dismissed observed Android system Got it prompt at {x},{y}'
+        print(message)
+        with Path('android-stability/status.txt').open('a') as f: f.write(message+'\n')
+        break
+else:
+    print('MILESTONE - no system Got it prompt present in UI hierarchy')
+PY
+sleep 2
+# Pixel 6 is 1080x2400: production 432x960 title button is at (216,545).
+# A normal level-up card center is around (216,300), separate from START RUN.
 adb exec-out screencap -p > android-stability/title-screen.png
 adb shell input tap "$START_X" "$START_Y"
-echo "MILESTONE - tapped actual START RUN at $START_X,$START_Y; normal damage, no debug commands" | tee -a "$STATUS_FILE"
+echo "MILESTONE - tapped START RUN at $START_X,$START_Y; normal damage, no debug commands" | tee -a "$STATUS_FILE"
 
 START=$(date +%s)
 END=$((START + DURATION_SECONDS))
@@ -85,6 +113,8 @@ while [ "$(date +%s)" -lt "$END" ]; do
 done
 adb exec-out screencap -p > android-stability/end-screen.png
 # Preserve actual local telemetry from this isolated emulator installation.
+# These are automation measurements even when the unmodified APK labels
+# its installation-local attempt human; do not mix them into a human cohort.
 adb exec-out run-as "$PACKAGE" sh -c 'cd files; tar -cf - runs' > android-stability/local-runs.tar 2>/dev/null || true
 
 capture_logs
@@ -100,18 +130,25 @@ if ! grep -q "ANDROID_RUNTIME" "$RUNTIME_LOG"; then
   exit 32
 fi
 
-python3 - "$RUNTIME_LOG" "$STATUS_FILE" <<'PY'
-import re, sys
-runtime_path, status_path = sys.argv[1:3]
-text = open(runtime_path, encoding="utf-8", errors="ignore").read()
-fps = [int(x) for x in re.findall(r"fps=(\d+)", text)]
-enemies = [int(x) for x in re.findall(r"enemies=(\d+)", text)]
+python3 - "$RUNTIME_LOG" "$STATUS_FILE" "$CRASH_LOG" <<'PY'
+import json, re, sys
+runtime_path, status_path, crash_path = sys.argv[1:4]
+text = open(runtime_path, encoding='utf-8', errors='ignore').read()
+fps = [int(x) for x in re.findall(r'fps=(\d+)', text)]
+enemies = [int(x) for x in re.findall(r'enemies=(\d+)', text)]
 if not fps or not enemies:
-    raise SystemExit("missing Android runtime telemetry")
+    raise SystemExit('missing Android runtime telemetry')
 if max(enemies) < 40:
-    raise SystemExit(f"dense horde not reached; enemies_max={max(enemies)}")
-line = f"ANDROID_STABILITY_PASS samples={len(fps)} fps_min={min(fps)} fps_avg={sum(fps)/len(fps):.1f} enemies_max={max(enemies)}"
+    raise SystemExit(f'dense horde not reached; enemies_max={max(enemies)}')
+active = []
+for line in open(crash_path, encoding='utf-8', errors='ignore'):
+    if 'PACING {' not in line: continue
+    try: active.append(float(json.loads(line.split('PACING ',1)[1]).get('active_s',0)))
+    except (ValueError, TypeError): continue
+if not active or max(active) < 60:
+    raise SystemExit(f'insufficient active gameplay; active_seconds={max(active,default=0)}')
+line = f'ANDROID_STABILITY_PASS samples={len(fps)} fps_min={min(fps)} fps_avg={sum(fps)/len(fps):.1f} enemies_max={max(enemies)} active_seconds={max(active):.3f}'
 print(line)
-with open(status_path, "a", encoding="utf-8") as fh:
-    fh.write(line + "\n")
+with open(status_path, 'a', encoding='utf-8') as fh: fh.write(line+'\n')
+print('This is 180 wall seconds of Android runtime validation, not 180 active seconds survived, human input or a physical-phone FPS claim.')
 PY
