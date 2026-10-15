@@ -415,6 +415,7 @@ func _start_wave(next_wave: int) -> void:
 	wave_min_hp = player_hp
 	stage1_damage_sources = {"contact": 0, "spitter": 0, "bloater": 0, "brute": 0, "explosion": 0}
 	stage1_damage_dealt = 0.0
+	stage1_wave_min_hp_pct = 100.0 * float(player_hp) / maxf(1.0, float(player_max_hp))
 	stage1_enemy_integral = 0.0
 	stage1_sample_seconds = 0.0
 	stage1_enemy_max = 0
@@ -454,7 +455,7 @@ func _start_wave(next_wave: int) -> void:
 func _finish_wave() -> void:
 	if capture_mode:
 		print("PACING_DAMAGE wave=%d damage_taken=%d min_hp=%d max_hp=%d min_hp_pct=%.1f" % [wave, wave_damage_taken, wave_min_hp, player_max_hp, 100.0 * float(wave_min_hp) / maxf(1.0, float(player_max_hp))])
-	print("STAGE1_WAVE wave=%d min_hp_pct=%.1f damage=%s enemies_avg=%.1f enemies_max=%d dps=%.1f level=%d elapsed=%.1f" % [wave, 100.0 * float(wave_min_hp) / maxf(1.0, float(player_max_hp)), str(stage1_damage_sources), stage1_enemy_integral / maxf(0.01, stage1_sample_seconds), stage1_enemy_max, stage1_damage_dealt / maxf(0.01, wave_clock), progression.level if progression != null else 1, run_clock])
+	print("STAGE1_WAVE wave=%d min_hp_pct=%.1f damage=%s enemies_avg=%.1f enemies_max=%d dps=%.1f level=%d elapsed=%.1f" % [wave, stage1_wave_min_hp_pct, str(stage1_damage_sources), stage1_enemy_integral / maxf(0.01, stage1_sample_seconds), stage1_enemy_max, stage1_damage_dealt / maxf(0.01, wave_clock), progression.level if progression != null else 1, run_clock])
 	wave_active = false
 	if progression != null:
 		progression.vacuum_all_gems()
@@ -958,6 +959,7 @@ func _apply_player_contact_damage(enemy: Dictionary) -> void:
 	player_hp = maxi(0, player_hp - effective_damage)
 	wave_damage_taken += effective_damage
 	wave_min_hp = mini(wave_min_hp, player_hp)
+	stage1_wave_min_hp_pct = minf(stage1_wave_min_hp_pct, 100.0 * float(player_hp) / maxf(1.0, float(player_max_hp)))
 	var damage_source := kind if kind == "brute" or kind == "bloater" else "contact"
 	stage1_damage_sources[damage_source] = int(stage1_damage_sources.get(damage_source, 0)) + effective_damage
 	var difficulty: Dictionary = progression.config.get("difficulty", {}) if progression != null else {}
@@ -968,6 +970,7 @@ func _apply_player_contact_damage(enemy: Dictionary) -> void:
 
 var stage1_hazards: Array[Dictionary] = []
 var stage1_damage_sources: Dictionary = {"contact": 0, "spitter": 0, "bloater": 0, "brute": 0, "explosion": 0}
+var stage1_wave_min_hp_pct := 100.0
 var stage1_damage_dealt := 0.0
 var stage1_enemy_integral := 0.0
 var stage1_sample_seconds := 0.0
