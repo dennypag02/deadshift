@@ -34,6 +34,8 @@ var bebas_font: Font
 var capture_mode := false
 var capture_start_msec := 0
 var capture_title: ColorRect
+var modal_queue: Array[Dictionary] = []
+var active_modal := ""
 var chest_reveal: PanelContainer
 var game_over_panel: PanelContainer
 var game_over_stats: Label
@@ -68,6 +70,25 @@ func _ready() -> void:
 		_start_capture_title()
 
 func show_chest_reveal(reward: String) -> void:
+	modal_queue.append({"kind": "chest", "reward": reward})
+	_advance_modal()
+
+func queue_upgrade_crate() -> void:
+	progression.pending_levels += 1
+	modal_queue.append({"kind": "crate"})
+	_advance_modal()
+
+func _advance_modal() -> void:
+	if active_modal != "" or modal_queue.is_empty():
+		return
+	var request: Dictionary = modal_queue.pop_front()
+	active_modal = str(request["kind"])
+	if active_modal == "chest":
+		_run_chest_reveal(str(request["reward"]))
+	else:
+		_open_levelup_cards()
+
+func _run_chest_reveal(reward: String) -> void:
 	if chest_reveal != null and is_instance_valid(chest_reveal):
 		chest_reveal.queue_free()
 	chest_reveal = PanelContainer.new()
@@ -104,6 +125,8 @@ func show_chest_reveal(reward: String) -> void:
 	await tween.finished
 	if is_instance_valid(chest_reveal):
 		chest_reveal.queue_free()
+	active_modal = ""
+	_advance_modal()
 
 func _start_capture_title() -> void:
 	get_tree().paused = true
@@ -557,6 +580,10 @@ func _placeholder_icon_color(id: String, _rarity: String) -> Color:
 			return Color("#8A8A8A")
 
 func _show_choices() -> void:
+	modal_queue.append({"kind": "levelup"})
+	_advance_modal()
+
+func _open_levelup_cards() -> void:
 	get_tree().paused = true
 	panel.visible = true
 	banish_mode = false
@@ -646,14 +673,11 @@ func _pick(index: int) -> void:
 	await _animate_choice(index)
 	panel.visible = false
 	progression.choose(id)
-	if progression.choosing:
-		panel.visible = true
-		get_tree().paused = true
-		_refresh_choices()
-		_animate_cards_in()
-	else:
+	if not progression.choosing:
 		progression.resume_after_levelup()
 		get_tree().paused = false
+	active_modal = ""
+	_advance_modal()
 
 func _reroll() -> void:
 	if progression.use_reroll():
