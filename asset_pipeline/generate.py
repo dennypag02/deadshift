@@ -449,7 +449,8 @@ def apply_job_file(args: argparse.Namespace) -> argparse.Namespace:
     args.only = job.get("asset", args.only)
     args.category = job.get("category", args.category)
     args.seed_group = job.get("seed_group", args.seed_group)
-    args.count = int(job.get("count", args.count or 20))
+    if "count" in job:
+        args.count = int(job["count"])
     args.positive = job.get("positive", args.positive)
     args.negative = job.get("negative", args.negative)
     args.job_id = str(job.get("job_id") or args.job_file.stem)
