@@ -413,6 +413,12 @@ func _start_wave(next_wave: int) -> void:
 	wave = next_wave
 	wave_damage_taken = 0
 	wave_min_hp = player_hp
+	stage1_damage_sources = {"contact": 0, "spitter": 0, "bloater": 0, "brute": 0, "explosion": 0}
+	stage1_damage_dealt = 0.0
+	stage1_enemy_integral = 0.0
+	stage1_sample_seconds = 0.0
+	stage1_enemy_max = 0
+	stage1_surge_triggered = false
 	elite_spawn_clock = 45.0
 	if capture_mode:
 		print("PACING_WAVE wave=%d t=%.2f" % [wave, capture_clock])
@@ -448,6 +454,7 @@ func _start_wave(next_wave: int) -> void:
 func _finish_wave() -> void:
 	if capture_mode:
 		print("PACING_DAMAGE wave=%d damage_taken=%d min_hp=%d max_hp=%d min_hp_pct=%.1f" % [wave, wave_damage_taken, wave_min_hp, player_max_hp, 100.0 * float(wave_min_hp) / maxf(1.0, float(player_max_hp))])
+	print("STAGE1_WAVE wave=%d min_hp_pct=%.1f damage=%s enemies_avg=%.1f enemies_max=%d dps=%.1f level=%d elapsed=%.1f" % [wave, 100.0 * float(wave_min_hp) / maxf(1.0, float(player_max_hp)), str(stage1_damage_sources), stage1_enemy_integral / maxf(0.01, stage1_sample_seconds), stage1_enemy_max, stage1_damage_dealt / maxf(0.01, wave_clock), progression.level if progression != null else 1, run_clock])
 	wave_active = false
 	if progression != null:
 		progression.vacuum_all_gems()
@@ -568,6 +575,9 @@ func _physics_process(delta: float) -> void:
 
 	var hazard := _hazard_at(player_pos)
 	var speed_mult := float(hazard["speed_mult"])
+	for h in stage1_hazards:
+		if str(h["kind"]) == "goo" and player_pos.distance_to(Vector2(h["pos"])) < float(h["radius"]):
+			speed_mult *= 0.55
 	var desired_velocity := direction * player_speed * speed_mult * (1.5 if rage_clock > 0.0 else 1.0)
 	if bool(hazard["slippery"]):
 		player_velocity = player_velocity.move_toward(desired_velocity, player_speed * delta / 0.35)
@@ -588,6 +598,13 @@ func _physics_process(delta: float) -> void:
 
 	if wave_active:
 		wave_clock += delta
+		stage1_enemy_integral += float(_onscreen_enemy_count()) * delta
+		stage1_sample_seconds += delta
+		stage1_enemy_max = maxi(stage1_enemy_max, _onscreen_enemy_count())
+		var wave_duration := float(progression.config.get("pacing", {}).get("wave_duration_seconds", 75.0))
+		if not stage1_surge_triggered and wave_clock >= wave_duration - float(progression.config.get("pacing", {}).get("surge_last_seconds", 10.0)):
+			stage1_surge_triggered = true
+			_stage1_spawn_surge()
 		var pacing: Dictionary = progression.config.get("pacing", {}) if progression != null else {}
 		var active_target := _active_horde_target()
 		spawn_clock -= delta
@@ -652,6 +669,7 @@ func _physics_process(delta: float) -> void:
 		fire_clock = smg_base_period / (trigger_bonus * smg_rate_bonus * (2.0 if rage_clock > 0.0 else 1.0) * (3.0 if mega_clock > 0.0 else 1.0))
 
 	_update_phase_c(delta)
+	_stage1_update_hazards(delta)
 	_update_bullets(delta)
 	_update_enemies(delta)
 	_update_health(delta)
@@ -926,11 +944,52 @@ func _apply_player_contact_damage(enemy: Dictionary) -> void:
 	player_hp = maxi(0, player_hp - effective_damage)
 	wave_damage_taken += effective_damage
 	wave_min_hp = mini(wave_min_hp, player_hp)
+	stage1_damage_sources["contact"] = int(stage1_damage_sources.get("contact", 0)) + effective_damage
 	var difficulty: Dictionary = progression.config.get("difficulty", {}) if progression != null else {}
 	player_hit_invulnerability = float(difficulty.get("player_hit_invulnerability_seconds", 0.5))
 	enemy["contact_cooldown"] = float(difficulty.get("enemy_contact_cooldown_seconds", 0.8))
 	_knockback_nearby_enemies()
 	_haptic_pulse(20)
+
+var stage1_hazards: Array[Dictionary] = []
+var stage1_damage_sources: Dictionary = {"contact": 0, "spitter": 0, "bloater": 0, "brute": 0, "explosion": 0}
+var stage1_damage_dealt := 0.0
+var stage1_enemy_integral := 0.0
+var stage1_sample_seconds := 0.0
+var stage1_enemy_max := 0
+var stage1_surge_triggered := false
+
+func _stage1_damage(amount: int, source: String) -> void:
+	if player_hp <= 0 or (phase_ui != null and bool(phase_ui.god_mode)):
+		return
+	var dealt := mini(player_hp, maxi(0, amount))
+	player_hp -= dealt
+	wave_damage_taken += dealt
+	wave_min_hp = mini(wave_min_hp, player_hp)
+	stage1_damage_sources[source] = int(stage1_damage_sources.get(source, 0)) + dealt
+
+func _stage1_update_hazards(delta: float) -> void:
+	for i in range(stage1_hazards.size() - 1, -1, -1):
+		var h: Dictionary = stage1_hazards[i]
+		h["life"] = float(h["life"]) - delta
+		h["tick"] = float(h.get("tick", 0.0)) - delta
+		if float(h["life"]) <= 0.0:
+			stage1_hazards.remove_at(i)
+			continue
+		if str(h["kind"]) == "acid" and player_pos.distance_to(Vector2(h["pos"])) < float(h["radius"]) and float(h["tick"]) <= 0.0:
+			var diff: Dictionary = progression.config.get("difficulty", {})
+			_stage1_damage(int(diff.get("acid_damage_per_tick", 4)), "spitter")
+			h["tick"] = float(diff.get("acid_tick_seconds", 0.8))
+
+func _stage1_spawn_surge() -> void:
+	var pacing: Dictionary = progression.config.get("pacing", {})
+	var count := int(pacing.get("surge_ring_count", 12))
+	for i in range(count):
+		if enemies.size() >= int(progression.config.get("limits", {}).get("active_enemies", 250)):
+			break
+		var angle := TAU * float(i) / float(count)
+		_append_enemy(_pressure_kind(), _nearest_walkable_position(_spawn_position_outside_view(angle), 18.0))
+	print("STAGE1_SURGE wave=%d t=%.1f count=%d" % [wave, run_clock, count])
 
 func _update_enemies(delta: float) -> void:
 	for i in range(enemies.size() - 1, -1, -1):
@@ -1508,6 +1567,10 @@ func _draw_combat() -> void:
 		if flash_clock > 0.0:
 			draw_circle(p, radius + 5.0, Color(1,1,1,0.7 * flash_clock / 0.06))
 
+	for h in stage1_hazards:
+		var hpos: Vector2 = h["pos"]
+		var hc := Color(0.28, 0.7, 0.23, 0.38) if str(h["kind"]) == "goo" else Color(0.95, 0.38, 0.08, 0.40)
+		draw_circle(hpos, float(h["radius"]), hc)
 	for pickup in powerups:
 		var ppos: Vector2 = pickup["pos"]
 		var bob := sin(float(pickup["age"]) * 5.0) * 8.0
@@ -1583,6 +1646,7 @@ func phase_b_damage_enemy(index: int, raw_damage: float, crit: bool, source: Str
 	if not enemy.has("uid"):
 		enemy["uid"] = _next_uid()
 	var actual: float = raw_damage * (progression.crit_multiplier() if crit and progression != null else 1.0)
+	stage1_damage_dealt += actual
 	enemy["hp"] = float(enemy["hp"]) - actual
 	if juice_fx != null and damage_numbers_enabled:
 		juice_fx.call("damage_number", int(enemy["uid"]), Vector2(enemy["pos"]), actual, crit)
@@ -1614,6 +1678,9 @@ func _phase_a_kill_enemy(index: int) -> void:
 	score += points
 	if juice_fx != null:
 		juice_fx.call("kill", Vector2(enemy["pos"]), points)
+	if kind == "bloater":
+		var diff: Dictionary = progression.config.get("difficulty", {})
+		stage1_hazards.append({"kind": "goo", "pos": Vector2(enemy["pos"]), "radius": 115.0, "life": float(diff.get("bloater_goo_seconds", 5.0)), "tick": 0.0})
 	enemies.remove_at(index)
 
 func phase_a_resume_shockwave() -> void:
