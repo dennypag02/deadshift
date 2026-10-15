@@ -88,9 +88,9 @@ func _check() -> void:
 	if game._active_horde_target() != 20:
 		_fail("opening on-screen target is not 20")
 		return
-	game.wave_clock = 60.0
+	game.wave_clock = float(game.progression.config.get("pacing", {}).get("wave_duration_seconds", 75.0))
 	if game._active_horde_target() != 40:
-		_fail("one-minute on-screen target is not 40")
+		_fail("wave-end on-screen target is not 40")
 		return
 
 	print("SURV_CHECK checkpoint=spawn_safety")
