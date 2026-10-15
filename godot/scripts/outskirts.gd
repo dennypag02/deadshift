@@ -1551,24 +1551,30 @@ func _draw_combat() -> void:
 		var kind := str(enemy["kind"])
 		var radius := float(enemy["radius"])
 		if kind == "trucker":
-			draw_circle(p + Vector2(6,12), radius + 10, Color(0.05,0.05,0.05,0.55))
+			draw_circle(p + Vector2(6, 12), radius + 10.0, Color(0.05, 0.05, 0.05, 0.55))
 			draw_circle(p, radius, Color("#7e392f"))
-			
 		elif kind == "runner":
-			draw_circle(p, radius + 3, Color("#d9e5e1"))
+			draw_circle(p, radius, Color("#e5f0ee"))
 			var trail: Vector2 = (player_pos - p).normalized()
-			draw_line(p - trail * 26.0, p - trail * 65.0, Color("#d9e5e1", 0.65), 3.0)
-			draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(23,23), Vector2(46,46)), false)
-		else:
-			draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(25,25), Vector2(50,50)), false)
-		if kind == "spitter":
-			draw_arc(p, radius + 6.0, 0.0, TAU, 18, Color.ORANGE, 3.0)
+			draw_line(p - trail * 18.0, p - trail * 58.0, Color("#e5f0ee", 0.85), 4.0)
+			draw_circle(p + Vector2(-4, -5), 3.0, Color("#263e44"))
 		elif kind == "bloater":
-			draw_circle(p, radius + 5.0, Color(0.24, 0.55, 0.18, 0.7))
+			draw_circle(p, radius + 7.0, Color("#214b24"))
+			draw_circle(p, radius, Color("#72c849"))
+			draw_circle(p + Vector2(-9, -8), 7.0, Color("#b5e65c"))
+		elif kind == "spitter":
+			draw_colored_polygon(PackedVector2Array([p + Vector2(0, -radius), p + Vector2(radius * 0.55, radius), p + Vector2(-radius * 0.55, radius)]), Color("#43594d"))
+			draw_circle(p + Vector2(0, -radius * 0.55), radius * 0.60, Color("#a3ff39"))
+			draw_arc(p, radius + 5.0, 0.0, TAU, 18, Color("#a3ff39"), 3.0)
 		elif kind == "brute":
-			draw_circle(p, radius + 6.0, Color(0.55, 0.28, 0.25, 0.8))
+			draw_circle(p, radius + 5.0, Color("#252b31"))
+			draw_circle(p, radius, Color("#555f68"))
+			var face: Vector2 = Vector2(enemy.get("facing", Vector2.RIGHT))
+			draw_line(p + face * radius * 0.55 + face.orthogonal() * radius * 0.65, p + face * radius * 0.55 - face.orthogonal() * radius * 0.65, Color("#b6bec4"), 11.0)
 			if float(enemy.get("charge", 0.0)) < 0.0:
 				draw_line(p, p + Vector2(enemy.get("charge_target", Vector2.RIGHT)) * 450.0, Color.ORANGE, 12.0)
+		else:
+			draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(25, 25), Vector2(50, 50)), false)
 		if bool(enemy.get("elite", false)):
 			var aura := 0.55 + 0.25 * sin(run_clock * 7.0)
 			draw_arc(p, radius + 12.0, 0.0, TAU, 32, Color(1.0, 0.74, 0.12, aura), 7.0, true)
