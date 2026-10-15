@@ -533,6 +533,7 @@ func _physics_process(delta: float) -> void:
 			print("ANDROID_RUNTIME fps=%d enemies=%d bullets=%d gems=%d effects=%d level=%d" % [Engine.get_frames_per_second(), enemies.size(), bullets.size(), gem_count, effect_count, progression.level if progression != null else 1])
 	if player_hp <= 0:
 		if not game_over_shown:
+			print("STAGE1_RUN_END death_wave=%d elapsed=%.1f min_hp_pct=%.1f damage=%s" % [wave, run_clock, 100.0 * float(wave_min_hp) / maxf(1.0, float(player_max_hp)), str(stage1_damage_sources)])
 			game_over_shown = true
 			if phase_ui != null:
 				phase_ui.show_game_over(run_clock, wave, progression.level if progression != null else 1, kills, score, scrap_earned)
@@ -889,6 +890,8 @@ func _explode_pump(pump: Dictionary) -> void:
 			if int(enemy["hp"]) <= 0:
 				blast_kills += 1
 				_phase_a_kill_enemy(i)
+	if player_pos.distance_to(Vector2(pump["pos"])) <= PUMP_BLAST_RADIUS:
+		_stage1_damage(12, "explosion")
 	if juice_fx != null:
 		juice_fx.call("explosion", Vector2(pump["pos"]), blast_kills)
 	_haptic_pulse(45)
@@ -1681,6 +1684,11 @@ func phase_b_damage_enemy(index: int, raw_damage: float, crit: bool, source: Str
 	if not enemy.has("uid"):
 		enemy["uid"] = _next_uid()
 	var actual: float = raw_damage * (progression.crit_multiplier() if crit and progression != null else 1.0)
+	if str(enemy["kind"]) == "brute" and Vector2(enemy["pos"]).distance_to(player_pos) > 0.0:
+		var facing: Vector2 = (player_pos - Vector2(enemy["pos"])).normalized()
+		var shot_from_front := Vector2(enemy.get("charge_target", facing)).dot(facing) > 0.0
+		if shot_from_front:
+			actual *= float(progression.config.get("difficulty", {}).get("brute_front_damage_multiplier", 0.5))
 	stage1_damage_dealt += actual
 	enemy["hp"] = float(enemy["hp"]) - actual
 	if juice_fx != null and damage_numbers_enabled:
