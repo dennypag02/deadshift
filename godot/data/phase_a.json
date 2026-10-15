@@ -23,16 +23,16 @@
     "pressure_start": 20,
     "pressure_at_60s": 40,
     "pressure_per_later_wave": 6,
-    "spawn_group_min": 4,
-    "spawn_group_max": 10,
-    "spawn_interval_seconds": 0.75,
+    "spawn_group_min": 6,
+    "spawn_group_max": 12,
+    "spawn_interval_seconds": 0.4,
     "spawn_distance": 720,
     "spawn_directions_min": 2,
     "spawn_directions_max": 3,
     "final_surge_size": 4,
     "wave_start_group_size": 10,
-    "spawn_margin": 180,
-    "spawn_jitter": 80,
+    "spawn_margin": 55,
+    "spawn_jitter": 35,
     "wave1_start_groups": 2,
     "later_wave_start_groups": 3,
     "min_spawn_distance_tiles": 1.5,
@@ -470,31 +470,31 @@
     "enemy_types": {
       "shambler": {
         "hp": 1,
-        "speed": 108,
+        "speed": 135,
         "radius": 18,
         "from_wave": 1
       },
       "runner": {
         "hp": 2,
-        "speed": 195,
+        "speed": 245,
         "radius": 15,
         "from_wave": 2
       },
       "bloater": {
         "hp": 16,
-        "speed": 70,
+        "speed": 90,
         "radius": 28,
         "from_wave": 4
       },
       "spitter": {
         "hp": 8,
-        "speed": 92,
+        "speed": 115,
         "radius": 19,
         "from_wave": 5
       },
       "brute": {
         "hp": 36,
-        "speed": 80,
+        "speed": 105,
         "radius": 34,
         "from_wave": 6
       }
