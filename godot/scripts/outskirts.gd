@@ -903,6 +903,12 @@ func _enemy_contact_damage(kind: String) -> int:
 	var base_damage := float(contact.get("shambler_base", 5.66))
 	if kind == "runner":
 		base_damage = float(contact.get("runner_base", 8.0))
+	elif kind == "bloater":
+		base_damage = float(contact.get("bloater_base", 11.0))
+	elif kind == "spitter":
+		base_damage = float(contact.get("spitter_base", 6.0))
+	elif kind == "brute":
+		base_damage = float(contact.get("brute_base", 17.0))
 	elif kind == "trucker":
 		base_damage = float(contact.get("trucker_base", 18.0))
 	var scale := 1.0 + float(difficulty.get("enemy_damage_per_wave", 0.06)) * float(wave)
@@ -947,7 +953,8 @@ func _apply_player_contact_damage(enemy: Dictionary) -> void:
 	player_hp = maxi(0, player_hp - effective_damage)
 	wave_damage_taken += effective_damage
 	wave_min_hp = mini(wave_min_hp, player_hp)
-	stage1_damage_sources["contact"] = int(stage1_damage_sources.get("contact", 0)) + effective_damage
+	var damage_source := "brute" if kind == "brute" else "contact"
+	stage1_damage_sources[damage_source] = int(stage1_damage_sources.get(damage_source, 0)) + effective_damage
 	var difficulty: Dictionary = progression.config.get("difficulty", {}) if progression != null else {}
 	player_hit_invulnerability = float(difficulty.get("player_hit_invulnerability_seconds", 0.5))
 	enemy["contact_cooldown"] = float(difficulty.get("enemy_contact_cooldown_seconds", 0.8))
@@ -1587,7 +1594,9 @@ func _draw_combat() -> void:
 			draw_circle(p, radius, Color("#7e392f"))
 			
 		elif kind == "runner":
-			draw_circle(p, radius + 3, Color("#c98744"))
+			draw_circle(p, radius + 3, Color("#d9e5e1"))
+			var trail: Vector2 = (player_pos - p).normalized()
+			draw_line(p - trail * 26.0, p - trail * 65.0, Color("#d9e5e1", 0.65), 3.0)
 			draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(23,23), Vector2(46,46)), false)
 		else:
 			draw_texture_rect(ZOMBIE_ART, Rect2(p - Vector2(25,25), Vector2(50,50)), false)
