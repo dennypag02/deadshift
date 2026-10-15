@@ -1071,7 +1071,7 @@ func _update_phase_c(delta: float) -> void:
 		if elite_spawn_clock <= 0.0 and enemies.size() < 240:
 			elite_spawn_clock = 45.0
 			var spawn_at := _spawn_position_outside_view(rng.randf_range(0.0, TAU))
-			_append_enemy("shambler", spawn_at)
+			_append_enemy(_pressure_kind(), spawn_at)
 			var elite: Dictionary = enemies[enemies.size() - 1]
 			elite["elite"] = true
 			elite["hp"] = float(elite["hp"]) * 4.0
