@@ -14,6 +14,7 @@ func run()->void:
 	g.progression.set_physics_process(false)
 	g.guidance.disabled_for_test=true
 	paused=false
+	g.events.interrupt("performance_fixture") # Budget test is independent of tutorial spawns.
 	g.enemies.clear()
 	for i in range(270): g._append_enemy("shambler",g.player_pos+Vector2(i*2,0))
 	check(g.enemies.size()==250,"250 enemy budget")

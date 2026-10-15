@@ -1,0 +1,29 @@
+name: Stage 2 validation toolchain
+on:
+  push:
+    branches: [feature/stage2-timed-events-cleanup]
+    paths: [.github/workflows/stage2-validation-toolchain.yml]
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve exact source and canonical Godot runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p stage2-toolchain
+          git archive --format=tar.gz HEAD > stage2-toolchain/source.tar.gz
+          git rev-parse HEAD > stage2-toolchain/source-sha.txt
+          curl -fL --retry 3 -o stage2-toolchain/godot.zip https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          cd stage2-toolchain
+          sha256sum source.tar.gz godot.zip > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage2-validation-toolchain
+          path: stage2-toolchain/
+          retention-days: 7
+          if-no-files-found: error

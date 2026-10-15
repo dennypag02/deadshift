@@ -1,0 +1,28 @@
+name: Stage 2 source snapshot
+on:
+  push:
+    branches: [feature/stage2-timed-events-cleanup]
+    paths: [.github/workflows/stage2-source-snapshot.yml]
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Package pinned baseline
+        run: |
+          git archive --format=tar.gz 412307603ca132f0b726ff5140f43f1589fa8ee9 > stage2-baseline.tar.gz
+          git rev-parse 412307603ca132f0b726ff5140f43f1589fa8ee9 > baseline-sha.txt
+          sha256sum stage2-baseline.tar.gz > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage2-baseline-source
+          path: |
+            stage2-baseline.tar.gz
+            baseline-sha.txt
+            SHA256SUMS.txt
+          retention-days: 7

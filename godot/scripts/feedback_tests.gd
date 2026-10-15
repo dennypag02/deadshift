@@ -10,6 +10,7 @@ func _initialize() -> void:
 func run_tests() -> void:
 	var game = load("res://scenes/Outskirts.tscn").instantiate()
 	root.add_child(game)
+	game.telemetry.set_process(false)
 	game.set_physics_process(false)
 	game.progression.set_physics_process(false)
 	game.guidance.disabled_for_test = true
@@ -26,18 +27,19 @@ func run_tests() -> void:
 	game.generator_active = false
 	game.guidance.refresh_target()
 	require(game.guidance.target.id == "generator", "generator target")
-	require(game.guidance.objectives().size() == 13, "every objective on map")
+	require(game.guidance.objectives().size() == 9, "every timed event on map")
 	game.guidance.rebuild_route()
 	require(not game.guidance.route.is_empty(), "generator path exists")
 	for p in game.guidance.route:
 		require(not game._circle_hits_blocker(p, game.PLAYER_RADIUS), "route must avoid blocked tiles")
-	game.generator_active = true
+	game.events.resolve("completed", "fixture")
+	game._start_wave(2)
 	game.supply_caches[0]["collected"] = true
 	game.guidance.refresh_target()
 	require(game.guidance.target.kind == "crate", "supplies after generator")
-	require(game.guidance.target.id != "supply_0", "skip collected crate")
+	require(game.guidance.target.pos != game.supply_caches[0]["pos"], "skip collected crate")
 	game._start_wave(3)
-	require(game.banner.text.begins_with("WAVE 3:"), "wave3 banner")
+	require(game.banner.text.begins_with("EVENT: CHAIN REACTION"), "wave3 banner")
 	require(game.banner.text.contains(game.guidance.label_text().to_upper()), "live objective banner")
 	game.guidance.begin_briefing()
 	require(paused and game.guidance.briefing, "briefing pauses combat")

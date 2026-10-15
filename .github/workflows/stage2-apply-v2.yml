@@ -1,0 +1,87 @@
+name: Stage 2 apply and strict validation
+on:
+  push:
+    branches: [feature/stage2-timed-events-cleanup]
+    paths:
+      - tools/apply_stage2_v2.py
+      - tools/stage2_patch_v2_*.b64
+      - .github/workflows/stage2-apply-v2.yml
+permissions:
+  contents: write
+concurrency:
+  group: stage2-cleanup-apply
+  cancel-in-progress: false
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: RUNNING - Stage 2 source verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RUNNING - Stage 2 deterministic apply/validation run $GITHUB_RUN_ID; source $GITHUB_SHA. Human action required: no." | tee -a "$GITHUB_STEP_SUMMARY"
+          python3 tools/apply_stage2_v2.py
+          python3 tools/verify_mobile_contract.py | tee stage2-evidence/contract.log
+      - name: Install pinned Godot 4.4.1
+        run: |
+          curl -fL --retry 3 -o godot.zip https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip -q godot.zip
+          chmod +x Godot_v4.4.1-stable_linux.x86_64
+      - name: Strict import and all seven regression suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GODOT_SILENCE_ROOT_WARNING=1
+          export DEADSHIFT_RUN_KIND=ci_regression
+          export DEADSHIFT_EVIDENCE_DIR="$GITHUB_WORKSPACE/stage2-evidence"
+          G=./Godot_v4.4.1-stable_linux.x86_64
+          "$G" --headless --audio-driver Dummy --path godot --editor --quit 2>&1 | tee stage2-evidence/import.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|Shader compilation failed' stage2-evidence/import.log
+          for test in stage2_tests performance_tests feedback_tests phase_a_xp_check phase_b_check survivability_ui_check hud_layout_check; do
+            echo "MILESTONE: running $test" | tee -a "$GITHUB_STEP_SUMMARY"
+            timeout 120s "$G" --headless --audio-driver Dummy --path godot --script "res://scripts/$test.gd" 2>&1 | tee "stage2-evidence/$test.log"
+            ! grep -E 'SCRIPT ERROR|Parse Error|STAGE2_FAIL|PERFORMANCE_FAIL|FEEDBACK_FAIL' "stage2-evidence/$test.log"
+          done
+          grep -q STAGE2_TESTS_PASS stage2-evidence/stage2_tests.log
+          grep -q PERFORMANCE_TESTS_PASS stage2-evidence/performance_tests.log
+          grep -q FEEDBACK_TESTS_PASS stage2-evidence/feedback_tests.log
+      - name: Commit validated runtime source without overwriting concurrent work
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          python3 - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          files=list(json.loads(Path('stage2-evidence/applied-source-hashes.json').read_text()))
+          files += [f+'.uid' for f in files if f.endswith('.gd') and Path(f+'.uid').exists()]
+          subprocess.run(['git','add','--',*files],check=True)
+          PY
+          if ! git diff --cached --quiet; then
+            git commit -m 'Implement typed timed events, first-offer protection and persistent run telemetry'
+            git push origin HEAD:feature/stage2-timed-events-cleanup
+          fi
+          git rev-parse HEAD > stage2-evidence/source-sha.txt
+          git diff 412307603ca132f0b726ff5140f43f1589fa8ee9 -- godot > stage2-evidence/reviewed-runtime.diff
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deadshift-stage2-apply-evidence
+          path: stage2-evidence/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: COMPLETE or FAILED - publish verified result
+        if: always()
+        env:
+          RESULT: ${{ job.status }}
+        shell: bash
+        run: |
+          state=FAILED
+          if [ "$RESULT" = success ]; then state=COMPLETE; fi
+          sha=$(cat stage2-evidence/source-sha.txt 2>/dev/null || echo "$GITHUB_SHA")
+          echo "$state - Stage 2 apply/validation run $GITHUB_RUN_ID: $RESULT; source $sha. APK and recording delivery are separate milestones; this is not device acceptance." | tee -a "$GITHUB_STEP_SUMMARY"

@@ -39,6 +39,21 @@ var debug_tap_at := 0
 var edge_arrow_timer := 0.0
 var direction_label: Label
 var previous_wave := 0
+var crate_row: HBoxContainer
+var progress_label: Label
+var objective_progress: ColorRect
+var objective_progress_fill: ColorRect
+var countdown: Control
+var countdown_label: Label
+var reward_icon: TextureRect
+var reward_label: Label
+var missed_toast: Label
+var final_stand_label: Label
+var arsenal_row: HBoxContainer
+var airstrike_button: Button
+var reward_cache: Dictionary = {}
+var arsenal_key := ""
+var card_panel: PanelContainer
 
 func _label(text: String, size_px: int, parent: Node) -> Label:
 	var label := Label.new()
@@ -141,6 +156,7 @@ func _ready() -> void:
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	score_label.add_theme_font_override("font", bebas_font if bebas_font != null else ThemeDB.fallback_font)
 	var objective_panel := _panel(root, Rect2(8, 148, 400, 130))
+	card_panel = objective_panel
 	var card_style := StyleBoxFlat.new()
 	card_style.bg_color = Color("#14110F", 0.85)
 	card_style.border_color = Color("#3A322B")
@@ -154,37 +170,89 @@ func _ready() -> void:
 	stripe.position = Vector2(3, 4)
 	stripe.size = Vector2(8, 120)
 	card_layer.add_child(stripe)
-	var content := HBoxContainer.new()
-	content.position = Vector2(19, 9)
-	content.size = Vector2(370, 114)
-	content.add_theme_constant_override("separation", 16)
-	card_layer.add_child(content)
-	objective_icon = _label("⚡", 30, content)
-	objective_icon.custom_minimum_size = Vector2(48, 48)
-	objective_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var stack := VBoxContainer.new()
-	stack.custom_minimum_size = Vector2(306, 114)
-	stack.add_theme_constant_override("separation", 3)
-	content.add_child(stack)
-	objective_label = _label("POWER THE MINI-MART GENERATOR", 24, stack)
-	objective_label.custom_minimum_size = Vector2(306, 32)
-	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	objective_label.max_lines_visible = 2
-	var crates := HBoxContainer.new()
-	crates.add_theme_constant_override("separation", 1)
-	stack.add_child(crates)
+	countdown = Control.new()
+	countdown.set_script(load("res://scripts/event_countdown.gd"))
+	countdown.game = game
+	countdown.position = Vector2(18,10)
+	countdown.size = Vector2(52,52)
+	card_layer.add_child(countdown)
+	countdown_label = _label("45 s",18,card_layer)
+	countdown_label.position = Vector2(19,62)
+	countdown_label.size = Vector2(52,24)
+	countdown_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	reward_icon = TextureRect.new()
+	reward_icon.position = Vector2(28,89)
+	reward_icon.size = Vector2(34,30)
+	reward_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	reward_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	card_layer.add_child(reward_icon)
+	# Fixed positions keep the objective card at 130px, regardless of text wrapping.
+	objective_label = _label("GENERATOR OFFLINE",23,card_layer)
+	objective_label.position = Vector2(82,7)
+	objective_label.size = Vector2(304,31)
+	objective_label.clip_text = true
+	objective_icon = _label("",1,card_layer)
+	objective_icon.hide()
+	crate_row = HBoxContainer.new()
+	crate_row.position = Vector2(82,38)
+	crate_row.size = Vector2(300,27)
+	crate_row.add_theme_constant_override("separation",1)
+	card_layer.add_child(crate_row)
 	for i in range(3):
 		var crate := Control.new()
 		crate.set_script(load("res://scripts/hud_crate_icon.gd"))
-		crate.custom_minimum_size = Vector2(24, 26)
-		crate.scale = Vector2(0.6, 0.75)
-		crates.add_child(crate)
+		crate.custom_minimum_size = Vector2(24,26)
+		crate.scale = Vector2(0.6,0.75)
+		crate_row.add_child(crate)
 		crate_slots.append(crate)
-	supplies_label = _label("SUPPLIES 0/3", 22, crates)
-	supplies_label.custom_minimum_size = Vector2(115, 26)
-	direction_label = _label("", 20, stack)
-	direction_label.add_theme_color_override("font_color", AMBER)
-	var event_panel := _panel(root, Rect2(0, 296, 412, 125), PANEL)
+	supplies_label = _label("SUPPLIES 0/3",22,crate_row)
+	progress_label = _label("CHARGE 0%",22,card_layer)
+	progress_label.position = Vector2(82,38)
+	progress_label.size = Vector2(304,27)
+	objective_progress = ColorRect.new()
+	objective_progress.position = Vector2(82,66)
+	objective_progress.size = Vector2(298,5)
+	objective_progress.color = Color(AMBER,0.15)
+	objective_progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card_layer.add_child(objective_progress)
+	objective_progress_fill = ColorRect.new()
+	objective_progress_fill.size = Vector2(0,5)
+	objective_progress_fill.color = Color(AMBER,0.8)
+	objective_progress_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	objective_progress.add_child(objective_progress_fill)
+	direction_label = _label("",18,card_layer)
+	direction_label.position = Vector2(82,74)
+	direction_label.size = Vector2(304,23)
+	direction_label.add_theme_color_override("font_color",AMBER)
+	reward_label = _label("",16,card_layer)
+	reward_label.position = Vector2(82,99)
+	reward_label.size = Vector2(304,23)
+	reward_label.clip_text = true
+	missed_toast = _label("MISSED",20,root)
+	missed_toast.position = Vector2(100,330)
+	missed_toast.size = Vector2(230,32)
+	missed_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	missed_toast.modulate = Color(1,1,1,0.7)
+	missed_toast.hide()
+	final_stand_label = _label("FINAL STAND IN 9 WAVES",14,root)
+	final_stand_label.position = Vector2(60,99)
+	final_stand_label.size = Vector2(155,20)
+	final_stand_label.add_theme_color_override("font_color",AMBER)
+	arsenal_row = HBoxContainer.new()
+	arsenal_row.position = Vector2(12,282)
+	arsenal_row.size = Vector2(288,28)
+	arsenal_row.add_theme_constant_override("separation",5)
+	root.add_child(arsenal_row)
+	airstrike_button = Button.new()
+	airstrike_button.text = "AIRSTRIKE"
+	airstrike_button.position = Vector2(306,283)
+	airstrike_button.size = Vector2(101,28)
+	airstrike_button.add_theme_font_size_override("font_size",15)
+	airstrike_button.pressed.connect(func() -> void:
+		if game != null and game.events != null: game.events.arm_airstrike())
+	airstrike_button.hide()
+	root.add_child(airstrike_button)
+	var event_panel := _panel(root, Rect2(0, 322, 412, 125), PANEL)
 	var banner_style := StyleBoxFlat.new()
 	banner_style.bg_color = PANEL
 	banner_style.border_color = Color("#3A322B")
@@ -204,13 +272,13 @@ func _ready() -> void:
 	banner_stack.size = Vector2(396, 104)
 	banner_stack.add_theme_constant_override("separation", 0)
 	banner_layer.add_child(banner_stack)
-	banner_title = _label("", 64, banner_stack)
-	banner_title.custom_minimum_size = Vector2(396, 68)
+	banner_title = _label("", 52, banner_stack)
+	banner_title.custom_minimum_size = Vector2(396, 58)
 	banner_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	banner_title.add_theme_color_override("font_color", AMBER)
 	banner_title.add_theme_font_override("font", bebas_font if bebas_font != null else ThemeDB.fallback_font)
-	banner_subtitle = _label("", 30, banner_stack)
-	banner_subtitle.custom_minimum_size = Vector2(396, 36)
+	banner_subtitle = _label("", 26, banner_stack)
+	banner_subtitle.custom_minimum_size = Vector2(396, 32)
 	var bottom_padding := Control.new()
 	bottom_padding.custom_minimum_size = Vector2(396, 12)
 	banner_stack.add_child(bottom_padding)
@@ -303,22 +371,7 @@ func _process(delta: float) -> void:
 	while score_size > 26 and score_font.get_string_size(score_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, score_size).x > 84.0:
 		score_size -= 2
 	score_label.add_theme_font_size_override("font_size", score_size)
-	var supplies := 0
-	for cache in game.supply_caches:
-		if bool(cache["collected"]):
-			supplies += 1
-	for i in range(crate_slots.size()):
-		crate_slots[i].set("collected", i < supplies)
-		crate_slots[i].queue_redraw()
-	supplies_label.text = "SUPPLIES %d/3" % supplies
-	if game.guidance != null:
-		objective_label.text = game.guidance.label_text().to_upper()
-		var kind: String = game.guidance.target.get("kind", "exit")
-		objective_icon.text = {"crate": "▣", "bolt": "⚡", "skull": "☠", "relay": "◇"}.get(kind, "◆")
-		var direction: Vector2 = game.guidance.direction_vector()
-		var arrows := ["→", "↘", "↓", "↙", "←", "↖", "↑", "↗"]
-		var direction_index := posmod(roundi(direction.angle() / (PI / 4.0)), 8)
-		direction_label.text = "%d m %s  |  TAP MAP" % [game.guidance.distance_metres(), arrows[direction_index]] if not game.guidance.target.is_empty() else "SURVIVE THE HORDE"
+	_update_event_card()
 	if previous_wave != game.wave:
 		previous_wave = game.wave
 		banner_queue.clear()
@@ -336,7 +389,9 @@ func _process(delta: float) -> void:
 		var parts := next.split("\n", false, 1)
 		var headline: String = parts[0]
 		var detail: String = parts[1] if parts.size() > 1 else ""
-		if headline.begins_with("WAVE ") and not "CLEARED" in headline:
+		if headline.begins_with("EVENT: "):
+			headline = headline.trim_prefix("EVENT: ")
+		elif headline.begins_with("WAVE ") and not "CLEARED" in headline:
 			headline = "WAVE %d: THE HORDE IS HERE" % game.wave
 			detail = game.guidance.label_text() if game.guidance != null else detail
 		if headline.length() > 28:
@@ -347,11 +402,16 @@ func _process(delta: float) -> void:
 			headline = headline.substr(0, split_at).strip_edges()
 		banner_title.text = headline
 		var font_for_title: Font = bebas_font if bebas_font != null else ThemeDB.fallback_font
-		var title_size := 64
-		while title_size > 40 and font_for_title.get_string_size(headline, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size).x > 390.0:
+		var title_size := 52
+		while title_size > 24 and font_for_title.get_string_size(headline, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size).x > 390.0:
 			title_size -= 2
 		banner_title.add_theme_font_size_override("font_size", title_size)
 		banner_subtitle.text = detail
+		var detail_font: Font = barlow_font if barlow_font != null else ThemeDB.fallback_font
+		var detail_size := 26
+		while detail_size > 16 and detail_font.get_string_size(detail, HORIZONTAL_ALIGNMENT_LEFT, -1, detail_size).x > 390.0:
+			detail_size -= 1
+		banner_subtitle.add_theme_font_size_override("font_size", detail_size)
 		event_time = 2.1
 		banner_age = 0.0
 	if event_time > 0.0:
@@ -362,6 +422,71 @@ func _process(delta: float) -> void:
 	else:
 		backdrop.visible = false
 	queue_redraw()
+
+func _reward_texture(id: String) -> Texture2D:
+	if not reward_cache.has(id):
+		var path := "res://art/curated/%s.png" % id
+		reward_cache[id] = load(path) if ResourceLoader.exists(path) else null
+	return reward_cache[id]
+
+func _update_event_card() -> void:
+	if game.events == null: return
+	var ev: Node2D = game.events
+	var offered: bool = not ev.active.is_empty()
+	crate_row.visible = offered and ev.kind() == "supplies"
+	progress_label.visible = not crate_row.visible
+	progress_label.text = ev.progress_text()
+	var progress_font: Font = barlow_font if barlow_font != null else ThemeDB.fallback_font
+	var progress_size := 22
+	while progress_size > 14 and progress_font.get_string_size(progress_label.text,HORIZONTAL_ALIGNMENT_LEFT,-1,progress_size).x > 301:
+		progress_size -= 1
+	progress_label.add_theme_font_size_override("font_size",progress_size)
+	objective_progress.visible = offered and ev.kind() in ["nest","generator","relay"]
+	objective_progress_fill.size.x = objective_progress.size.x * clampf(ev.progress_ratio(),0.0,1.0)
+	countdown.visible = offered
+	countdown_label.visible = offered
+	countdown_label.text = "%d s" % ceili(ev.remaining())
+	reward_icon.visible = offered
+	reward_icon.texture = _reward_texture(str(ev.active["reward_icon"])) if offered else null
+	reward_label.text = "REWARD: " + str(ev.active["reward"]) if offered else "OPTIONAL EVENTS - WAVES KEEP MOVING"
+	objective_label.text = str(ev.active["title"]) if offered else ("FINAL STAND" if game.wave == 10 else "SURVIVE THE HORDE")
+	if crate_row.visible:
+		var count: int = ev.active["step"]
+		for i in range(crate_slots.size()):
+			crate_slots[i].set("collected",i < count)
+			crate_slots[i].queue_redraw()
+		supplies_label.text = "SUPPLIES %d/3" % count
+	if offered and game.guidance != null and not game.guidance.target.is_empty():
+		var direction: Vector2 = game.guidance.direction_vector()
+		var arrows := ["E","SE","S","SW","W","NW","N","NE"]
+		var index := posmod(roundi(direction.angle()/(PI/4.0)),8)
+		direction_label.text = "%d m %s | TAP MAP" % [game.guidance.distance_metres(),arrows[index]]
+	else:
+		direction_label.text = "NEXT OFFER NEXT WAVE" if game.wave < 9 else "USE YOUR ARSENAL"
+	missed_toast.visible = ev.toast_left > 0.0
+	missed_toast.text = ev.toast_text
+	if ev.toast_left > 0.0:
+		banner_queue.clear()
+		event_time = 0.0
+		previous_event = game.banner.text
+	final_stand_label.text = "FINAL STAND IN %d WAVES" % (10-game.wave) if game.wave < 10 else "FINAL STAND: %d s" % ceili(maxf(0.0,game._wave_duration()-game.wave_clock))
+	airstrike_button.visible = game.wave == 10 and ev.earned.has("airstrike")
+	airstrike_button.text = "TAP TARGET" if ev.aiming else "AIRSTRIKE"
+	var key: String = str(ev.earned.keys())
+	if key != arsenal_key:
+		arsenal_key = key
+		for child in arsenal_row.get_children():
+			arsenal_row.remove_child(child)
+			child.queue_free()
+		if not ev.earned.is_empty(): _label("ARSENAL",15,arsenal_row)
+		var icons := {"auto_turret":"icon_attack_drone","floodlights":"icon_arsenal_floodlights","chest":"icon_chest","big_chest":"icon_chest","nuke":"icon_pickup_nuke","flamethrower":"icon_molotov","motel_lockdown":"icon_arsenal_nest_down","xp_shower":"icon_pickup_magnet","airstrike":"icon_arsenal_airstrike","fewer_spawns":"icon_arsenal_nest_down"}
+		for reward in ev.earned:
+			var icon := TextureRect.new()
+			icon.custom_minimum_size = Vector2(20,24)
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.texture = _reward_texture(str(icons[reward]))
+			arsenal_row.add_child(icon)
 
 func _draw_edge_arrow(target: Vector2, color: Color, symbol: String, safe_rect: Rect2, center: Vector2, zoom: Vector2) -> void:
 	var offset: Vector2 = (target - game.player_pos) * zoom

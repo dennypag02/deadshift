@@ -52,59 +52,20 @@ func _entry(id: String, kind: String, label: String, pos: Vector2, done: bool, r
 		"reward": reward, "reward_icon": reward_icon}
 
 func objectives() -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	result.append(_entry("generator", "bolt", "Generator - Mini-Mart", game.GENERATOR_POS, game.generator_active, "+500 score"))
-	for i in range(game.supply_caches.size()):
-		var cache: Dictionary = game.supply_caches[i]
-		result.append(_entry("supply_%d" % i, "crate", "Supply crate - " + str(cache["name"]), cache["pos"], bool(cache["collected"]), "+350 score"))
-	var names := ["West", "East", "Northwest", "Northeast"]
-	for i in range(game.infestation_nests.size()):
-		var nest: Dictionary = game.infestation_nests[i]
-		result.append(_entry("nest_%d" % i, "skull", "Infestation nest - " + names[i], nest["pos"], bool(nest["destroyed"]), "+600 score / blast", "icon_arsenal_nest_down"))
-	for color in ["RED", "BLUE", "YELLOW"]:
-		result.append(_entry("relay_" + color, "relay", "Relay - " + color.capitalize(), game._relay_position(color), game.trap_finished.has(color), "Detonator core step", "icon_battery_pack"))
-	result.append(_entry("core", "relay", "Detonator core", game.PUZZLE_CENTER, game.detonator_core, "Core secured", "icon_battery_pack"))
-	result.append(_entry("exit", "exit", "North district exit", game.NORTH_EXIT.get_center(), false, "Next district", "icon_chest"))
-	return result
+	if game.events == null: return []
+	return game.events.map_entries()
 
 func choose_target() -> Dictionary:
-	var all := objectives()
-	if not game.generator_active:
-		return all[0]
-	for kind in ["crate", "skull"]:
-		var best: Dictionary = {}
-		var distance := INF
-		for objective in all:
-			if objective["kind"] == kind and not objective["done"]:
-				var d: float = Vector2(game.player_pos).distance_squared_to(objective["pos"])
-				if d < distance:
-					distance = d
-					best = objective
-		if not best.is_empty():
-			# Retain a valid current target instead of switching constantly between nearby sites.
-			for objective in all:
-				if objective["id"] == target.get("id", "") and objective["kind"] == kind and not objective["done"]:
-					return objective
-			return best
-	if not game.puzzle_complete:
-		var color: String = game.PUZZLE_CODE[mini(game.puzzle_step, game.PUZZLE_CODE.size() - 1)]
-		if game.trap_active and game.trap_color == "BLUE":
-			if not game.blue_switch_a:
-				return _entry("blue_switch_a", "relay", "Blue relay - switch 1", game.RELAY_BLUE + Vector2(-320, 0), false, "Complete Blue trap", "icon_battery_pack")
-			if not game.blue_switch_b:
-				return _entry("blue_switch_b", "relay", "Blue relay - switch 2", game.RELAY_BLUE + Vector2(0, 350), false, "Complete Blue trap", "icon_battery_pack")
-		for objective in all:
-			if objective["id"] == "relay_" + color:
-				return objective
+	if game.events == null: return {}
 	if game.district_cleared:
-		return all[all.size() - 1]
-	return {}
+		return _entry("exit", "exit", "North district exit", game.NORTH_EXIT.get_center(), false, "Next district", "icon_chest")
+	return game.events.target()
 
 func refresh_target() -> void:
 	var next := choose_target()
 	if str(next.get("id", "")) != str(target.get("id", "")):
 		target = next
-		pending_briefing = not target.is_empty()
+		pending_briefing = not target.is_empty() and str(target.get("id", "")).find("_step_") < 0
 		last_cell = Vector2i(-1, -1)
 		print("OBJECTIVE_TARGET id=%s label=%s wave=%d t=%.2f" % [target.get("id", "none"), target.get("label", "Survive"), game.wave, game.run_clock])
 	else:

@@ -1,4 +1,4 @@
-name: Deadshift Phase B Pacing Capture
+name: Deadshift Stage 2 Pacing Capture
 on:
   push:
     branches:
@@ -15,6 +15,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: RUNNING - real-engine recording
+        run: echo "RUNNING - title and normal-damage three-minute capture from $GITHUB_SHA. Desktop scripted controls, not phone footage or a real-time FPS benchmark." | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Install Godot and capture dependencies
         run: |
           sudo apt-get update -qq
@@ -38,15 +40,22 @@ jobs:
           trap 'kill "$XVFB_PID" 2>/dev/null || true' EXIT
           export DISPLAY=:99
           export DEADSHIFT_EVIDENCE_DIR="$GITHUB_WORKSPACE/pacing-capture"
+          export DEADSHIFT_OFFLINE_CAPTURE=1
+          export DEADSHIFT_RUN_KIND=scripted_desktop
+          export DEADSHIFT_VALIDATION_SEED=20261015
+          export GODOT_SILENCE_ROOT_WARNING=1
           sleep 2
-          timeout 600s ./Godot_v4.4.1-stable_linux.x86_64 --audio-driver Dummy --path godot --script res://scripts/feedback_evidence.gd --rendering-driver opengl3 --fixed-fps 30 --write-movie "$GITHUB_WORKSPACE/pacing-capture/playthrough.avi" -- --pacing-capture 2>&1 | tee pacing-capture/pacing.log
+          (while sleep 45; do echo 'RUNNING - recording normal-damage gameplay; inspect active_s and HP in pacing.log'; done) &
+          HEARTBEAT_PID=$!
+          trap 'kill "$HEARTBEAT_PID" "$XVFB_PID" 2>/dev/null || true' EXIT
+          timeout 600s ./Godot_v4.4.1-stable_linux.x86_64 --audio-driver Dummy --path godot --script res://scripts/performance_capture.gd --rendering-driver opengl3 --fixed-fps 30 --write-movie "$GITHUB_WORKSPACE/pacing-capture/playthrough.avi" 2>&1 | tee pacing-capture/pacing.log
           ! grep -E 'SCRIPT ERROR|Parse Error|Shader compilation failed' pacing-capture/pacing.log
-          grep -q 'FEEDBACK_RECORDING_COMPLETE' pacing-capture/pacing.log
+          grep -q FEEDBACK_RECORDING_COMPLETE pacing-capture/pacing.log
           python3 - <<'PY'
           import json
           from pathlib import Path
           record=json.loads(Path('pacing-capture/playthrough.json').read_text())
-          assert record['recording'] == 'desktop scripted input, normal damage, god mode OFF'
+          assert 'normal damage, god mode OFF' in record['recording']
           assert record['deaths'] in (0,1)
           if record['deaths'] == 0:
               assert record['gameplay_seconds'] >= 180, 'Live run did not reach three minutes'
@@ -55,33 +64,54 @@ jobs:
               assert record['hp'] <= 0, 'Death outcome has positive HP'
               outcome='early_death_recorded_not_three_minutes_survived'
           assert Path('pacing-capture/title-screen.png').is_file()
+          run=Path(record['run_log_directory'])
+          assert (run/'events.jsonl').is_file() and (run/'summary.json').is_file()
+          summary=json.loads((run/'summary.json').read_text())
+          assert summary['run_kind']=='scripted_desktop'
+          assert summary['events_offered']==sum(summary[x] for x in ['events_completed','events_missed','events_interrupted','events_active'])
           print('CAPTURE_OUTCOME',outcome,'level',record['level'],'hp',record['hp'],'gameplay_seconds',record['gameplay_seconds'])
-          Path('pacing-capture/outcome.txt').write_text(outcome+'\nNot Android footage or a real-time FPS benchmark.\n')
+          Path('pacing-capture/outcome.txt').write_text(outcome+'\nNot Android footage or a real-time FPS benchmark. No human survival frequency inferred.\n')
           PY
       - name: Encode and verify delivery video
         shell: bash
         run: |
           set -euo pipefail
-          ffmpeg -y -i pacing-capture/playthrough.avi -c:v libx264 -preset fast -crf 22 -pix_fmt yuv420p -threads 2 -c:a aac -b:a 128k -movflags +faststart pacing-capture/deadshift-first-three-minutes.mp4 > pacing-capture/ffmpeg.log 2>&1
-          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_type,codec_name,width,height -of json pacing-capture/deadshift-first-three-minutes.mp4 > pacing-capture/video.json
+          ffmpeg -y -i pacing-capture/playthrough.avi -c:v libx264 -preset fast -crf 22 -pix_fmt yuv420p -threads 2 -c:a aac -b:a 128k -movflags +faststart pacing-capture/deadshift-stage2-first-three-minutes.mp4 > pacing-capture/ffmpeg.log 2>&1
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_type,codec_name,width,height -of json pacing-capture/deadshift-stage2-first-three-minutes.mp4 > pacing-capture/video.json
+          ffmpeg -v error -i pacing-capture/deadshift-stage2-first-three-minutes.mp4 -f null - > pacing-capture/decode-check.log 2>&1
+          test ! -s pacing-capture/decode-check.log
           python3 - <<'PY'
           import json
           from pathlib import Path
           video=json.loads(Path('pacing-capture/video.json').read_text())
-          assert float(video['format']['duration']) >= 180
-          assert any(s.get('codec_name') == 'h264' for s in video['streams'])
+          record=json.loads(Path('pacing-capture/playthrough.json').read_text())
+          if record['deaths']==0: assert float(video['format']['duration'])>=180
+          assert any(s.get('codec_name')=='h264' for s in video['streams'])
           print('CAPTURE_FILE_VERIFIED',video['format'])
           PY
           git rev-parse HEAD > pacing-capture/source-sha.txt
+          find godot/scripts godot/data godot/shaders godot/art/runtime -type f ! -name '*.uid' ! -name '*.import' -print0 | sort -z | xargs -0 sha256sum > pacing-capture/runtime-source-hashes.txt
+          sha256sum pacing-capture/*.mp4 > pacing-capture/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: deadshift-phase-b-first-three-minutes
+          name: deadshift-stage2-first-three-minutes
           path: |
             pacing-capture/*.mp4
             pacing-capture/*.log
             pacing-capture/*.json
+            pacing-capture/*.jsonl
             pacing-capture/*.png
             pacing-capture/*.txt
+            pacing-capture/*/events.jsonl
+            pacing-capture/*/summary.json
           if-no-files-found: warn
           retention-days: 14
+      - name: COMPLETE or FAILED - capture result
+        if: always()
+        env:
+          RESULT: ${{ job.status }}
+        run: |
+          state=FAILED
+          if [ "$RESULT" = success ]; then state=COMPLETE; fi
+          echo "$state - capture $GITHUB_RUN_ID: $RESULT, source $GITHUB_SHA. See outcome.txt for survived duration; desktop footage is not target-phone acceptance." | tee -a "$GITHUB_STEP_SUMMARY"

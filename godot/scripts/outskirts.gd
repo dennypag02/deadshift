@@ -6,6 +6,9 @@ var actors: Node2D
 var guidance: Node2D
 var tactical_map: Control
 var telemetry: Node
+var events: Node2D
+var run_log: Node
+var hud_overlay: Control
 var terrain_batches: Node2D
 var transient_pool = preload("res://scripts/record_pool.gd").new()
 var enemy_grid: Dictionary = {}
@@ -283,6 +286,12 @@ func _ready() -> void:
 	add_child(guidance)
 	if capture_mode and phase_ui != null:
 		phase_ui.god_mode = false
+	run_log = preload("res://scripts/run_telemetry.gd").new()
+	run_log.game = self
+	add_child(run_log)
+	events = preload("res://scripts/stage2_events.gd").new()
+	events.game = self
+	add_child(events)
 	telemetry = preload("res://scripts/pacing_telemetry.gd").new()
 	telemetry.game = self
 	add_child(telemetry)
@@ -381,6 +390,7 @@ func _setup_ui() -> void:
 	ui.add_child(tactical_map)
 
 	var polish_hud := Control.new()
+	hud_overlay = polish_hud
 	polish_hud.set_script(load("res://scripts/polish_hud.gd"))
 	polish_hud.set("game", self)
 	ui.add_child(polish_hud)
@@ -454,23 +464,24 @@ func _start_wave(next_wave: int) -> void:
 	wave_total = int(plan["shamblers"]) + int(plan["runners"]) + int(plan["trucker"])
 	spawn_clock = 0.0
 	_reset_pumps()
+	if run_log != null: run_log.start_wave()
+	if events != null: events.start_wave(wave)
 	if progression != null:
 		var pacing_cfg: Dictionary = progression.config.get("pacing", {})
 		var start_groups := int(pacing_cfg.get("wave1_start_groups", 2)) if wave == 1 else int(pacing_cfg.get("later_wave_start_groups", 3))
-		var start_group_size := int(pacing_cfg.get("wave_start_group_size", 10))
+		var start_group_size := roundi(float(pacing_cfg.get("wave_start_group_size", 10)) * (events.pressure_multiplier() if events != null else 1.0))
 		for _group in range(start_groups):
 			_spawn_pressure_group(start_group_size)
 	if wave == 10:
 		tanker_event = true
 		fire_hazard = true
-		banner.text = "WAVE 10: TANKER DOWN!\nTRUCKER INCOMING - SURVIVE!"
-	elif wave == 2:
-		banner.text = "WAVE %d: PRESSURE RISING\n%s" % [wave, guidance.label_text().to_upper() if guidance != null else "FIND THE OBJECTIVE"]
-	else:
-		banner.text = "WAVE %d: THE HORDE IS HERE\n%s" % [wave, guidance.label_text().to_upper() if guidance != null else "POWER THE MINI-MART GENERATOR"]
+		banner.text = "FINAL STAND - 90 SECONDS\nSURVIVE WITH YOUR EARNED ARSENAL"
+	elif events == null or events.active.is_empty():
+		banner.text = "WAVE %d: THE HORDE IS HERE\nSURVIVE" % wave
 	_update_hud()
 
 func _wave_duration() -> float:
+	if wave == 10 and events != null: return events.value("final_stand_seconds")
 	var data: Dictionary = progression.config.get("pacing", {})
 	return float(data.get("wave1_duration_seconds",60.0) if wave==1 else data.get("wave_duration_seconds",67.5))
 
@@ -486,6 +497,8 @@ func _tick_wave_clock(dt: float) -> void:
 func _finish_wave() -> void:
 	if not wave_active: return
 	wave_active = false
+	if events != null and not events.active.is_empty(): events.resolve("missed", "wave_ended")
+	if run_log != null: run_log.close_wave("completed")
 	print("STAGE1_WAVE wave=%d min_hp_pct=%.1f damage=%s enemies_avg=%.1f enemies_max=%d dps=%.1f level=%d elapsed=%.1f" % [wave, stage1_wave_min_hp_pct, str(stage1_damage_sources), stage1_enemy_integral / maxf(0.01,stage1_sample_seconds), stage1_enemy_max, stage1_damage_dealt / maxf(0.01,wave_clock), progression.level, run_clock])
 	if telemetry != null:
 		telemetry.event("wave_end",{"duration_s":wave_clock,"remaining_enemies":enemies.size(),"level":progression.level})
@@ -495,12 +508,14 @@ func _finish_wave() -> void:
 		wave10_survived=true
 		fire_hazard=false
 		_try_unlock_district()
+		if run_log != null: run_log.finish("final_stand_survived")
 		return
 	break_clock=float(progression.config.get("pacing",{}).get("break_seconds",4.0))
 	banner.text="WAVE %d CLEARED - NEXT WAVE IN %.0f" % [wave,break_clock]
 	if wave>=2 and phase_ui!=null: phase_ui.queue_upgrade_crate()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if events != null and events.aiming: return
 	if event is InputEventKey and event.pressed and event.keycode == KEY_H:
 		hazard_debug = not hazard_debug
 		queue_redraw()
@@ -545,6 +560,7 @@ func _physics_process(delta: float) -> void:
 		if player_hp <= 0 and not game_over_shown:
 			print("STAGE1_RUN_END death_wave=%d elapsed=%.1f min_hp_pct=%.1f damage=%s" % [wave, run_clock, 100.0 * float(wave_min_hp) / maxf(1.0, float(player_max_hp)), str(stage1_damage_sources)])
 			game_over_shown = true
+			if run_log != null: run_log.finish("death")
 			if phase_ui != null:
 				phase_ui.show_game_over(run_clock, wave, progression.level if progression != null else 1, kills, score, scrap_earned)
 		if player_hp <= 0:
@@ -585,6 +601,7 @@ func _physics_process(delta: float) -> void:
 	for h in stage1_hazards:
 		if str(h["kind"]) == "goo" and player_pos.distance_to(Vector2(h["pos"])) < float(h["radius"]):
 			speed_mult *= 0.55
+	if events != null: speed_mult *= events.movement_multiplier()
 	var desired_velocity := direction * player_speed * speed_mult * (1.5 if rage_clock > 0.0 else 1.0)
 	if bool(hazard["slippery"]):
 		player_velocity = player_velocity.move_toward(desired_velocity, player_speed * delta / 0.35)
@@ -624,12 +641,16 @@ func _physics_process(delta: float) -> void:
 		
 
 	fire_clock -= delta
-	if fire_clock <= 0.0 and not enemies.is_empty():
+	var objective_aim: Dictionary = events.aim_target() if events != null else {}
+	if fire_clock <= 0.0 and (not enemies.is_empty() or not objective_aim.is_empty()):
 		var nearest := 0
 		for i in range(1, enemies.size()):
 			if player_pos.distance_squared_to(enemies[i]["pos"]) < player_pos.distance_squared_to(enemies[nearest]["pos"]):
 				nearest = i
-		var heading: Vector2 = (enemies[nearest]["pos"] - player_pos).normalized()
+		var aim_at: Vector2 = objective_aim["pos"] if not objective_aim.is_empty() else enemies[nearest]["pos"]
+		# Threats in contact range take priority; otherwise shoot the indicated event.
+		if not enemies.is_empty() and player_pos.distance_to(enemies[nearest]["pos"]) < 150.0: aim_at = enemies[nearest]["pos"]
+		var heading: Vector2 = (aim_at - player_pos).normalized()
 		var smg_level := int(progression.weapons.get("scrap_smg", 1)) if progression != null else 1
 		var ammo_bonus: int = progression.ammo_bonus() if progression != null else 0
 		var smg_burst := 1
@@ -689,6 +710,7 @@ func _active_horde_target() -> int:
 	var end_target := int(target_row[1])
 	var t := clampf(wave_clock / _wave_duration(), 0.0, 1.0)
 	var target := roundi(lerpf(float(start_target), float(end_target), t))
+	if events != null: target = roundi(float(target) * events.pressure_multiplier())
 	return mini(int(progression.config.get("limits", {}).get("active_enemies", 250)), target)
 
 func _camera_half_extents() -> Vector2:
@@ -754,6 +776,7 @@ func _append_enemy(kind: String, pos: Vector2) -> void:
 	if enemies.size()>=250: return
 	grid_dirty=true
 	var stats := _enemy_stats(kind)
+	if events != null and not events.spawn_allowed(pos, float(stats["radius"])): return
 	transient_pool.push(enemies,"enemies",{
 		"uid": _next_uid(),
 		"pos": pos,
@@ -808,8 +831,9 @@ func _spawn_pressure_group(forced_size: int = -1) -> void:
 		if pos.distance_to(player_pos) < min_spawn_distance:
 			pos = player_pos + Vector2.from_angle(angle) * min_spawn_distance
 		pos = _nearest_walkable_position(pos, 18.0)
+		var before := enemies.size()
 		_append_enemy("runner" if runner_pack else _pressure_kind(), pos)
-		wave_spawned += 1
+		wave_spawned += enemies.size() - before
 
 func _spawn_opening_shambler() -> void:
 	_append_enemy("shambler", _nearest_walkable_position(player_pos + Vector2.RIGHT * 80.0, 18.0))
@@ -838,6 +862,10 @@ func _update_bullets(delta: float) -> void:
 		bullet["pos"] += bullet["dir"] * BULLET_SPEED * delta
 		bullet["life"] -= delta
 		var consumed := false
+		var event_damage: float = float(bullet_damage) * float(bullet.get("damage_mult", 1.0)) * (progression.damage_multiplier() if progression != null else 1.0)
+		if events != null and events.hit_bullet(bullet["pos"], event_damage):
+			transient_pool.remove(bullets, i, "bullets")
+			continue
 
 		var bullet_tile := _char_at_world(Vector2(bullet["pos"]))
 		if _bullet_blocked_by(bullet_tile):
@@ -906,6 +934,7 @@ func _explode_pump(pump: Dictionary) -> void:
 		juice_fx.call("explosion", Vector2(pump["pos"]), blast_kills)
 	_haptic_pulse(45)
 	banner.text = "PUMP DETONATED!"
+	if events != null: events.pump_exploded(pump["pos"])
 
 func _enemy_contact_damage(kind: String) -> int:
 	var difficulty: Dictionary = progression.config.get("difficulty", {}) if progression != null else {}
@@ -966,6 +995,8 @@ func _apply_player_contact_damage(enemy: Dictionary) -> void:
 	stage1_wave_min_hp_pct = minf(stage1_wave_min_hp_pct, 100.0 * float(player_hp) / maxf(1.0, float(player_max_hp)))
 	var damage_source := kind if kind == "brute" or kind == "bloater" else "contact"
 	stage1_damage_sources[damage_source] = int(stage1_damage_sources.get(damage_source, 0)) + effective_damage
+	if run_log != null: run_log.sample_hp(damage_source, effective_damage)
+	if events != null: events.player_damaged()
 	var difficulty: Dictionary = progression.config.get("difficulty", {}) if progression != null else {}
 	player_hit_invulnerability = float(difficulty.get("player_hit_invulnerability_seconds", 0.5))
 	enemy["contact_cooldown"] = float(difficulty.get("enemy_contact_cooldown_seconds", 0.8))
@@ -989,6 +1020,9 @@ func _stage1_damage(amount: int, source: String) -> void:
 	wave_damage_taken += dealt
 	wave_min_hp = mini(wave_min_hp, player_hp)
 	stage1_damage_sources[source] = int(stage1_damage_sources.get(source, 0)) + dealt
+	stage1_wave_min_hp_pct = minf(stage1_wave_min_hp_pct, 100.0 * float(player_hp) / maxf(1.0, float(player_max_hp)))
+	if run_log != null: run_log.sample_hp(source, dealt)
+	if events != null and dealt > 0: events.player_damaged()
 
 func _stage1_update_hazards(delta: float) -> void:
 	for i in range(stage1_hazards.size() - 1, -1, -1):
@@ -1008,7 +1042,7 @@ func _stage1_update_hazards(delta: float) -> void:
 
 func _stage1_spawn_surge() -> void:
 	var pacing: Dictionary = progression.config.get("pacing", {})
-	var count := int(pacing.get("surge_ring_count", 12))
+	var count := roundi(float(pacing.get("surge_ring_count", 12)) * (events.pressure_multiplier() if events != null else 1.0))
 	for i in range(count):
 		if enemies.size() >= int(progression.config.get("limits", {}).get("active_enemies", 250)):
 			break
@@ -1038,7 +1072,8 @@ func _update_enemy(enemy: Dictionary, delta: float) -> void:
 	enemy["contact_cooldown"] = maxf(0.0, float(enemy.get("contact_cooldown", 0.0)) - delta)
 	var to_player: Vector2 = player_pos - enemy["pos"]
 	if str(enemy["kind"]) == "brute" and float(enemy.get("charge", 0.0)) == 0.0 and to_player.length() > 1.0:
-		enemy["facing"] = to_player.normalized()
+		if not bool(enemy.get("stage2_mechanic", false)) or not bool(enemy.get("tank_exposed", false)):
+			enemy["facing"] = to_player.normalized()
 	var speed := 0.0 if freeze_clock > 0.0 else float(enemy["speed"])
 	var kind: String = str(enemy["kind"])
 	var diff: Dictionary = progression.config.get("difficulty", {})
@@ -1091,7 +1126,9 @@ func _update_phase_c(delta: float) -> void:
 		if elite_spawn_clock <= 0.0 and enemies.size() < 240:
 			elite_spawn_clock = 45.0
 			var spawn_at := _spawn_position_outside_view(rng.randf_range(0.0, TAU))
+			var before := enemies.size()
 			_append_enemy(_pressure_kind(), spawn_at)
+			if enemies.size() == before: return
 			var elite: Dictionary = enemies[enemies.size() - 1]
 			elite["elite"] = true
 			elite["hp"] = float(elite["hp"]) * 4.0
@@ -1158,98 +1195,13 @@ func _update_health(delta: float) -> void:
 		if health_spawn_clock <= 0.0:
 			health_available = true
 
-func _update_objectives(delta: float) -> void:
-	objective_flash_clock = maxf(0.0, objective_flash_clock - delta)
-	objective_idle_clock += delta
-	objective_hint_cooldown = maxf(0.0, objective_hint_cooldown - delta)
-	if objective_idle_clock >= 45.0 and objective_hint_cooldown <= 0.0 and not _objectives_complete():
-		objective_hint_cooldown = 15.0
-		objective_flash_clock = 3.0
-		if not generator_active:
-			banner.text = "HINT: The generator is near the mini-mart"
-		elif _objective_counts()["supplies"] < 3:
-			banner.text = "HINT: Search the diner, auto shop and motel for supplies"
-		elif _objective_counts()["nests"] < 4:
-			banner.text = "HINT: Follow the infestation markers to destroy nests"
-		else:
-			banner.text = "HINT: Follow the colored relay markers for the core"
-		banner.visible = true
+func _update_objectives(_delta: float) -> void:
+	# The pause-aware event manager owns interaction. No proximity auto-completion.
+	pass
 
-	if not generator_active and player_pos.distance_to(GENERATOR_POS) < 105.0:
-		generator_active = true
-		score += 500
-		objective_flash_clock = 2.5
-		objective_idle_clock = 0.0
-		objective_hint_cooldown = 0.0
-		banner.text = "GENERATOR ONLINE!\nMINI-MART POWER RESTORED"
-		_haptic_pulse(30)
-		_try_unlock_district()
-
-	for cache in supply_caches:
-		if not bool(cache["collected"]) and player_pos.distance_to(Vector2(cache["pos"])) < 95.0:
-			cache["collected"] = true
-			objective_idle_clock = 0.0
-			objective_hint_cooldown = 0.0
-			score += 350
-			objective_flash_clock = 2.5
-			banner.text = "SUPPLIES RECOVERED: %s" % str(cache["name"])
-			_haptic_pulse(24)
-			_try_unlock_district()
-
-	for nest in infestation_nests:
-		if not bool(nest["destroyed"]) and player_pos.distance_to(Vector2(nest["pos"])) < 105.0:
-			nest["destroyed"] = true
-			objective_idle_clock = 0.0
-			objective_hint_cooldown = 0.0
-			score += 600
-			objective_flash_clock = 2.5
-			transient_pool.push(impact_marks,"impact_marks",{"pos": nest["pos"], "life": 0.55, "blast": true},120)
-			_kill_enemies_near(Vector2(nest["pos"]), 240.0)
-			banner.text = "INFESTATION NEST DESTROYED!"
-			_try_unlock_district()
-
-func _update_puzzle(delta: float) -> void:
-	puzzle_pad_lock = maxf(0.0, puzzle_pad_lock - delta)
-	if trap_active:
-		trap_clock = maxf(0.0, trap_clock - delta)
-		if trap_color == "RED":
-			if trap_clock <= 0.0:
-				_finish_trap()
-		elif trap_color == "BLUE":
-			if not blue_switch_a and player_pos.distance_to(RELAY_BLUE + Vector2(-320, 0)) < 95.0:
-				blue_switch_a = true
-				trap_switches += 1
-				banner.text = "BLUE SWITCH 1/2 ACTIVATED"
-			if not blue_switch_b and player_pos.distance_to(RELAY_BLUE + Vector2(0, 350)) < 95.0:
-				blue_switch_b = true
-				trap_switches += 1
-				banner.text = "BLUE SWITCH 2/2 ACTIVATED"
-			if trap_clock <= 0.0 and trap_switches >= 2:
-				_finish_trap()
-		elif trap_color == "YELLOW":
-			if trap_guard_kills >= trap_required_kills:
-				_finish_trap()
-		return
-	if puzzle_complete or puzzle_pad_lock > 0.0:
-		return
-	var touched := ""
-	if player_pos.distance_to(RELAY_RED) < 70.0:
-		touched = "RED"
-	elif player_pos.distance_to(RELAY_BLUE) < 70.0:
-		touched = "BLUE"
-	elif player_pos.distance_to(RELAY_YELLOW) < 70.0:
-		touched = "YELLOW"
-	if touched == "":
-		return
-	puzzle_pad_lock = 1.2
-	var expected := str(PUZZLE_CODE[puzzle_step])
-	if touched != expected:
-		banner.text = "RELAY ORDER: RED > BLUE > YELLOW > RED"
-		return
-	if trap_finished.has(touched):
-		_complete_relay_step()
-		return
-	_start_trap(touched)
+func _update_puzzle(_delta: float) -> void:
+	# The relay is now an optional three-pad event, not a color-code gate.
+	pass
 
 func _start_trap(color: String) -> void:
 	trap_active = true
@@ -1353,7 +1305,7 @@ func _objectives_complete() -> bool:
 	return generator_active and int(counts["supplies"]) == 3 and int(counts["nests"]) == 4 and detonator_core
 
 func _try_unlock_district() -> void:
-	if wave10_survived and _objectives_complete():
+	if wave10_survived:
 		district_cleared = true
 		banner.text = "OUTSKIRTS CLEARED!\nROAD NORTH TO DOWNTOWN UNLOCKED"
 
@@ -1546,51 +1498,8 @@ func _nearest_walkable_position(pos: Vector2, radius: float) -> Vector2:
 
 
 func _draw_objectives() -> void:
-	# Generator objective.
-	if not generator_active:
-		draw_circle(GENERATOR_POS, 42, Color(0.95, 0.80, 0.20, 0.28))
-		draw_circle(GENERATOR_POS, 22, Color("#e6c04d"))
-		_marker_icon(GENERATOR_POS, "bolt", Color("#F2A23A"))
-
-	# Supply caches.
-	for cache in supply_caches:
-		if not bool(cache["collected"]):
-			var p := Vector2(cache["pos"])
-			draw_rect(Rect2(p - Vector2(24, 18), Vector2(48, 36)), Color("#4b8f61"))
-			draw_rect(Rect2(p - Vector2(30, 24), Vector2(60, 48)), Color(0.6, 1.0, 0.7, 0.25), false, 5.0)
-			_marker_icon(p, "crate", Color("#6FBF4A"))
-
-	# Infestation nests: dangerous red targets at the perimeter.
-	for nest in infestation_nests:
-		if not bool(nest["destroyed"]):
-			var p := Vector2(nest["pos"])
-			draw_circle(p, 42, Color(0.55, 0.08, 0.05, 0.55))
-			draw_circle(p, 24, Color("#7f1d18"))
-			for a in range(0, 8):
-				var angle := float(a) * TAU / 8.0
-				draw_line(p + Vector2.RIGHT.rotated(angle) * 22.0, p + Vector2.RIGHT.rotated(angle) * 54.0, Color("#a83a2f"), 7.0)
-			_marker_icon(p, "nest", Color("#B1375E"))
-
-	# Three distant ambush sites. All markers use the original relay colors.
-	if not puzzle_complete:
-		for color in ["RED", "BLUE", "YELLOW"]:
-			var pos := _relay_position(color)
-			var tint := Color("#b83a32") if color == "RED" else (Color("#3f6fa6") if color == "BLUE" else Color("#d7ae35"))
-			draw_circle(pos, 72, Color(tint.r, tint.g, tint.b, 0.20))
-			draw_circle(pos, 38, tint)
-			_marker_icon(pos, "trap", tint)
-			if trap_finished.has(color):
-				draw_arc(pos, 52.0, 0.0, TAU, 24, Color("#6FBF4A"), 6.0)
-		if trap_active and trap_color == "BLUE":
-			for switch_pos in [RELAY_BLUE + Vector2(-320, 0), RELAY_BLUE + Vector2(0, 350)]:
-				draw_circle(switch_pos, 32, Color("#6cefff"))
-		if trap_active:
-			_draw_trap_countdown(_relay_position(trap_color))
-		_marker_icon(PUZZLE_CENTER, "core", Color("#F2A23A"))
-		
-	else:
-		draw_circle(PUZZLE_CENTER, 54, Color(0.20, 0.75, 0.42, 0.45))
-		_marker_icon(PUZZLE_CENTER, "core", Color("#6FBF4A"))
+	# Stage2Events draws only the active offer and earned world tools.
+	pass
 
 func _draw_spawn_markers() -> void:
 	_spawn_marker(HIGHWAY_WEST, Color("#e6c04d"))
@@ -1665,6 +1574,7 @@ func _draw_combat() -> void:
 	# Survivor art is rendered in the same Y-sorted actor layer as enemies.
 
 func _draw_dusk() -> void:
+	if events != null and events.earned.has("floodlights"): return
 	if wave < 7:
 		return
 	var dusk := clampf(float(wave - 6) / 4.0, 0.0, 1.0)
@@ -1717,6 +1627,8 @@ func phase_b_damage_enemy(index: int, raw_damage: float, crit: bool, source: Str
 		var shot_from_front := Vector2(enemy.get("facing", facing)).dot(facing) > 0.0
 		if shot_from_front:
 			actual *= float(progression.config.get("difficulty", {}).get("brute_front_damage_multiplier", 0.5))
+	if events != null: actual *= events.mechanic_damage_multiplier(enemy)
+	if actual <= 0.0: return false
 	stage1_damage_dealt += actual
 	enemy["hp"] = float(enemy["hp"]) - actual
 	if juice_fx != null and damage_numbers_enabled:
