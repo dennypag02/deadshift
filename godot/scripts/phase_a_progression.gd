@@ -119,6 +119,9 @@ func drop_xp(pos: Vector2, kind: String) -> void:
 		var by_wave: Dictionary = xp_cfg.get("drop_multiplier_by_wave", {})
 		var wave_key := str(game.wave) if game != null else "1"
 		var chance := float(by_wave.get(wave_key, by_wave.get("default", 1.0)))
+		var density := float(game._onscreen_enemy_count()) if game != null else 0.0
+		var pressure := clampf(density / maxf(1.0, float(xp_cfg.get("density_full_pressure_count", 120))), 0.0, 1.0)
+		chance *= lerpf(1.0, float(xp_cfg.get("density_drop_multiplier_floor", 0.65)), pressure)
 		should_drop = rng.randf() < clampf(chance, 0.0, 1.0)
 	if not should_drop:
 		return
@@ -145,7 +148,9 @@ func add_xp(amount: int) -> void:
 		xp -= xp_required(level)
 		level += 1
 		pending_levels += 1
-		level_times.append({"level": level, "time": game.capture_clock if game != null and bool(game.capture_mode) else 0.0})
+		var elapsed := float(game.run_clock) if game != null else 0.0
+		level_times.append({"level": level, "time": elapsed})
+		print("STAGE1_LEVEL_UP level=%d t=%.2f" % [level, elapsed])
 	if pending_levels > 0 and not choosing:
 		choosing = true
 		level_up_requested.emit()
