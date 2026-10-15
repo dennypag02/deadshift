@@ -762,6 +762,7 @@ func _append_enemy(kind: String, pos: Vector2) -> void:
 		"contact_cooldown": 0.0,
 		"attack_clock": 0.0,
 		"charge_target": Vector2.ZERO,
+		"facing": Vector2.RIGHT,
 	})
 
 func _pressure_kind() -> String:
@@ -1010,6 +1011,8 @@ func _update_enemies(delta: float) -> void:
 		enemy["visual_hit"] = maxf(0.0, float(enemy.get("visual_hit", 0.0)) - delta)
 		enemy["contact_cooldown"] = maxf(0.0, float(enemy.get("contact_cooldown", 0.0)) - delta)
 		var to_player: Vector2 = player_pos - enemy["pos"]
+		if str(enemy["kind"]) == "brute" and float(enemy.get("charge", 0.0)) == 0.0 and to_player.length() > 1.0:
+			enemy["facing"] = to_player.normalized()
 		var speed := 0.0 if freeze_clock > 0.0 else float(enemy["speed"])
 		var kind: String = str(enemy["kind"])
 		var diff: Dictionary = progression.config.get("difficulty", {})
@@ -1695,7 +1698,7 @@ func phase_b_damage_enemy(index: int, raw_damage: float, crit: bool, source: Str
 	var actual: float = raw_damage * (progression.crit_multiplier() if crit and progression != null else 1.0)
 	if str(enemy["kind"]) == "brute" and Vector2(enemy["pos"]).distance_to(player_pos) > 0.0:
 		var facing: Vector2 = (player_pos - Vector2(enemy["pos"])).normalized()
-		var shot_from_front := Vector2(enemy.get("charge_target", facing)).dot(facing) > 0.0
+		var shot_from_front := Vector2(enemy.get("facing", facing)).dot(facing) > 0.0
 		if shot_from_front:
 			actual *= float(progression.config.get("difficulty", {}).get("brute_front_damage_multiplier", 0.5))
 	stage1_damage_dealt += actual
