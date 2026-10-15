@@ -1,0 +1,4 @@
+scope: general
+inherits: project
+purpose: Shared assets across all DeadShift levels
+reference_policy: Use approved game assets as visual references

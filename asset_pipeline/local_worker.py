@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import html
 import asset_approval
+import project_library
 import json
 import logging
 import shutil
@@ -450,6 +451,31 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._send_status_page(status)
             return
 
+        if path == "/curate":
+            query = parse_qs(urlparse(self.path).query)
+            try:
+                page = project_library.render(
+                    str(query.get("project", ["deadshift"])[0]),
+                    str(query.get("scope", ["general"])[0]),
+                )
+                self._send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
+            except (ValueError, OSError) as exc:
+                self.send_error(400, str(exc))
+            return
+
+        if path == "/curation-image":
+            query = parse_qs(urlparse(self.path).query)
+            try:
+                payload = project_library.image_bytes(
+                    str(query.get("project", [""])[0]),
+                    str(query.get("scope", [""])[0]),
+                    str(query.get("id", [""])[0]),
+                )
+                self._send_bytes(payload, "image/png")
+            except (ValueError, OSError) as exc:
+                self.send_error(404, str(exc))
+            return
+
         if path == "/approvals":
             try:
                 self._send_bytes(asset_approval.render().encode("utf-8"), "text/html; charset=utf-8")
@@ -496,7 +522,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         self.wfile.write(payload)
 
     def do_POST(self) -> None:
-        if urlparse(self.path).path != "/asset-action":
+        route = urlparse(self.path).path
+        if route not in ("/asset-action", "/curation-action"):
             self.send_error(404)
             return
         origin = self.headers.get("Origin", "")
@@ -515,13 +542,29 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             if length < 1 or length > 8192:
                 raise ValueError("Invalid form length")
             fields = parse_qs(self.rfile.read(length).decode("utf-8"), keep_blank_values=True)
-            result = asset_approval.action(fields)
+            if route == "/curation-action":
+                project = str(fields.get("project", [""])[0])
+                scope = str(fields.get("scope", [""])[0])
+                ids = [str(value) for value in fields.get("candidate_id", [])]
+                action = str(fields.get("action", [""])[0])
+                if action in ("create_project", "create_level"):
+                    result = project_library.create_folder(action, project, str(fields.get("level", [""])[0]))
+                elif action == "save":
+                    outcome = project_library.save_selection(project, scope, ids)
+                    result = f"Saved {outcome['kept']} kept candidates in {outcome['folder']}."
+                elif action == "submit":
+                    outcome = project_library.submit_folder(project, scope, ids)
+                    result = f"Submitted {outcome['kept']} curated candidates as {outcome['submission_id']}. No game art changed."
+                else:
+                    raise ValueError("Unknown curation action")
+            else:
+                result = asset_approval.action(fields)
         except (ValueError, OSError, KeyError) as exc:
             self.send_error(400, str(exc))
             return
         page = ("<!doctype html><meta charset='utf-8'><title>DeadShift Approval</title>"
                 "<body style='font:18px Arial;background:#202020;color:white;padding:30px'>"
-                "<p>" + html.escape(result) + "</p><a style='color:#9ecbff' href='/approvals'>Back to approvals</a></body>")
+                "<p>" + html.escape(result) + "</p><a style='color:#9ecbff' href='/curate'>Back to project library</a> | <a style='color:#9ecbff' href='/approvals'>Back to approvals</a></body>")
         self._send_bytes(page.encode("utf-8"), "text/html; charset=utf-8")
 
     def _send_status_page(self, status: dict) -> None:
@@ -548,7 +591,7 @@ code{{color:#ddd}} a{{color:#9ecbff}}
 <p>{message}</p>
 <p><strong>Job:</strong> {job_id or "none"}</p>
 <p><strong>Asset:</strong> {asset or "none"}</p>
-<p><a href="/library">Open Asset Library</a> &nbsp;|&nbsp; <a href="/approvals">Select / Approve Assets</a> &nbsp;|&nbsp; <a href="/latest">Open Latest Review</a></p>
+<p><a href="/library">Open Asset Library</a> &nbsp;|&nbsp; <a href="/curate">Project Folders / Bulk Selection</a> &nbsp;|&nbsp; <a href="/approvals">Select / Approve Assets</a> &nbsp;|&nbsp; <a href="/latest">Open Latest Review</a></p>
 <p>This page refreshes automatically while work is in progress.</p>
 </div></body></html>"""
         encoded = body.encode("utf-8")
