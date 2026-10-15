@@ -443,8 +443,8 @@
     "enemy_hp_per_wave": 0.15,
     "enemy_damage_per_wave": 0.08,
     "contact_damage": {
-      "shambler_base": 1.7,
-      "runner_base": 3.2,
+      "shambler_base": 1,
+      "runner_base": 2,
       "trucker_base": 18,
       "bloater_base": 5,
       "spitter_base": 3,
