@@ -792,6 +792,8 @@ func _spawn_pressure_group(forced_size: int = -1) -> void:
 	var cap := int(progression.config.get("limits", {}).get("active_enemies", 250))
 	var min_spawn_distance := float(pacing.get("min_spawn_distance_tiles", 1.5)) * TILE
 	var runner_pack := wave >= 2 and rng.randf() < 0.35
+	if runner_pack:
+		group_size = mini(group_size, rng.randi_range(int(pacing.get("runner_pack_min", 4)), int(pacing.get("runner_pack_max", 8))))
 	for n in range(group_size):
 		if enemies.size() >= cap:
 			break
@@ -956,7 +958,7 @@ func _apply_player_contact_damage(enemy: Dictionary) -> void:
 	player_hp = maxi(0, player_hp - effective_damage)
 	wave_damage_taken += effective_damage
 	wave_min_hp = mini(wave_min_hp, player_hp)
-	var damage_source := "brute" if kind == "brute" else "contact"
+	var damage_source := kind if kind == "brute" or kind == "bloater" else "contact"
 	stage1_damage_sources[damage_source] = int(stage1_damage_sources.get(damage_source, 0)) + effective_damage
 	var difficulty: Dictionary = progression.config.get("difficulty", {}) if progression != null else {}
 	player_hit_invulnerability = float(difficulty.get("player_hit_invulnerability_seconds", 0.5))
