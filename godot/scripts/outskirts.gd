@@ -234,7 +234,7 @@ func _ready() -> void:
 	_setup_camera()
 	_setup_ui()
 	if capture_mode and phase_ui != null:
-		phase_ui.god_mode = true
+		phase_ui.god_mode = false
 	_start_wave(1)
 	if capture_mode:
 		print("PACING_CAPTURE_READY")
