@@ -11,6 +11,7 @@ import html
 import asset_approval
 import project_library
 import curation_sync
+import curated_png_sync
 import json
 import logging
 import shutil
@@ -355,6 +356,9 @@ def worker_loop() -> None:
                     result = curation_sync.publish(run, BRANCH)
                     if result["published"]:
                         write_status(state="curation_published", message=f"Published {result['published']} curated submission(s) to GitHub.")
+                    transferred = curated_png_sync.publish(run, BRANCH)
+                    if transferred["staged"]:
+                        write_status(state="artwork_staged", message=f"Verified and synced {transferred['staged']} selected PNGs to GitHub staging; not yet installed in Godot.")
                 except Exception as exc:
                     logging.exception("curation sync failed")
                     write_status(state="curation_sync_error", message=str(exc))
