@@ -37,6 +37,9 @@ def publish(run, branch: str) -> dict:
             continue
         pending.append((file, target))
     if not pending:
+        push = run(["git", "push", "origin", branch], cwd=REPO)
+        if push.returncode:
+            raise RuntimeError("Git push retry failed: " + (push.stderr or push.stdout))
         return {"published": 0, "pending": 0}
     DEST.mkdir(parents=True, exist_ok=True)
     for file, target in pending:
