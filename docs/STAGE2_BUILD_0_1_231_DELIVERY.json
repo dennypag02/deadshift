@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "status": "implementation_and_artifacts_delivered_pending_phone_acceptance",
+  "version": "0.1.231",
+  "repository": "dennypag02/deadshift",
+  "playable_branch": "feature/phase-a-progression",
+  "merged_pr": 19,
+  "game_source_sha": "9c4660913cc604f71d0dd48269d4340dc104c3e2",
+  "apk": {
+    "filename": "DeadShift-Stage2-0.1.231.apk",
+    "bytes": 58223458,
+    "sha256": "bec168c19673edae611ab8d638244891a8a80fa95418033a48f5922da636092b",
+    "signer_sha256": "c8df88d582c7eabeb7272ac5f538036b5ba72dbf2dbd9495beb8a9e1b5571796",
+    "build_run": 38787914506,
+    "artifact_id": 11997539681,
+    "evidence_artifact_id": 11998787757
+  },
+  "recording": {
+    "filename": "DeadShift-Stage2-Title-and-Three-Minutes.mp4",
+    "bytes": 54345656,
+    "sha256": "a1eadbef11c57d039ff93d3f88c437834494bfa3e24fcf3b9d4bbac7adbd5f42",
+    "run_id": 38787913813,
+    "artifact_id": 11999935176,
+    "total_seconds": 200.133333,
+    "active_gameplay_seconds": 180.033,
+    "source": "actual_desktop_Godot_render_with_scripted_controls",
+    "normal_damage": true,
+    "god_mode": false,
+    "phone_fps_evidence": false,
+    "seed": 20261015,
+    "level_5_seconds": 45.133,
+    "level_10_seconds": 146.133,
+    "ending_level": 10,
+    "ending_hp": 71,
+    "events_offered": 3,
+    "events_completed": 1,
+    "events_missed": 2,
+    "generator_completion_seconds": 21.133,
+    "rewards_earned": ["auto_turret", "floodlights"],
+    "wave_min_hp": [95, 84, 71],
+    "wave_3_observation": "partial_at_capture_end"
+  },
+  "logs": {
+    "filename": "DeadShift-Stage2-Logs-and-Validation.zip",
+    "bytes": 1123209,
+    "sha256": "608e5e2eae26bd79ed7f654f81dc1d79a0ccb3f4d284186caeaf4b313be85b08",
+    "delivery": "direct_conversation_attachment",
+    "contents": ["matching_recording_logs", "signed_build_evidence", "all_six_scripted_runs", "typed_HUD_fixtures", "retained_Android_failures_and_final_success", "checksums"]
+  },
+  "validation": {
+    "strict_suites_passed": 7,
+    "runtime_hashes_matching_APK_and_video": 38,
+    "approved_art_originals_unchanged": 45,
+    "general_XP_combat_and_ordinary_wave_tuning_unchanged": true,
+    "six_seed_qualification": {
+      "seeds": [20261015, 20261016, 20261017, 20261018, 20261019, 20261020],
+      "reached_wave_4": 5,
+      "early_deaths": 1,
+      "early_death_seconds": 120.9,
+      "human_first_run_rate_established": false
+    },
+    "android": {
+      "run_id": 38791216584,
+      "artifact_id": 12000152539,
+      "source_sha": "d830b82e0be92933a467755b7fc4529fbee0e44b",
+      "github_conclusion": "success",
+      "scope": "APK installation and 180-wall-second process/logcat stability, not three-minute active survival",
+      "maximum_enemies": 73,
+      "fatal_or_script_error_signatures": 0,
+      "stationary_automation_player_death_seconds": 90.477,
+      "death_wave": 2,
+      "screenshots": "blank_or_gray; visual rendering acceptance NOT established",
+      "physical_phone_fps_evidence": false,
+      "human_first_run_evidence": false,
+      "earlier_failed_runs_retained": [38789704410, 38789925151],
+      "followups": "CI-only KVM access, correct title input, observed native full-screen prompt dismissal. No change to delivered APK or ChatGPT permissions."
+    }
+  },
+  "remaining_acceptance": ["physical_phone_visuals_and_frame_rate", "actual_first_attempt_player_difficulty"],
+  "no_new_art_promoted": true,
+  "no_End_Boss_work": true
+}
