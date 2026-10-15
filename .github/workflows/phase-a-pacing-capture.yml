@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/phase-a-progression
+      - fix/feedback-capture-completion
     paths:
       - 'godot/**'
       - '.github/workflows/phase-a-pacing-capture.yml'
@@ -11,7 +12,7 @@ permissions:
 jobs:
   capture:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Install Godot and capture dependencies
@@ -21,58 +22,66 @@ jobs:
           curl -fL --retry 3 -o godot.zip https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
           unzip -q godot.zip
           chmod +x Godot_v4.4.1-stable_linux.x86_64
-      - name: Import project
-        run: |
-          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --editor --quit
-      - name: Record launch through first three gameplay minutes
+      - name: Strict Godot import
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           mkdir -p pacing-capture
-          Xvfb :99 -screen 0 720x1560x24 -ac +extension GLX +render -noreset > pacing-capture/xvfb.log 2>&1 &
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --audio-driver Dummy --path godot --editor --quit 2>&1 | tee pacing-capture/import.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|Shader compilation failed' pacing-capture/import.log
+      - name: Record title and normal-damage gameplay
+        shell: bash
+        run: |
+          set -euo pipefail
+          Xvfb :99 -screen 0 720x1100x24 -ac +extension GLX +render -noreset > pacing-capture/xvfb.log 2>&1 &
           XVFB_PID=$!
+          trap 'kill "$XVFB_PID" 2>/dev/null || true' EXIT
           export DISPLAY=:99
+          export DEADSHIFT_EVIDENCE_DIR="$GITHUB_WORKSPACE/pacing-capture"
           sleep 2
-          ffmpeg -y -f x11grab -draw_mouse 0 -framerate 30 -video_size 720x1560 -i :99.0+0,0 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p pacing-capture/deadshift-first-three-minutes.mp4 > pacing-capture/ffmpeg.log 2>&1 &
-          FFMPEG_PID=$!
-          set +e
-          timeout 360s ./Godot_v4.4.1-stable_linux.x86_64 --path godot --windowed --resolution 720x1560 --position 0,0 --rendering-driver opengl3 -- --pacing-capture 2>&1 | tee pacing-capture/pacing.log
-          GAME_RC=${PIPESTATUS[0]}
-          set -e
-          kill -INT $FFMPEG_PID 2>/dev/null || true
-          wait $FFMPEG_PID || true
-          kill $XVFB_PID 2>/dev/null || true
-          test -s pacing-capture/deadshift-first-three-minutes.mp4
-          grep -q "PACING_CAPTURE_COMPLETE" pacing-capture/pacing.log
-          grep -q "PACING_GAME_OVER_VISIBLE" pacing-capture/pacing.log
-          grep -q "PACING_LEVEL_UP level=2" pacing-capture/pacing.log
-          grep -q "PACING_SUMMARY" pacing-capture/pacing.log
-          grep -q "PACING_WAVE_END wave=1" pacing-capture/pacing.log
-          python3 - pacing-capture/pacing.log <<'PY'
-          import re, sys
-          text = open(sys.argv[1], encoding="utf-8").read()
-          levels = [(int(a), float(b)) for a,b in re.findall(r'PACING_LEVEL_UP level=(\d+) t=([0-9.]+)', text)]
-          summary = re.search(r'PACING_SUMMARY enemies_avg=([0-9.]+) enemies_max=(\d+) xp_dropped=(\d+) xp_collected=(\d+)', text)
-          final = re.search(r'PACING_CAPTURE_COMPLETE t=([0-9.]+) wave=(\d+) level=(\d+) kills=(\d+)', text)
-          wave1 = re.search(r'PACING_WAVE_END wave=1 t=([0-9.]+)', text)
-          print("PACING_REPORT levels=" + ",".join(f"L{lvl}@{t:.2f}s" for lvl,t in levels))
-          if summary:
-              print(f"PACING_REPORT avg_zombies={summary.group(1)} peak_zombies={summary.group(2)} xp={summary.group(4)}/{summary.group(3)}")
-          if wave1:
-              print(f"PACING_REPORT wave1_end={wave1.group(1)}s")
-          if final:
-              print(f"PACING_REPORT final_level={final.group(3)} kills={final.group(4)} t={final.group(1)}s")
+          timeout 600s ./Godot_v4.4.1-stable_linux.x86_64 --audio-driver Dummy --path godot --script res://scripts/feedback_evidence.gd --rendering-driver opengl3 --fixed-fps 30 --write-movie "$GITHUB_WORKSPACE/pacing-capture/playthrough.avi" -- --pacing-capture 2>&1 | tee pacing-capture/pacing.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|Shader compilation failed' pacing-capture/pacing.log
+          grep -q 'FEEDBACK_RECORDING_COMPLETE' pacing-capture/pacing.log
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          record=json.loads(Path('pacing-capture/playthrough.json').read_text())
+          assert record['recording'] == 'desktop scripted input, normal damage, god mode OFF'
+          assert record['deaths'] in (0,1)
+          if record['deaths'] == 0:
+              assert record['gameplay_seconds'] >= 180, 'Live run did not reach three minutes'
+              outcome='three_minutes_completed'
+          else:
+              assert record['hp'] <= 0, 'Death outcome has positive HP'
+              outcome='early_death_recorded_not_three_minutes_survived'
+          assert Path('pacing-capture/title-screen.png').is_file()
+          print('CAPTURE_OUTCOME',outcome,'level',record['level'],'hp',record['hp'],'gameplay_seconds',record['gameplay_seconds'])
+          Path('pacing-capture/outcome.txt').write_text(outcome+'\nNot Android footage or a real-time FPS benchmark.\n')
           PY
-          if [ "$GAME_RC" -ne 0 ]; then
-            echo "Godot exited with status $GAME_RC"
-            exit "$GAME_RC"
-          fi
+      - name: Encode and verify delivery video
+        shell: bash
+        run: |
+          set -euo pipefail
+          ffmpeg -y -i pacing-capture/playthrough.avi -c:v libx264 -preset fast -crf 22 -pix_fmt yuv420p -threads 2 -c:a aac -b:a 128k -movflags +faststart pacing-capture/deadshift-first-three-minutes.mp4 > pacing-capture/ffmpeg.log 2>&1
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_type,codec_name,width,height -of json pacing-capture/deadshift-first-three-minutes.mp4 > pacing-capture/video.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          video=json.loads(Path('pacing-capture/video.json').read_text())
+          assert float(video['format']['duration']) >= 180
+          assert any(s.get('codec_name') == 'h264' for s in video['streams'])
+          print('CAPTURE_FILE_VERIFIED',video['format'])
+          PY
+          git rev-parse HEAD > pacing-capture/source-sha.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: deadshift-phase-b-first-three-minutes
           path: |
-            pacing-capture/deadshift-first-three-minutes.mp4
-            pacing-capture/pacing.log
-            pacing-capture/ffmpeg.log
+            pacing-capture/*.mp4
+            pacing-capture/*.log
+            pacing-capture/*.json
+            pacing-capture/*.png
+            pacing-capture/*.txt
           if-no-files-found: warn
+          retention-days: 14
