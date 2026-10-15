@@ -44,8 +44,8 @@ func _check() -> void:
 	if game.player_hp != 94:
 		_fail("Wave 1 shambler should deal about 6 damage; hp=%d" % game.player_hp)
 		return
-	if game.player_hit_invulnerability < 0.49:
-		_fail("missing 0.5s player hit invulnerability")
+	if game.player_hit_invulnerability < 0.34:
+		_fail("missing configured 0.35s player hit invulnerability")
 		return
 	if float(game.enemies[0].get("contact_cooldown", 0.0)) < 0.79:
 		_fail("missing 0.8s per-enemy contact cooldown")
