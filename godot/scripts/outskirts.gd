@@ -610,20 +610,15 @@ func _physics_process(delta: float) -> void:
 		var pacing: Dictionary = progression.config.get("pacing", {}) if progression != null else {}
 		var active_target := _active_horde_target()
 		spawn_clock -= delta
-		if wave == 1 and wave_clock >= float(pacing.get("wave1_duration_seconds", 60.0)):
-			if not final_surge_started:
-				final_surge_started = true
-				_spawn_pressure_group(int(pacing.get("final_surge_size", 10)))
-			elif enemies.is_empty():
-				_finish_wave()
+		if wave_clock >= wave_duration:
+			_finish_wave()
 		elif wave_clock < wave_duration and spawn_clock <= 0.0 and _pressure_population_count() < active_target and enemies.size() < int(progression.config.get("limits", {}).get("active_enemies", 250)):
 			var pressure_room := maxi(0, active_target - _pressure_population_count())
 			if pressure_room > 0:
 				var group_cap := mini(int(pacing.get("spawn_group_max", 10)), pressure_room)
 				_spawn_pressure_group(group_cap)
 			spawn_clock = float(pacing.get("spawn_interval_seconds", 0.75))
-		elif wave > 1 and wave_clock >= wave_duration and enemies.is_empty():
-			_finish_wave()
+		
 
 	fire_clock -= delta
 	if fire_clock <= 0.0 and not enemies.is_empty():
