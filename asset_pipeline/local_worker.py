@@ -10,6 +10,7 @@ from __future__ import annotations
 import html
 import asset_approval
 import project_library
+import curation_sync
 import json
 import logging
 import shutil
@@ -349,7 +350,14 @@ def worker_loop() -> None:
     write_status(state="idle", message="Worker is running and waiting for jobs.")
     while True:
         try:
-            update_repo()
+            if update_repo():
+                try:
+                    result = curation_sync.publish(run, BRANCH)
+                    if result["published"]:
+                        write_status(state="curation_published", message=f"Published {result['published']} curated submission(s) to GitHub.")
+                except Exception as exc:
+                    logging.exception("curation sync failed")
+                    write_status(state="curation_sync_error", message=str(exc))
             state = load_state()
             processed = set(str(item) for item in state.get("processed", []))
 
