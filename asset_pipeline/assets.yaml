@@ -56,6 +56,14 @@ categories:
     style: "(flat vector illustration:1.2), seamless tileable texture, seen from directly above, flat even lighting, no shadows, cel shaded, muted palette of rust brown, olive green and dusty gray"
     negative: "photograph, photorealistic, 3D render, perspective, horizon, objects, cars, people, characters, border, frame, vignette, text, watermark, blurry, seams"
 
+  icons:
+    workflow: sprite
+    size: [1024, 1024]
+    target: {long_side: 192}
+    count: 4
+    style: "(flat vector illustration:1.3), game UI icon, bold dark outlines, cel shaded, centered single object, slight 3/4 angle, high contrast, vibrant highlight color on muted rust and steel base, (isolated on plain white background:1.4)"
+    negative: "photograph, photorealistic, 3D render, text, letters, numbers, frame, border, multiple objects, cropped, blurry, watermark, background scenery, red"
+
 assets:
   - {name: car_sedan, category: cars, prompt: "abandoned modern sedan, 2020s car design, sleek rounded body, panoramic glass roof, cracked windshield, dented roof, faded paint and rust patches"}
   - {name: car_suv, category: cars, prompt: "abandoned modern SUV, boxy shape, roof rails, tinted windows, sunroof, faded paint and rust patches"}
@@ -104,3 +112,53 @@ assets:
   - {name: screen_title, category: screens, prompt: "panoramic skyline of a destroyed city at dusk, broken skyscrapers, smoke columns, hazy orange and toxic green sky, rubble and wrecked cars in the foreground, empty sky space at the top, video game title screen background"}
   - {name: screen_gameover, category: screens, prompt: "destroyed city skyline under blood red sky, toppled water tower, dark smoke blotting out the sun, abandoned barricade in the foreground, bleak mood, empty sky space at the top"}
   - {name: screen_loading, category: screens, prompt: "overgrown highway overpass in a ruined city, vines on broken concrete, abandoned buses, quiet morning haze"}
+
+  # Enemy, Trucker concept, and icon candidate batch
+  - {name: zombie_shambler, category: characters, seed_group: enemies, prompt: "slow shambling zombie, torn work clothes, grey-green rotting skin, arms reaching forward, hunched posture"}
+  - {name: zombie_runner,   category: characters, seed_group: enemies, prompt: "lean fast zombie sprinting, pale yellowish skin, ragged tank top, leaning forward, wild hair, motion lines"}
+  - {name: zombie_bloater,  category: characters, seed_group: enemies, target: {long_side: 384}, prompt: "huge bloated zombie, swollen green belly full of glowing goo, tiny legs, stretched torn shirt, dripping"}
+  - {name: zombie_spitter,  category: characters, seed_group: enemies, prompt: "thin zombie with distended jaw and throat sac, dripping acid-green spit, hunched, long arms"}
+  - {name: zombie_brute,    category: characters, seed_group: enemies, target: {long_side: 384}, prompt: "massive armored zombie brute, riot shield and scrap metal plates strapped to the front, hard hat, thick arms, charging stance"}
+  - {name: zombie_elite,    category: characters, seed_group: enemies, target: {long_side: 336}, prompt: "muscular mutated zombie, glowing golden eyes and veins, ragged clothes, intimidating stance"}
+  - {name: mech_miniboss,   category: characters, seed_group: enemies, target: {long_side: 384}, prompt: "zombie mechanic mini-boss, oil-stained coveralls, giant wrench, welded scrap shield, leaking fuel tank strapped to his back"}
+  - {name: boss_trucker_portrait, category: screens, seed_group: trucker, size: [832, 1216], prompt: "enormous hulking mutant zombie trucker boss, chrome truck grille fused across his chest as armor, rusted exhaust stacks on his back belching black smoke, heavy chains around both forearms, stretched mesh trucker cap on swollen skull, oil-stained denim, menacing front view full body, orange fire glow behind him"}
+  - {name: boss_trucker_sprite,   category: characters, seed_group: trucker, target: {long_side: 768}, prompt: "enormous mutant zombie trucker boss, chrome grille armor on chest, exhaust stacks on back, chains on arms, trucker cap, full body"}
+  - {name: icon_scrap_smg,      category: icons, seed_group: icons, prompt: "makeshift submachine gun made of scrap metal and duct tape, glowing hot barrel"}
+  - {name: icon_boomstick,      category: icons, seed_group: icons, prompt: "sawed-off double barrel shotgun with taped grip, smoking barrels"}
+  - {name: icon_molotov,        category: icons, seed_group: icons, prompt: "glass bottle molotov cocktail with burning rag, orange flame"}
+  - {name: icon_buzzsaw,        category: icons, seed_group: icons, prompt: "spinning circular saw blade with motion sparks"}
+  - {name: icon_lightning_rod,  category: icons, seed_group: icons, prompt: "metal rod crackling with bright cyan lightning"}
+  - {name: icon_rocket_pod,     category: icons, seed_group: icons, prompt: "four-tube rocket pod launcher with one rocket firing, smoke trail"}
+  - {name: icon_attack_drone,   category: icons, seed_group: icons, prompt: "small scrap quadcopter drone with a mounted gun, blinking lights"}
+  - {name: icon_hubcap,         category: icons, seed_group: icons, prompt: "spinning chrome car hubcap with sharpened edges, motion trail"}
+  - {name: icon_muscle,         category: icons, seed_group: icons, prompt: "flexing muscular arm with a bandage"}
+  - {name: icon_ammo_belt,      category: icons, seed_group: icons, prompt: "bandolier ammo belt full of brass bullets"}
+  - {name: icon_trigger_finger, category: icons, seed_group: icons, prompt: "gloved finger on a gun trigger with speed lines"}
+  - {name: icon_battery_pack,   category: icons, seed_group: icons, prompt: "car battery with jumper cables and green charge glow"}
+  - {name: icon_blast_radius,   category: icons, seed_group: icons, prompt: "expanding orange explosion shockwave ring"}
+  - {name: icon_fuel_tank,      category: icons, seed_group: icons, prompt: "dented jerry can fuel tank with a drip"}
+  - {name: icon_ball_bearings,  category: icons, seed_group: icons, prompt: "pile of shiny steel ball bearings with one rolling"}
+  - {name: icon_magnet,         category: icons, seed_group: icons, prompt: "big horseshoe magnet pulling small blue gems"}
+  - {name: icon_thick_hide,     category: icons, seed_group: icons, prompt: "scrap metal chest armor plate with rivets and dents"}
+  - {name: icon_sharpened_edge, category: icons, seed_group: icons, prompt: "sharpened machete blade with a glint"}
+  - {name: icon_rabbit_foot,    category: icons, seed_group: icons, prompt: "lucky rabbit's foot keychain with a four leaf clover tag"}
+  - {name: icon_evo_lead_hurricane,  category: icons, seed_group: icons, prompt: "spiral storm of golden bullets, evolution weapon, gold glow"}
+  - {name: icon_evo_dragons_breath,  category: icons, seed_group: icons, prompt: "shotgun blasting a cone of dragon-shaped fire, gold glow"}
+  - {name: icon_evo_napalm_rain,     category: icons, seed_group: icons, prompt: "burning bottles raining from the sky onto flames, gold glow"}
+  - {name: icon_evo_meat_grinder,    category: icons, seed_group: icons, prompt: "two interlocking rings of saw blades glowing gold, evolution weapon"}
+  - {name: icon_evo_thunderdome,     category: icons, seed_group: icons, prompt: "dome of crackling cyan lightning bolts, gold glow"}
+  - {name: icon_evo_carpet_bomber,   category: icons, seed_group: icons, prompt: "row of falling bombs with explosions below, gold glow"}
+  - {name: icon_evo_drone_swarm,     category: icons, seed_group: icons, prompt: "swarm of small drones diving in formation, gold glow"}
+  - {name: icon_evo_chrome_tornado,  category: icons, seed_group: icons, prompt: "giant spinning chrome hubcap inside a whirlwind, gold glow"}
+  - {name: icon_pickup_rage,     category: icons, seed_group: icons, prompt: "clenched fist bursting with orange energy aura"}
+  - {name: icon_pickup_mega_gun, category: icons, seed_group: icons, prompt: "oversized gatling minigun with glowing barrels"}
+  - {name: icon_pickup_nuke,     category: icons, seed_group: icons, prompt: "small cartoon nuclear bomb with a hazard symbol, glowing"}
+  - {name: icon_pickup_magnet,   category: icons, seed_group: icons, prompt: "glowing horseshoe magnet with energy waves"}
+  - {name: icon_pickup_freeze,   category: icons, seed_group: icons, prompt: "ice crystal snowflake with frost burst, icy blue"}
+  - {name: icon_pickup_medkit,   category: icons, seed_group: icons, prompt: "green first aid kit with a white cross, slightly dented"}
+  - {name: icon_pickup_scrap,    category: icons, seed_group: icons, prompt: "pile of scrap metal bolts and gears, shiny"}
+  - {name: icon_chest,           category: icons, seed_group: icons, prompt: "rusted metal supply chest with glowing light leaking out of the lid"}
+  - {name: icon_arsenal_turret,      category: icons, seed_group: icons, prompt: "scrap metal auto turret with twin barrels on a tripod"}
+  - {name: icon_arsenal_floodlights, category: icons, seed_group: icons, prompt: "stadium floodlight lamp beaming bright light"}
+  - {name: icon_arsenal_airstrike,   category: icons, seed_group: icons, prompt: "fighter jet silhouette dropping a bomb with a target reticle, amber"}
+  - {name: icon_arsenal_nest_down,   category: icons, seed_group: icons, prompt: "destroyed organic zombie nest with a crossed-out mark, amber"}
