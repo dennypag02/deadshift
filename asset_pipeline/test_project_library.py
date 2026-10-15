@@ -71,6 +71,13 @@ class ProjectLibraryTests(unittest.TestCase):
         self.assertEqual(lib.catalog("other", "general"), {})
         self.assertEqual(lib.catalog("deadshift", "levels/level-01"), {})
 
+    def test_create_project_and_level(self):
+        self.assertIn("Created project", lib.create_folder("create_project", "newgame"))
+        self.assertIn("Created level", lib.create_folder("create_level", "newgame", "intro"))
+        self.assertEqual(lib.project_scopes()["newgame"], ["general", "levels/intro"])
+        with self.assertRaises(ValueError):
+            lib.create_folder("create_project", "newgame")
+
     def test_path_traversal_rejected(self):
         with self.assertRaises(ValueError):
             lib.catalog("../outside", "general")
