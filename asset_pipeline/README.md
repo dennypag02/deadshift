@@ -130,17 +130,22 @@ git fetch origin
 git switch assets/enemies-icons-batch
 git pull --ff-only
 cd asset_pipeline
-python generate.py --dry-run
+python generate.py --seed-group enemies --dry-run
+python generate.py --seed-group trucker --dry-run
+python generate.py --seed-group icons --dry-run
 ```
 
 The dry run is offline and does not contact ComfyUI or create images.
-**Important:** it covers *all* assets in the configuration, including the
-35 existing ones. To generate just the new batch without also generating
-existing assets, run the three categories separately with explicit `--only`
-where categories contain older entries. The 39 icons can be generated with
-`python generate.py --category icons`. Enemies and Trucker assets should be
-selected by name, using `python generate.py --only NAME`, to avoid generating
-the existing survivor and screen art.
+The unfiltered `python generate.py --dry-run` includes all 83 assets
+(332 candidate jobs), not just the new batch. Use the three `--seed-group`
+commands above for the 48-asset batch (192 candidate jobs). The matching
+real generation commands are:
+
+```powershell
+python generate.py --seed-group enemies
+python generate.py --seed-group trucker
+python generate.py --seed-group icons
+```
 
 ComfyUI must be started before real generation. The local generator creates
 candidates only; review and promotion remain separate user-controlled steps.
