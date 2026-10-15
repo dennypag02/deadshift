@@ -7,5 +7,5 @@ void vertex() {
 	tint = COLOR;
 }
 void fragment() {
-	COLOR = texture(TEXTURE, rect_uv.xy + UV * rect_uv.zw) * tint;
+	COLOR = texture(TEXTURE, rect_uv.xy + vec2(UV.x, 1.0 - UV.y) * rect_uv.zw) * tint;
 }
