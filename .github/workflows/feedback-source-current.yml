@@ -1,0 +1,22 @@
+name: Feedback implemented source snapshot
+on:
+  push:
+    branches: [feature/stage2-guidance-zombie-feedback]
+    paths: [.github/workflows/feedback-source-current.yml]
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p evidence
+          git archive HEAD > evidence/source.tar
+          git rev-parse HEAD > evidence/source-sha.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: feedback-current-source
+          path: evidence/
+          retention-days: 7
