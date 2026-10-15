@@ -89,7 +89,7 @@ def render():
                 + "<span><input type='radio' name='seed' value='" + html.escape(seed, quote=True)
                 + "'" + checked + "> " + label + " &middot; seed " + html.escape(seed) + "</span></label>"
             )
-        status = "Promoted / approved" if asset in approved else ("Selected" if asset in selected else "Not selected")
+        status = "Promotion queued" if asset in approved else ("Selected" if asset in selected else "Not selected")
         cards.append(
             "<section class='asset'><h2>" + html.escape(asset) + "</h2><p>Status: "
             + html.escape(status) + "</p><form action='/asset-action' method='post'>"
@@ -157,9 +157,9 @@ def action(fields):
     seed = fields.get("seed", [""])[0]
     item = find_candidate(asset, seed, found)
     selected = read_json(SELECTIONS, {})
-    selected[asset] = seed
-    save_json(SELECTIONS, selected)
     if action_name == "select":
+        selected[asset] = seed
+        save_json(SELECTIONS, selected)
         return "Saved selection for " + asset
     approvals = read_json(APPROVALS, {})
     if asset in approvals:
@@ -181,4 +181,6 @@ def action(fields):
     approvals[asset] = {"seed": seed, "version": item.get("version_label"), "candidate_path": item["candidate_path"],
                         "job_id": job_id, "queued_at": datetime.now(timezone.utc).isoformat(), "status": "queued"}
     save_json(APPROVALS, approvals)
+    selected[asset] = seed
+    save_json(SELECTIONS, selected)
     return "Promotion queued for " + asset + "; verify worker completion and GitHub push."
