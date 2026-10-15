@@ -24,8 +24,8 @@
     "pressure_at_60s": 40,
     "pressure_per_later_wave": 6,
     "spawn_group_min": 6,
-    "spawn_group_max": 12,
-    "spawn_interval_seconds": 0.4,
+    "spawn_group_max": 10,
+    "spawn_interval_seconds": 0.52,
     "spawn_distance": 720,
     "spawn_directions_min": 2,
     "spawn_directions_max": 3,
@@ -443,9 +443,12 @@
     "enemy_hp_per_wave": 0.15,
     "enemy_damage_per_wave": 0.08,
     "contact_damage": {
-      "shambler_base": 5.66,
-      "runner_base": 8,
-      "trucker_base": 18
+      "shambler_base": 1.7,
+      "runner_base": 3.2,
+      "trucker_base": 18,
+      "bloater_base": 5,
+      "spitter_base": 3,
+      "brute_base": 13
     },
     "player_hit_invulnerability_seconds": 0.35,
     "enemy_contact_cooldown_seconds": 0.8,
