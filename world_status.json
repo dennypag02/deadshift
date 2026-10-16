@@ -1,0 +1,10 @@
+{
+  "schema": "DEADSHIFT_ASSET_PROGRESS_V1",
+  "job_id": "20261016-world-v2-generator-anchor",
+  "state": "RUNNING",
+  "stage": "START",
+  "generated": 0,
+  "promoted": 0,
+  "message": "World-art worker job started.",
+  "updated_at": "2026-10-16T12:55:41.412218+00:00"
+}
