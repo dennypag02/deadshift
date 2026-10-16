@@ -5,8 +5,8 @@
   "stage": "DOWNLOAD_MODEL_FILE",
   "generated": 0,
   "promoted": 0,
-  "message": "Official BiRefNet: BiRefNet_config.py",
-  "updated_at": "2026-10-16T13:02:30.172454+00:00",
+  "message": "Official BiRefNet: birefnet.py",
+  "updated_at": "2026-10-16T13:02:33.752096+00:00",
   "runtime_checks": {
     "job_id": "20261016-world-v2-generator-anchor-retry1",
     "root_count": 1,
