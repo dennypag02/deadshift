@@ -12,3 +12,6 @@ asset_pipeline/worker_state.json
 asset_pipeline/worker_status.json
 asset_pipeline/workflow_sprite.json
 asset_pipeline/workflow_scene.json
+asset_pipeline/local.yaml
+asset_pipeline/**/__pycache__/
+asset_pipeline/*.pyc
