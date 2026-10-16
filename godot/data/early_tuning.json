@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "pressure_by_wave": [0.75,0.75,0.75,0.875,1.0],
+  "enemy_damage_by_wave": [0.75,0.75,0.75,0.875,1.0],
+  "pumps": {"hits_required":3,"hit_cooldown_seconds":0.18,"fire_hit_cooldown_seconds":1.0,"contact_interval_seconds":1.0,"contact_slop":6.0,"warning_seconds":1.0,"player_explosion_cap":0.15,"enemy_explosion_cap":0.30,"reset_each_wave":false,"heat_color":"#F2A23A","hot_color":"#FF673F","heat_glow_radius":64.0,"glow_rings":5},
+  "crate_min_separation_pixels":96.0,
+  "remove_decorative_asphalt_speckles":true,
+  "asphalt_without_speckles":"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"128\" height=\"128\"><rect width=\"128\" height=\"128\" fill=\"#3a3a3a\"/><path d=\"M5 75c40-5 75 8 118 2\" stroke=\"#2f2f2f\" stroke-width=\"3\" opacity=\".6\"/></svg>"
+}

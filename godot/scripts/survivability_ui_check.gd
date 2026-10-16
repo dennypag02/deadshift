@@ -87,12 +87,13 @@ func _check() -> void:
 	print("SURV_CHECK checkpoint=density")
 	game.wave = 1
 	game.wave_clock = 0.0
-	if game._active_horde_target() != 20:
-		_fail("opening on-screen target is not 20")
+	var density_factor: float = game.wave_multiplier("pressure_by_wave") if game.has_method("wave_multiplier") else 1.0
+	if game._active_horde_target() != roundi(20*density_factor):
+		_fail("opening on-screen target does not match configured tuning")
 		return
 	game.wave_clock = float(game.progression.config.get("pacing", {}).get("wave_duration_seconds", 75.0))
-	if game._active_horde_target() != 40:
-		_fail("wave-end on-screen target is not 40")
+	if game._active_horde_target() != roundi(40*density_factor):
+		_fail("wave-end on-screen target does not match configured tuning")
 		return
 
 	print("SURV_CHECK checkpoint=spawn_safety")
@@ -129,7 +130,7 @@ func _check() -> void:
 		return
 	paused = false
 
-	print("SURVIVABILITY_UI_CHECK_PASS shambler=6 invuln=0.5 enemy_cd=0.8 damage_cap=35% density=20->40 game_over=PASS cards=PASS")
+	print("SURVIVABILITY_UI_CHECK_PASS contact_matches_data invuln=PASS enemy_cd=PASS damage_cap=35% density_matches_data game_over=PASS cards=PASS")
 	print("SURV_CHECK checkpoint=cleanup")
 	game.queue_free()
 	quit(0)
