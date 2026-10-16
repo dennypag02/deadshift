@@ -21,8 +21,11 @@ def atomic_json(path, data):
 
 
 def git(repo, *args, input=None):
-    return subprocess.run(['git', *args], cwd=repo, input=input, text=True,
-                          capture_output=True, check=True, timeout=35).stdout.strip()
+    # Binary stdin prevents Windows text mode from adding CR to mktree filenames.
+    payload = input.encode('utf-8') if input is not None else None
+    result = subprocess.run(['git', *args], cwd=repo, input=payload,
+                            capture_output=True, check=True, timeout=35)
+    return result.stdout.decode('utf-8', errors='replace').strip()
 
 
 def publish(repo: Path, data: dict):
@@ -71,6 +74,14 @@ class Progress:
 
     def _write(self):
         self.data['updated_at'] = datetime.now(timezone.utc).isoformat()
+        runtime = self.here / 'staging/world_v2/runtime_checks.json'
+        if runtime.exists():
+            try:
+                checks = json.loads(runtime.read_text(encoding='utf-8'))
+                if checks.get('job_id') == self.job_id:
+                    self.data['runtime_checks'] = checks
+            except (ValueError, OSError):
+                pass
         atomic_json(self.here / 'staging/world_v2/latest_status.json', self.data)
         local_status = self.here / 'worker_status.json'
         old = json.loads(local_status.read_text(encoding='utf-8')) if local_status.exists() else {}
