@@ -25,12 +25,6 @@ const ZOMBIE_ART := preload("res://art/zombie_shambler.svg")
 var curated_pickup_textures: Dictionary = {}
 const CAR_SEDAN_ART := preload("res://art/cars/car_sedan.png")
 const CAR_SUV_ART := preload("res://art/cars/car_suv.png")
-const OUT_DINER_ART := preload("res://art/outskirts/out_diner.png")
-const OUT_MINIMART_ART := preload("res://art/outskirts/out_minimart.png")
-const OUT_MOTEL_N_ART := preload("res://art/outskirts/out_motel_north.png")
-const OUT_MOTEL_E_ART := preload("res://art/outskirts/out_motel_east.png")
-const OUT_AUTOSHOP_ART := preload("res://art/outskirts/out_autoshop.png")
-const OUT_CANOPY_ART := preload("res://art/outskirts/out_canopy_roof.png")
 const OUT_SEMI_ART := preload("res://art/outskirts/out_semi_trailer.png")
 const OUT_PUMP_ART := preload("res://art/outskirts/out_pump_island.png")
 const OUT_BARRELS_ART := preload("res://art/outskirts/out_barrels.png")
@@ -1378,13 +1372,8 @@ func _draw_grid_tile(rect: Rect2, ch: String) -> void:
 		"+": draw_rect(Rect2(rect.get_center() - Vector2(15,15), Vector2(30,30)), Color("#2ecc71"))
 
 func _draw_map_art() -> void:
-	# Buildings follow the exact locked gray-box footprints.
-	_draw_art_rect(OUT_DINER_ART, _tiles_rect(1, 8, 7, 6))
-	_draw_art_rect(OUT_MINIMART_ART, _tiles_rect(12, 8, 8, 4))
-	_draw_art_rect(OUT_MOTEL_N_ART, _tiles_rect(23, 7, 8, 3))
-	_draw_art_rect(OUT_MOTEL_E_ART, _tiles_rect(28, 10, 3, 7))
-	_draw_art_rect(OUT_AUTOSHOP_ART, _tiles_rect(1, 20, 7, 6))
-	_draw_art_rect(OUT_CANOPY_ART, _tiles_rect(11, 14, 10, 8), Color(1,1,1,0.90))
+	# Curated whole-building art is temporarily disabled.
+	# Keep the locked gray-box footprints/collision so gameplay and routes are unchanged.
 
 	# Two 2x7 truck-stop trailers.
 	_draw_art_rect(OUT_SEMI_ART, _tiles_rect(23, 21, 2, 7))
