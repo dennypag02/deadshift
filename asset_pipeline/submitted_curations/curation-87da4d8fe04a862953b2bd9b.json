@@ -1,0 +1,569 @@
+{
+  "candidates": [
+    {
+      "asset": "zombie_shambler",
+      "candidate_id": "legacy-03eb7eac807579288e306ae8",
+      "candidate_path": "staging/candidates/characters/zombie_shambler_v03.png",
+      "job_id": "20261015-retry1-enemies",
+      "seed": 6413851007957092649,
+      "version": 3
+    },
+    {
+      "asset": "icon_evo_carpet_bomber",
+      "candidate_id": "legacy-0ed8931d3327aa9456808936",
+      "candidate_path": "staging/candidates/icons/icon_evo_carpet_bomber_v02.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 338016744678417007,
+      "version": 2
+    },
+    {
+      "asset": "out_motel_east",
+      "candidate_id": "legacy-0fc3031d75b0463af2d3340c",
+      "candidate_path": "staging/candidates/buildings/out_motel_east_v01.png",
+      "job_id": "20261016-oct15-world-05-out_motel_east",
+      "seed": 4276220638449727009,
+      "version": 1
+    },
+    {
+      "asset": "icon_thick_hide",
+      "candidate_id": "legacy-100a347eecb91409ab4b4b1f",
+      "candidate_path": "staging/candidates/icons/icon_thick_hide_v01.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 330760170338074048,
+      "version": 1
+    },
+    {
+      "asset": "icon_evo_lead_hurricane",
+      "candidate_id": "legacy-13a05528a878cce380c49833",
+      "candidate_path": "staging/candidates/icons/icon_evo_lead_hurricane_v03.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 1730013264885260106,
+      "version": 3
+    },
+    {
+      "asset": "icon_fuel_tank",
+      "candidate_id": "legacy-1bbda24f8cc35f9817261b26",
+      "candidate_path": "staging/candidates/icons/icon_fuel_tank_v01.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 330760170338074048,
+      "version": 1
+    },
+    {
+      "asset": "icon_magnet",
+      "candidate_id": "legacy-1d002c78f50d7818c5c0ff62",
+      "candidate_path": "staging/candidates/icons/icon_magnet_v02.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 338016744678417007,
+      "version": 2
+    },
+    {
+      "asset": "icon_ball_bearings",
+      "candidate_id": "legacy-278b95e03ee711e55c41e3ff",
+      "candidate_path": "staging/candidates/icons/icon_ball_bearings_v03.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 1730013264885260106,
+      "version": 3
+    },
+    {
+      "asset": "icon_trigger_finger",
+      "candidate_id": "legacy-348ca9e06f14fbe2da9ce4d1",
+      "candidate_path": "staging/candidates/icons/icon_trigger_finger_v04.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 8153442050523898237,
+      "version": 4
+    },
+    {
+      "asset": "obj_fuel_cache",
+      "candidate_id": "legacy-36dc6b79238b929f50082138",
+      "candidate_path": "staging/candidates/debris/obj_fuel_cache_v02.png",
+      "job_id": "20261016-oct15-world-16-obj_fuel_cache",
+      "seed": 3377607268484661212,
+      "version": 2
+    },
+    {
+      "asset": "out_fence",
+      "candidate_id": "legacy-3ffbb9b8a872af7497192d2d",
+      "candidate_path": "staging/candidates/debris/out_fence_v02.png",
+      "job_id": "20261016-oct15-world-12-out_fence",
+      "seed": 4845727488478317889,
+      "version": 2
+    },
+    {
+      "asset": "out_semi_trailer",
+      "candidate_id": "legacy-4208012d2621761b3f63cfb7",
+      "candidate_path": "staging/candidates/debris/out_semi_trailer_v04.png",
+      "job_id": "20261016-oct15-world-08-out_semi_trailer",
+      "seed": 157500717501722390,
+      "version": 4
+    },
+    {
+      "asset": "icon_evo_dragons_breath",
+      "candidate_id": "legacy-42914846bff4ea0e852bad59",
+      "candidate_path": "staging/candidates/icons/icon_evo_dragons_breath_v03.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 1730013264885260106,
+      "version": 3
+    },
+    {
+      "asset": "icon_scrap_smg",
+      "candidate_id": "legacy-43bb0641171efd5841b862a2",
+      "candidate_path": "staging/candidates/icons/icon_scrap_smg_v02.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 338016744678417007,
+      "version": 2
+    },
+    {
+      "asset": "out_canopy_roof",
+      "candidate_id": "legacy-4561fc3424e900727a118e5c",
+      "candidate_path": "staging/candidates/buildings/out_canopy_roof_v03.png",
+      "job_id": "20261016-oct15-world-07-out_canopy_roof",
+      "seed": 3719031978078045266,
+      "version": 3
+    },
+    {
+      "asset": "icon_pickup_nuke",
+      "candidate_id": "legacy-4657bdbebf468528b4075e98",
+      "candidate_path": "staging/candidates/icons/icon_pickup_nuke_v04.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 8153442050523898237,
+      "version": 4
+    },
+    {
+      "asset": "obj_zombie_nest",
+      "candidate_id": "legacy-4f2089df289a511011bc562d",
+      "candidate_path": "staging/candidates/debris/obj_zombie_nest_v03.png",
+      "job_id": "20261016-oct15-world-19-obj_zombie_nest",
+      "seed": 4223347950527312657,
+      "version": 3
+    },
+    {
+      "asset": "out_motel_north",
+      "candidate_id": "legacy-57cfcf635f46fd74737040c1",
+      "candidate_path": "staging/candidates/buildings/out_motel_north_v03.png",
+      "job_id": "20261016-oct15-world-04-out_motel_north",
+      "seed": 7751066182587027598,
+      "version": 3
+    },
+    {
+      "asset": "zombie_runner",
+      "candidate_id": "legacy-599a9e0d7a033f55a1c1c56f",
+      "candidate_path": "staging/candidates/characters/zombie_runner_v01.png",
+      "job_id": "20261015-retry1-enemies",
+      "seed": 5623961033772848466,
+      "version": 1
+    },
+    {
+      "asset": "icon_hubcap",
+      "candidate_id": "legacy-5d545660b4d91211c333071c",
+      "candidate_path": "staging/candidates/icons/icon_hubcap_v01.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 330760170338074048,
+      "version": 1
+    },
+    {
+      "asset": "icon_evo_meat_grinder",
+      "candidate_id": "legacy-63e3236a9e285783f9a7c09e",
+      "candidate_path": "staging/candidates/icons/icon_evo_meat_grinder_v03.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 1730013264885260106,
+      "version": 3
+    },
+    {
+      "asset": "out_barrels",
+      "candidate_id": "legacy-64a4f96f536991e7647c2eb0",
+      "candidate_path": "staging/candidates/debris/out_barrels_v04.png",
+      "job_id": "20261016-oct15-world-10-out_barrels",
+      "seed": 460170779968105937,
+      "version": 4
+    },
+    {
+      "asset": "icon_rocket_pod",
+      "candidate_id": "legacy-65519c674509b81e635a0659",
+      "candidate_path": "staging/candidates/icons/icon_rocket_pod_v04.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 8153442050523898237,
+      "version": 4
+    },
+    {
+      "asset": "icon_pickup_freeze",
+      "candidate_id": "legacy-68dfdfee1fc1530fe1c185af",
+      "candidate_path": "staging/candidates/icons/icon_pickup_freeze_v03.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 1730013264885260106,
+      "version": 3
+    },
+    {
+      "asset": "obj_switch_box",
+      "candidate_id": "legacy-6a079bfc36b5750f11770434",
+      "candidate_path": "staging/candidates/debris/obj_switch_box_v01.png",
+      "job_id": "20261016-oct15-world-18-obj_switch_box",
+      "seed": 395398528920618834,
+      "version": 1
+    },
+    {
+      "asset": "icon_evo_chrome_tornado",
+      "candidate_id": "legacy-7189972a99f9326c4718f396",
+      "candidate_path": "staging/candidates/icons/icon_evo_chrome_tornado_v02.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 338016744678417007,
+      "version": 2
+    },
+    {
+      "asset": "icon_sharpened_edge",
+      "candidate_id": "legacy-7eb0892884f1eabaa94dc7a4",
+      "candidate_path": "staging/candidates/icons/icon_sharpened_edge_v01.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 330760170338074048,
+      "version": 1
+    },
+    {
+      "asset": "mech_miniboss",
+      "candidate_id": "legacy-7f16601a21b3c1541f8b73d9",
+      "candidate_path": "staging/candidates/characters/mech_miniboss_v01.png",
+      "job_id": "20261015-retry1-enemies",
+      "seed": 5623961033772848466,
+      "version": 1
+    },
+    {
+      "asset": "obj_gas_can",
+      "candidate_id": "legacy-7f3febad0db6500ea00463aa",
+      "candidate_path": "staging/candidates/debris/obj_gas_can_v02.png",
+      "job_id": "20261016-oct15-world-15-obj_gas_can",
+      "seed": 3821566913103289540,
+      "version": 2
+    },
+    {
+      "asset": "icon_ammo_belt",
+      "candidate_id": "legacy-8555d1584e020ba6cefbd9f9",
+      "candidate_path": "staging/candidates/icons/icon_ammo_belt_v02.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 338016744678417007,
+      "version": 2
+    },
+    {
+      "asset": "icon_pickup_mega_gun",
+      "candidate_id": "legacy-8c384dab7195557e4178dc91",
+      "candidate_path": "staging/candidates/icons/icon_pickup_mega_gun_v04.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 8153442050523898237,
+      "version": 4
+    },
+    {
+      "asset": "icon_battery_pack",
+      "candidate_id": "legacy-8c57223c6e8e40c3f013fd52",
+      "candidate_path": "staging/candidates/icons/icon_battery_pack_v01.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 330760170338074048,
+      "version": 1
+    },
+    {
+      "asset": "icon_pickup_rage",
+      "candidate_id": "legacy-8cacd6cccf92661105a31514",
+      "candidate_path": "staging/candidates/icons/icon_pickup_rage_v02.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 338016744678417007,
+      "version": 2
+    },
+    {
+      "asset": "icon_pickup_magnet",
+      "candidate_id": "legacy-9367f71e99eea4516c1a82dd",
+      "candidate_path": "staging/candidates/icons/icon_pickup_magnet_v03.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 1730013264885260106,
+      "version": 3
+    },
+    {
+      "asset": "decal_acid",
+      "candidate_id": "legacy-951f3ecb55162b916ca9eb44",
+      "candidate_path": "staging/candidates/decals/decal_acid_v03.png",
+      "job_id": "20261016-oct15-world-27-decal_acid",
+      "seed": 9154805828269986069,
+      "version": 3
+    },
+    {
+      "asset": "out_tanker_wreck",
+      "candidate_id": "legacy-952b97149cd0b2d79d35014d",
+      "candidate_path": "staging/candidates/debris/out_tanker_wreck_v04.png",
+      "job_id": "20261016-oct15-world-13-out_tanker_wreck",
+      "seed": 8671131045011096428,
+      "version": 4
+    },
+    {
+      "asset": "icon_arsenal_airstrike",
+      "candidate_id": "legacy-970f2526e8fe23f89f597133",
+      "candidate_path": "staging/candidates/icons/icon_arsenal_airstrike_v02.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 338016744678417007,
+      "version": 2
+    },
+    {
+      "asset": "icon_attack_drone",
+      "candidate_id": "legacy-9aa965a98651fcb75c33d30e",
+      "candidate_path": "staging/candidates/icons/icon_attack_drone_v04.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 8153442050523898237,
+      "version": 4
+    },
+    {
+      "asset": "icon_buzzsaw",
+      "candidate_id": "legacy-9d185e8112ea3092241b13b2",
+      "candidate_path": "staging/candidates/icons/icon_buzzsaw_v02.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 338016744678417007,
+      "version": 2
+    },
+    {
+      "asset": "icon_pickup_medkit",
+      "candidate_id": "legacy-9f1c2bc2f78466ca469a45ab",
+      "candidate_path": "staging/candidates/icons/icon_pickup_medkit_v01.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 330760170338074048,
+      "version": 1
+    },
+    {
+      "asset": "obj_floodlight",
+      "candidate_id": "legacy-9ffb4ea768f22fa368a1d081",
+      "candidate_path": "staging/candidates/debris/obj_floodlight_v04.png",
+      "job_id": "20261016-oct15-world-21-obj_floodlight",
+      "seed": 3576450402175502234,
+      "version": 4
+    },
+    {
+      "asset": "icon_evo_napalm_rain",
+      "candidate_id": "legacy-abfa4dfbfc6a71228986de7d",
+      "candidate_path": "staging/candidates/icons/icon_evo_napalm_rain_v02.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 338016744678417007,
+      "version": 2
+    },
+    {
+      "asset": "out_pump_island",
+      "candidate_id": "legacy-af506d9013ff173894090bdb",
+      "candidate_path": "staging/candidates/debris/out_pump_island_v01.png",
+      "job_id": "20261016-oct15-world-09-out_pump_island",
+      "seed": 8087739063683714731,
+      "version": 1
+    },
+    {
+      "asset": "icon_evo_thunderdome",
+      "candidate_id": "legacy-b04b0875430db633bf4246db",
+      "candidate_path": "staging/candidates/icons/icon_evo_thunderdome_v01.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 330760170338074048,
+      "version": 1
+    },
+    {
+      "asset": "out_diner",
+      "candidate_id": "legacy-b0ea1421213c2205cd9b167e",
+      "candidate_path": "staging/candidates/buildings/out_diner_v01.png",
+      "job_id": "20261016-oct15-world-02-out_diner",
+      "seed": 5776606734735527973,
+      "version": 1
+    },
+    {
+      "asset": "obj_relay_pad",
+      "candidate_id": "legacy-b3588d846f86ac12d5977327",
+      "candidate_path": "staging/candidates/debris/obj_relay_pad_v01.png",
+      "job_id": "20261016-oct15-world-17-obj_relay_pad",
+      "seed": 3615570835390894640,
+      "version": 1
+    },
+    {
+      "asset": "icon_molotov",
+      "candidate_id": "legacy-b6c7a2278971e71efb3dcd23",
+      "candidate_path": "staging/candidates/icons/icon_molotov_v04.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 8153442050523898237,
+      "version": 4
+    },
+    {
+      "asset": "decal_crack_b",
+      "candidate_id": "legacy-c2d9fc6c675c42967316ff70",
+      "candidate_path": "staging/candidates/decals/decal_crack_b_v02.png",
+      "job_id": "20261016-oct15-world-25-decal_crack_b",
+      "seed": 2847863511558284901,
+      "version": 2
+    },
+    {
+      "asset": "zombie_bloater",
+      "candidate_id": "legacy-c6f300debe3bfdb117e27318",
+      "candidate_path": "staging/candidates/characters/zombie_bloater_v03.png",
+      "job_id": "20261015-retry1-enemies",
+      "seed": 6413851007957092649,
+      "version": 3
+    },
+    {
+      "asset": "decal_goo",
+      "candidate_id": "legacy-ce5b6f3e52e6a5f423fc47e3",
+      "candidate_path": "staging/candidates/decals/decal_goo_v01.png",
+      "job_id": "20261016-oct15-world-26-decal_goo",
+      "seed": 8441124503805290166,
+      "version": 1
+    },
+    {
+      "asset": "icon_arsenal_nest_down",
+      "candidate_id": "legacy-cfb687569e9c91a427aa96d5",
+      "candidate_path": "staging/candidates/icons/icon_arsenal_nest_down_v04.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 8153442050523898237,
+      "version": 4
+    },
+    {
+      "asset": "zombie_brute",
+      "candidate_id": "legacy-d03e27d8c84e6f84b32ede57",
+      "candidate_path": "staging/candidates/characters/zombie_brute_v02.png",
+      "job_id": "20261015-retry1-enemies",
+      "seed": 8492090404095825934,
+      "version": 2
+    },
+    {
+      "asset": "obj_flame_trap",
+      "candidate_id": "legacy-d5234787a379642ee23ae04f",
+      "candidate_path": "staging/candidates/debris/obj_flame_trap_v03.png",
+      "job_id": "20261016-oct15-world-20-obj_flame_trap",
+      "seed": 2557180314854369952,
+      "version": 3
+    },
+    {
+      "asset": "zombie_elite",
+      "candidate_id": "legacy-d71da9007f414bba21466bc8",
+      "candidate_path": "staging/candidates/characters/zombie_elite_v03.png",
+      "job_id": "20261015-retry1-enemies",
+      "seed": 6413851007957092649,
+      "version": 3
+    },
+    {
+      "asset": "icon_muscle",
+      "candidate_id": "legacy-dd10d492f53c3c75774ddcc9",
+      "candidate_path": "staging/candidates/icons/icon_muscle_v04.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 8153442050523898237,
+      "version": 4
+    },
+    {
+      "asset": "icon_evo_drone_swarm",
+      "candidate_id": "legacy-e0ab49206b201ae0246c9005",
+      "candidate_path": "staging/candidates/icons/icon_evo_drone_swarm_v03.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 1730013264885260106,
+      "version": 3
+    },
+    {
+      "asset": "icon_lightning_rod",
+      "candidate_id": "legacy-e3c391e4c817745169fe251c",
+      "candidate_path": "staging/candidates/icons/icon_lightning_rod_v01.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 330760170338074048,
+      "version": 1
+    },
+    {
+      "asset": "icon_chest",
+      "candidate_id": "legacy-e4fbdfb0a841e771942a8545",
+      "candidate_path": "staging/candidates/icons/icon_chest_v01.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 330760170338074048,
+      "version": 1
+    },
+    {
+      "asset": "icon_blast_radius",
+      "candidate_id": "legacy-e84014f0469e276828d86cd7",
+      "candidate_path": "staging/candidates/icons/icon_blast_radius_v02.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 338016744678417007,
+      "version": 2
+    },
+    {
+      "asset": "icon_arsenal_floodlights",
+      "candidate_id": "legacy-ebcb67479698696a7deea2ca",
+      "candidate_path": "staging/candidates/icons/icon_arsenal_floodlights_v01.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 330760170338074048,
+      "version": 1
+    },
+    {
+      "asset": "decal_crack_a",
+      "candidate_id": "legacy-ee0a873526da8a8a9b1f6ed7",
+      "candidate_path": "staging/candidates/decals/decal_crack_a_v01.png",
+      "job_id": "20261016-oct15-world-24-decal_crack_a",
+      "seed": 1903211969020545814,
+      "version": 1
+    },
+    {
+      "asset": "out_autoshop",
+      "candidate_id": "legacy-ef24d2692126cebcc8211ae0",
+      "candidate_path": "staging/candidates/buildings/out_autoshop_v02.png",
+      "job_id": "20261016-oct15-world-06-out_autoshop",
+      "seed": 9078376042819781623,
+      "version": 2
+    },
+    {
+      "asset": "icon_pickup_scrap",
+      "candidate_id": "legacy-f05716d399dd428179b9751a",
+      "candidate_path": "staging/candidates/icons/icon_pickup_scrap_v03.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 1730013264885260106,
+      "version": 3
+    },
+    {
+      "asset": "icon_rabbit_foot",
+      "candidate_id": "legacy-f15d72d33ff44715f00f1bb9",
+      "candidate_path": "staging/candidates/icons/icon_rabbit_foot_v04.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 8153442050523898237,
+      "version": 4
+    },
+    {
+      "asset": "icon_arsenal_turret",
+      "candidate_id": "legacy-f2070318baaf63e6cdb9f98c",
+      "candidate_path": "staging/candidates/icons/icon_arsenal_turret_v02.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 338016744678417007,
+      "version": 2
+    },
+    {
+      "asset": "out_minimart",
+      "candidate_id": "legacy-f2902d731787f94e265756cb",
+      "candidate_path": "staging/candidates/buildings/out_minimart_v01.png",
+      "job_id": "20261016-oct15-world-03-out_minimart",
+      "seed": 7175716050667633999,
+      "version": 1
+    },
+    {
+      "asset": "obj_supply_crate",
+      "candidate_id": "legacy-f2c39bf374c36d47cb69f0e5",
+      "candidate_path": "staging/candidates/debris/obj_supply_crate_v03.png",
+      "job_id": "20261016-oct15-world-14-obj_supply_crate",
+      "seed": 1192259774190435071,
+      "version": 3
+    },
+    {
+      "asset": "icon_boomstick",
+      "candidate_id": "legacy-f44ae9541e922fe62d3cef95",
+      "candidate_path": "staging/candidates/icons/icon_boomstick_v04.png",
+      "job_id": "20261015-retry1-icons",
+      "seed": 8153442050523898237,
+      "version": 4
+    },
+    {
+      "asset": "zombie_spitter",
+      "candidate_id": "legacy-f5a49c21f56df5c291812bf0",
+      "candidate_path": "staging/candidates/characters/zombie_spitter_v03.png",
+      "job_id": "20261015-retry1-enemies",
+      "seed": 6413851007957092649,
+      "version": 3
+    },
+    {
+      "asset": "obj_generator",
+      "candidate_id": "legacy-fcdf65a5183393bc87d5dddc",
+      "candidate_path": "staging/candidates/debris/obj_generator_v04.png",
+      "job_id": "20261016-oct15-world-01-obj_generator",
+      "seed": 2459958443006004999,
+      "version": 4
+    }
+  ],
+  "created_at": "2026-10-16T14:39:54.175213+00:00",
+  "project_id": "deadshift",
+  "scope_id": "general",
+  "status": "curated_not_promoted",
+  "submission_id": "curation-87da4d8fe04a862953b2bd9b"
+}
