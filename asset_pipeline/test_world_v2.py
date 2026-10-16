@@ -214,7 +214,7 @@ class ProgressTests(unittest.TestCase):
             with patch.object(progress,'ALLOWED_ORIGINS',{str(remote)}):
                 progress.publish(repo,{'state':'RUNNING','stage':'MODEL_SETUP'})
                 progress.publish(repo,{'state':'COMPLETE','stage':'MODEL_READY'})
-            self.assertEqual(before,(git('rev-parse','HEAD'),git('status','--porcelain'),git('diff','--cached'))
+            self.assertEqual(before,(git('rev-parse','HEAD'),git('status','--porcelain'),git('diff','--cached')))
             content=subprocess.run(['git','--git-dir',str(remote),'show','automation/world-asset-progress:world_status.json'],
                                    capture_output=True,text=True,check=True).stdout
             self.assertEqual(json.loads(content)['stage'],'MODEL_READY')
