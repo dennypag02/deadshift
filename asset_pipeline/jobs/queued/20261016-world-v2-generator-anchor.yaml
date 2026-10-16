@@ -1,0 +1,11 @@
+job_id: 20261016-world-v2-generator-anchor
+asset: obj_generator
+category: debris
+positive: Use the submitted world-art definition through world_v2.
+negative: red
+count: 4
+pipeline: world_v2
+world_assets: [obj_generator]
+# Anchor approval precedes related objective assets. No automatic selection/promotion.
+# Runtime verifies/installs the approved official model first. Missing visual
+# reference is an explicit error with zero new image prompts, not an invented match.
