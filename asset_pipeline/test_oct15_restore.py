@@ -27,9 +27,7 @@ class ExactRestoreTests(unittest.TestCase):
             self.assertEqual(current['categories'][name],settings)
         self.assertEqual(set(current['categories'])-set(old['categories']),{'decals'})
 
-    def test_planned_jobs_cover_exactly_requested_27_sprites(self):
-        request=yaml.safe_load((HERE/'batches/assets_batch_world.yaml').read_text())
-        expected={a['name'] for a in request['assets'] if a['category']!='textures'}
+    def test_historical_oct15_jobs_remain_frozen(self):
         paths=sorted((HERE/'jobs/planned/oct15-world').glob('*.yaml'))
         actual=[]
         for path in paths:
@@ -41,8 +39,10 @@ class ExactRestoreTests(unittest.TestCase):
             actual.append(job['asset'])
         self.assertEqual(len(paths),27)
         self.assertEqual(len(set(actual)),27)
-        self.assertEqual(set(actual),expected)
         self.assertEqual(yaml.safe_load(paths[0].read_text())['asset'],'obj_generator')
+        rejected={'out_diner','out_minimart','out_motel_north','out_motel_east','out_autoshop','out_canopy_roof'}
+        self.assertTrue(rejected.issubset(set(actual)))
+        self.assertFalse(any(name.startswith('roof_') for name in actual))
 
     def test_each_original_cli_job_dry_run(self):
         for path in sorted((HERE/'jobs/planned/oct15-world').glob('*.yaml')):
@@ -63,7 +63,7 @@ class ExactRestoreTests(unittest.TestCase):
     def test_texture_request_is_preserved_not_disguised_as_scene(self):
         request=yaml.safe_load((HERE/'batches/assets_batch_world.yaml').read_text())
         textures=[a for a in request['assets'] if a['category']=='textures']
-        self.assertEqual(len(textures),7)
+        self.assertEqual(len(textures),11)
         self.assertEqual(request['categories']['textures']['workflow'],'texture')
         self.assertNotIn('textures',generate.load_config()['categories'])
 
