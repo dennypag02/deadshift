@@ -1,0 +1,16 @@
+{
+  "entries": [
+    {
+      "file": "66 procedural placeholder cues",
+      "author": "DeadShift project",
+      "license": "Own-work",
+      "attribution": "Original in-house jsfxr-compatible oscillator/envelope subset; not upstream jsfxr output. Parameters and sources are versioned."
+    },
+    {
+      "file": "placeholder_loop.ogg",
+      "author": "DeadShift project",
+      "license": "Own-work",
+      "attribution": "Synthetic three-harmonic timing loop; no library samples or AI models. Music themes remain placeholders."
+    }
+  ]
+}
