@@ -1,14 +1,9 @@
 {
-  "schema": "DEADSHIFT_OUTSKIRTS_CURATED_ART_V1",
+  "schema": "DEADSHIFT_OUTSKIRTS_CURATED_ART_V2",
   "submission_id": "curation-87da4d8fe04a862953b2bd9b",
   "source_branch": "feature/asset-pipeline-step1",
-  "selected_count": 24,
+  "selected_count": 18,
   "selected_assets": [
-    {
-      "asset": "out_motel_east",
-      "path": "art/outskirts/out_motel_east.png",
-      "git_blob": "6d3898bf377788c689304bfbeaa09a2f4dba1799"
-    },
     {
       "asset": "obj_fuel_cache",
       "path": "art/objectives/obj_fuel_cache.png",
@@ -25,19 +20,9 @@
       "git_blob": "72427cabcb8e69a4ec62188f9740f5a6875dfb1c"
     },
     {
-      "asset": "out_canopy_roof",
-      "path": "art/outskirts/out_canopy_roof.png",
-      "git_blob": "700930edea4b4c45614569fb9cd4bec1d9588d12"
-    },
-    {
       "asset": "obj_zombie_nest",
       "path": "art/objectives/obj_zombie_nest.png",
       "git_blob": "e39cf61d9efa025ddffe022fcc15c1c60a468e74"
-    },
-    {
-      "asset": "out_motel_north",
-      "path": "art/outskirts/out_motel_north.png",
-      "git_blob": "2d44643f53b6212c955886af5ad7fd594ea00794"
     },
     {
       "asset": "out_barrels",
@@ -75,11 +60,6 @@
       "git_blob": "48ff5324db386c220b570d00b6ad9f164778b771"
     },
     {
-      "asset": "out_diner",
-      "path": "art/outskirts/out_diner.png",
-      "git_blob": "b3b5a3cd57e9f2910b2dbc8277886751895b53c9"
-    },
-    {
       "asset": "obj_relay_pad",
       "path": "art/objectives/obj_relay_pad.png",
       "git_blob": "694ca396f617be8dd6c3e4b62727d3a77378c915"
@@ -105,16 +85,6 @@
       "git_blob": "095f8e5e4e7891715b2e8c0772993d9b0799e0bf"
     },
     {
-      "asset": "out_autoshop",
-      "path": "art/outskirts/out_autoshop.png",
-      "git_blob": "d3bef7efe970ceda9b6becad6cf009a02ab3345a"
-    },
-    {
-      "asset": "out_minimart",
-      "path": "art/outskirts/out_minimart.png",
-      "git_blob": "d3ce5c0ee5e0f65bc2e3a8a4522bdb104864ec36"
-    },
-    {
       "asset": "obj_supply_crate",
       "path": "art/objectives/obj_supply_crate.png",
       "git_blob": "c7baf179488091203fc921cc4df3e688b7b66d9a"
@@ -125,21 +95,41 @@
       "git_blob": "c60751d2c35231d176aeb35021f4183447303295"
     }
   ],
-  "unselected_requested_assets": [
-    "out_barrier",
-    "decal_oil_a",
-    "decal_oil_b",
-    "tex_asphalt",
-    "tex_highway",
-    "tex_forecourt",
-    "tex_sidewalk",
-    "tex_gravel",
-    "tex_scrub",
-    "tex_grass"
+  "rejected_after_visual_review": [
+    {
+      "asset": "out_diner",
+      "git_blob": "b3b5a3cd57e9f2910b2dbc8277886751895b53c9",
+      "reason": "angled/isometric or interior-floor-plan output; not straight-down roof"
+    },
+    {
+      "asset": "out_minimart",
+      "git_blob": "d3ce5c0ee5e0f65bc2e3a8a4522bdb104864ec36",
+      "reason": "angled/isometric or interior-floor-plan output; not straight-down roof"
+    },
+    {
+      "asset": "out_motel_north",
+      "git_blob": "2d44643f53b6212c955886af5ad7fd594ea00794",
+      "reason": "angled/isometric or interior-floor-plan output; not straight-down roof"
+    },
+    {
+      "asset": "out_motel_east",
+      "git_blob": "6d3898bf377788c689304bfbeaa09a2f4dba1799",
+      "reason": "angled/isometric or interior-floor-plan output; not straight-down roof"
+    },
+    {
+      "asset": "out_autoshop",
+      "git_blob": "d3bef7efe970ceda9b6becad6cf009a02ab3345a",
+      "reason": "angled/isometric or interior-floor-plan output; not straight-down roof"
+    },
+    {
+      "asset": "out_canopy_roof",
+      "git_blob": "700930edea4b4c45614569fb9cd4bec1d9588d12",
+      "reason": "angled/isometric or interior-floor-plan output; not straight-down roof"
+    }
   ],
   "notes": [
-    "Only explicit bulk-selected October 16 world candidates are installed.",
-    "Gameplay footprint/collision data is unchanged.",
-    "Existing approved art is not overwritten by selection transfer; PNGs are added under canonical world/objective/decal paths."
+    "Rejected whole-building candidates remain in asset-pipeline staging/history only; they are not promoted in Godot.",
+    "Gameplay collision and footprints are unchanged.",
+    "Live whole-building rendering temporarily uses the pre-promotion SVG placeholders until deterministic RoofBuilder activation after roof texture/prop approval."
   ]
 }

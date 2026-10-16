@@ -68,6 +68,13 @@ jobs:
           ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --script res://scripts/phase_b_check.gd 2>&1 | tee phase-b.log
           grep -q "PHASE_B_CHECK_PASS" phase-b.log
           ! grep -E "SCRIPT ERROR:|Parse Error:|PHASE_B_CHECK_FAIL" phase-b.log
+      - name: Verify deterministic RoofBuilder specification
+        shell: bash
+        run: |
+          set -o pipefail
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --script res://scripts/roof_builder_check.gd 2>&1 | tee roof-builder.log
+          grep -q "ROOF_BUILDER_CHECK_PASS" roof-builder.log
+          ! grep -E "SCRIPT ERROR:|Parse Error:|ROOF_BUILDER_CHECK_FAIL" roof-builder.log
       - name: Verify survivability and game over flow
         shell: bash
         run: |
