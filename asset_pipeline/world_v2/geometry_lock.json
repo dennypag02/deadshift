@@ -1,0 +1,172 @@
+{
+  "source": {
+    "request_sha256": "a97a1eb034ae2db0463912f9915344f774dcb24f90adc26dbe76b117f2928e04",
+    "manifest_sha256": "34673e1f4bd0bca546f2c7cc25c8c76833a965d8453e27fc06f4517c8c6f719f",
+    "game_source_sha256": "23acf038ca5a9bade4960f173f3df126c695f0258e54cc26a100774b14b66d3e",
+    "audited_gameplay_commit": "20f06d229591417315ce8506779541da527cb3f1"
+  },
+  "game_source_git_blob": "61b9b4720ce1f2aedc1d0af9f1cfb414e52c00f2",
+  "geometry": {
+    "assets": {
+      "out_diner": {
+        "footprint_tiles": [
+          7,
+          6
+        ],
+        "target_px": [
+          896,
+          768
+        ]
+      },
+      "out_minimart": {
+        "footprint_tiles": [
+          8,
+          4
+        ],
+        "target_px": [
+          1024,
+          512
+        ]
+      },
+      "out_motel_north": {
+        "footprint_tiles": [
+          8,
+          3
+        ],
+        "target_px": [
+          1024,
+          384
+        ]
+      },
+      "out_motel_east": {
+        "footprint_tiles": [
+          3,
+          7
+        ],
+        "target_px": [
+          384,
+          896
+        ]
+      },
+      "out_autoshop": {
+        "footprint_tiles": [
+          7,
+          6
+        ],
+        "target_px": [
+          896,
+          768
+        ]
+      },
+      "out_canopy_roof": {
+        "footprint_tiles": [
+          10,
+          8
+        ],
+        "target_px": [
+          1280,
+          1024
+        ]
+      },
+      "out_semi_trailer": {
+        "footprint_tiles": [
+          2,
+          7
+        ],
+        "target_px": [
+          256,
+          896
+        ]
+      },
+      "out_pump_island": {
+        "footprint_tiles": [
+          2,
+          1
+        ],
+        "target_px": [
+          256,
+          128
+        ]
+      },
+      "out_barrels": {
+        "footprint_tiles": [
+          2,
+          1
+        ],
+        "target_px": [
+          256,
+          128
+        ]
+      },
+      "out_barrier": {
+        "footprint_tiles": [
+          1,
+          1
+        ],
+        "target_px": [
+          128,
+          128
+        ]
+      },
+      "out_fence": {
+        "footprint_tiles": [
+          6,
+          1
+        ],
+        "target_px": [
+          768,
+          128
+        ]
+      },
+      "out_tanker_wreck": {
+        "footprint_tiles": [
+          7,
+          3
+        ],
+        "target_px": [
+          896,
+          384
+        ]
+      }
+    },
+    "alignment_findings": [
+      {
+        "name": "out_semi_trailer",
+        "render_tile_origin": [
+          27,
+          22
+        ],
+        "collision_tile_origin": [
+          28,
+          22
+        ],
+        "collision_bbox_tiles": [
+          2,
+          7
+        ],
+        "action": "Review sprite placement at integration; do not move collision or stretch art"
+      },
+      {
+        "name": "out_fence",
+        "render_tile_origin": [
+          23,
+          2
+        ],
+        "collision_tile_origin": [
+          22,
+          2
+        ],
+        "collision_bbox_tiles": [
+          6,
+          1
+        ],
+        "action": "Review sprite placement at integration; do not move collision or stretch art"
+      }
+    ]
+  },
+  "notes": [
+    "Source render slots; not new collision definitions.",
+    "No size changes to submitted buildings or structures.",
+    "Canopy passable except underlying pumps. Tanker K cells not movement blockers."
+  ]
+}
