@@ -123,9 +123,9 @@ class ModelTests(unittest.TestCase):
 class RunnerTests(unittest.TestCase):
     def test_full_world_scope_duplicate_names_are_not_done_assets(self):
         config, assets, report=runner.definitions()
-        self.assertEqual(len(assets),34)
-        self.assertEqual(len(config['assets']),100)
-        self.assertEqual(len(report['skipped_duplicate_names']),32)
+        self.assertEqual(len(assets),41)
+        self.assertEqual(len(config['assets']),113)
+        self.assertEqual(len(report['skipped_duplicate_names']),26)
         self.assertEqual(assets['tex_asphalt']['category'],'terrain')
         self.assertEqual(assets['tex_asphalt']['target'],{'width':128,'height':128})
         self.assertEqual(assets['tex_grass']['category'],'textures')
