@@ -10,6 +10,7 @@ on:
       - feature/mobile-performance-pacing
       - feature/stage2-timed-events-cleanup
       - assets/integrate-outskirts-world-selection
+      - fix/remove-all-sound
     paths:
       - 'godot/**'
       - '.github/workflows/v3-godot-android-apk.yml'
@@ -82,6 +83,16 @@ jobs:
           mkdir -p build/evidence
           python3 tools/verify_mobile_contract.py | tee build/evidence/contract.log
           echo 'MILESTONE - approved artwork and base combat configuration verified; tutorial relief is isolated in stage2_events.json.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify silent audio contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(find godot -type f \( -iname '*.wav' -o -iname '*.ogg' -o -iname '*.mp3' -o -iname '*.flac' -o -iname '*.m4a' \) -print -quit)"
+          ! grep -R -E 'AudioStreamPlayer|AudioStreamGenerator|AudioStreamRandomizer' godot --include='*.gd' --include='*.tscn'
+          for script in godot/scripts/outskirts.gd godot/scripts/main.gd; do
+            grep -q 'AudioServer.set_bus_mute(master_bus, true)' "$script"
+            grep -q 'AudioServer.set_bus_volume_db(master_bus, -80.0)' "$script"
+          done
       - name: Strict import and all seven regression suites
         shell: bash
         run: |
