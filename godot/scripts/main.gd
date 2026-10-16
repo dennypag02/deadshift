@@ -47,7 +47,14 @@ var muzzle_flash_clock := 0.0
 var last_shot_direction := Vector2.RIGHT
 var impact_marks: Array[Dictionary] = []
 
+func _force_silent_audio() -> void:
+	var master_bus := AudioServer.get_bus_index("Master")
+	if master_bus >= 0:
+		AudioServer.set_bus_mute(master_bus, true)
+		AudioServer.set_bus_volume_db(master_bus, -80.0)
+
 func _ready() -> void:
+	_force_silent_audio()
 	rng.seed = 20261008
 	camera = Camera2D.new()
 	camera.enabled = true
