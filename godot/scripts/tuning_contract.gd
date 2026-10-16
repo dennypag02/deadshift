@@ -60,6 +60,11 @@ func run_on(g: Node2D) -> int:
 				check(not g._circle_hits_blocker(point,g.PLAYER_RADIUS),"every crate walkable")
 	var c: String = g.tuning.asphalt_without_speckles
 	check(not c.contains("circle") and g.tuning.remove_decorative_asphalt_speckles,"non-pickup speckles removed")
-	check(g.progression.get_script().resource_path.ends_with("tuned_progression.gd"),"permitted splash hook installed")
+	var script: Script = g.progression.get_script()
+	var has_tuning := false
+	while script!=null:
+		if script.resource_path.ends_with("tuned_progression.gd"): has_tuning = true
+		script = script.get_base_script()
+	check(has_tuning,"permitted splash hook installed through audio subclass")
 	print("TUNING_TESTS_%s checks=%d failures=%d" % ["PASS" if failures==0 else "FAIL",count,failures])
 	return failures
