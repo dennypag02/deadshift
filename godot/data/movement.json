@@ -1,0 +1,226 @@
+{
+  "schema": 1,
+  "metres_per_tile": 4.0,
+  "fairness": {
+    "damage_fraction_per_second": 0.35,
+    "window_seconds": 1.0,
+    "pump_max_fraction": 0.3,
+    "reveal_grace_seconds": 1.0,
+    "death_history_seconds": 5.0,
+    "history_capacity": 512,
+    "pump_warning_seconds": 0.8,
+    "pump_damage": 12,
+    "pump_radius": 275.0,
+    "pump_enemy_damage": 99.0
+  },
+  "ui": {
+    "banner_seconds": 1.5,
+    "banner_y": 155,
+    "banner_height": 46,
+    "banner_title_size": 22,
+    "banner_detail_size": 16,
+    "banner_queue_cap": 6,
+    "card_y": 206,
+    "card_height": 76,
+    "card_title_size": 22,
+    "card_detail_size": 17,
+    "arsenal_y": 286,
+    "toast_y": 318,
+    "garage_enabled": false,
+    "icon_pixels": 48
+  },
+  "objectives": {
+    "minimum_metres": 20.0,
+    "maximum_metres": 40.0,
+    "preferred_metres": 26.0,
+    "candidate_angles": 32,
+    "cluster_metres": 2.5,
+    "placement_grid_step": 1,
+    "breather_seconds": 4.0,
+    "announce_seconds": 1.5,
+    "hold_seconds": 4.0,
+    "relay_hold_seconds": 1.25,
+    "interact_radius": 90.0,
+    "destroy_radius": 48.0,
+    "payoff_seconds": 0.8,
+    "payoff_radius": 240.0,
+    "progress_reset_on_damage": false
+  },
+  "pressure": {
+    "spawn_margin": 30.0,
+    "spawn_jitter": 20.0,
+    "spawn_interval_seconds": 0.2,
+    "spawn_group_max": 12,
+    "spawn_probe_count": 24,
+    "side_jitter": 0.8,
+    "forward_weight": 0.3,
+    "rear_weight": 1.8,
+    "side_weight": 1.0,
+    "stale_distance_multiplier": 2.2,
+    "recycle_budget": 8,
+    "inbound_buffer": 6,
+    "surge_seconds": 8.0,
+    "surge_ring_count": 20,
+    "surge_anchor_release_radius": 90.0,
+    "minimums": [
+      [
+        20,
+        40
+      ],
+      [
+        40,
+        60
+      ],
+      [
+        55,
+        80
+      ],
+      [
+        70,
+        110
+      ],
+      [
+        70,
+        110
+      ],
+      [
+        100,
+        150
+      ],
+      [
+        100,
+        150
+      ],
+      [
+        140,
+        200
+      ],
+      [
+        140,
+        200
+      ],
+      [
+        160,
+        220
+      ]
+    ],
+    "inbound_clearance": 96.0,
+    "stuck_seconds": 6.0,
+    "stuck_min_progress": 8.0,
+    "population_maintenance_seconds": 1.0,
+    "maximum_inbound_deficit_buffer": 12
+  },
+  "threats": {
+    "spitter_from_wave": 2,
+    "brute_from_wave": 3,
+    "bloater_from_wave": 4,
+    "early_spitter_until_wave": 4,
+    "early_brute_until_wave": 5,
+    "early_spitter_hp_multiplier": 0.5,
+    "early_brute_hp_multiplier": 0.35,
+    "early_brute_damage_multiplier": 0.4,
+    "spitter_weight": 0.08,
+    "brute_weight": 0.04,
+    "bloater_weight": 0.11,
+    "runner_weight": 0.3,
+    "spitter_attack_seconds": 4.2,
+    "spitter_range": 650.0,
+    "spitter_standoff": 330.0,
+    "spitter_retreat_multiplier": 0.55,
+    "warning_seconds": 0.8,
+    "acid_radius": 48.0,
+    "acid_seconds": 4.0,
+    "acid_tick_seconds": 0.8,
+    "acid_damage": 4,
+    "early_acid_damage": 3,
+    "brute_attack_seconds": 4.5,
+    "brute_range": 520.0,
+    "brute_warning_seconds": 0.9,
+    "brute_charge_seconds": 0.65,
+    "brute_charge_speed": 420.0,
+    "early_brute_charge_speed": 320.0,
+    "hazard_limit": 24,
+    "charge_path_width": 32.0,
+    "early_runner_weight": 0.1,
+    "early_runner_until_wave": 3,
+    "early_spitter_max": 2,
+    "early_brute_max": 1
+  },
+  "camp": {
+    "from_wave": 2,
+    "radius_metres": 3.0,
+    "seconds": 8.0,
+    "spawn_multiplier": 1.5,
+    "target_refresh_seconds": 4.2
+  },
+  "rewards": {
+    "minimum_metres": 6.0,
+    "maximum_metres": 12.0,
+    "pickup_radius_tiles": 0.72,
+    "gem_lifetime_seconds": 20.0,
+    "gem_fade_seconds": 1.0,
+    "magnet_seconds": 8.0,
+    "magnet_radius_tiles": 12.0,
+    "powerup_lifetime_seconds": 35.0
+  },
+  "goo": {
+    "radius": 57.5,
+    "seconds": 5.0,
+    "maximum_visible": 6,
+    "maximum_total": 12,
+    "fade_seconds": 1.0,
+    "slow_multiplier": 0.72,
+    "color": "#204A30",
+    "highlight": "#699A71",
+    "opacity": 0.52,
+    "soft_rings": 6,
+    "segments": 32
+  },
+  "weapons": {
+    "initial_facing": [
+      0.0,
+      -1.0
+    ],
+    "facing_deadzone": 0.12,
+    "smg_spread": 0.12,
+    "smg_max_half_angle": 0.45,
+    "boomstick_max_half_angle": 0.7,
+    "facing_descriptions": {
+      "scrap_smg": {
+        "description": "Fast bullets in your movement / last-facing direction",
+        "first_level": "Fire where you move; retain facing when stopped"
+      },
+      "boomstick": {
+        "description": "A heavy cone in your movement / last-facing direction",
+        "first_level": "Blast the lane you face"
+      }
+    }
+  },
+  "performance": {
+    "particles": 48,
+    "damage_numbers": 24,
+    "number_merge_seconds": 0.25,
+    "number_min_amount": 0.5,
+    "hit_effects_per_frame": 6,
+    "warmup_frames": 3,
+    "warmup_size": 96,
+    "profile_sample_seconds": 1.0,
+    "hazard_render_layer": 40,
+    "damage_log_flush_seconds": 0.25
+  },
+  "source_labels": {
+    "contact": "Zombie contact",
+    "shambler": "Shambler",
+    "runner": "Runner",
+    "spitter": "Spitter acid",
+    "acid": "Spitter acid",
+    "brute": "Brute",
+    "bloater": "Bloater",
+    "explosion": "Pump explosion",
+    "pump_explosion": "Pump explosion",
+    "fire": "Fire",
+    "mechanic": "The Mechanic",
+    "brute_charge": "Brute charge",
+    "spitter_contact": "Spitter contact"
+  }
+}

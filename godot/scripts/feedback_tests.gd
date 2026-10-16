@@ -24,23 +24,37 @@ func run_tests() -> void:
 	for kind in ACTORS.ART:
 		require(ACTORS.ART[kind].resource_path.begins_with("res://art/characters/"), "approved character path " + kind)
 		require(is_equal_approx(ACTORS.radius_for(kind), ACTORS.height_for(kind) * 0.28), "collider ratio " + kind)
+	game.get_tree().paused = false
 	game.generator_active = false
+	if game.has_method("nearby_objective_position"):
+		game.wave_clock = 4.0
+		game.events.tick(0.0)
 	game.guidance.refresh_target()
 	require(game.guidance.target.id == "generator", "generator target")
-	require(game.guidance.objectives().size() == 9, "every timed event on map")
+	require(game.guidance.objectives().size() == (1 if game.has_method("nearby_objective_position") else 9), "only known active local event on redesigned map")
 	game.guidance.rebuild_route()
 	require(not game.guidance.route.is_empty(), "generator path exists")
 	for p in game.guidance.route:
 		require(not game._circle_hits_blocker(p, game.PLAYER_RADIUS), "route must avoid blocked tiles")
 	game.events.resolve("completed", "fixture")
 	game._start_wave(2)
+	if game.has_method("nearby_objective_position"):
+		game.wave_clock = 4.0
+		game.events.tick(0.0)
 	game.supply_caches[0]["collected"] = true
+	if game.has_method("nearby_objective_position"): game.events.active.step = 1
 	game.guidance.refresh_target()
 	require(game.guidance.target.kind == "crate", "supplies after generator")
 	require(game.guidance.target.pos != game.supply_caches[0]["pos"], "skip collected crate")
 	game._start_wave(3)
-	require(game.banner.text.begins_with("EVENT: CHAIN REACTION"), "wave3 banner")
-	require(game.banner.text.contains(game.guidance.label_text().to_upper()), "live objective banner")
+	if game.has_method("nearby_objective_position"):
+		game.wave_clock = 4.0
+		game.events.tick(0.0)
+		require(game.events.active.verb == "DESTROY", "wave3 local DESTROY offer")
+		require(not game.hud_overlay.notifications.is_empty(), "live objective queues top-band notification")
+	else:
+		require(game.banner.text.begins_with("EVENT: CHAIN REACTION"), "wave3 banner")
+		require(game.banner.text.contains(game.guidance.label_text().to_upper()), "live objective banner")
 	game.guidance.begin_briefing()
 	require(paused and game.guidance.briefing, "briefing pauses combat")
 	game.guidance._input(InputEventScreenTouch.new()) # Unpressed input must not skip.
