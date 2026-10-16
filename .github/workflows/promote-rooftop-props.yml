@@ -1,0 +1,78 @@
+name: Promote approved rooftop props
+on:
+  push:
+    branches:
+      - feature/rooftop-props-textures-roofbuilder
+    paths:
+      - '.asset_payloads/rooftop_props_promote.zip'
+      - '.github/workflows/promote-rooftop-props.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/rooftop-props-textures-roofbuilder
+          fetch-depth: 0
+      - name: Refuse overwrite and validate payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload=.asset_payloads/rooftop_props_promote.zip
+          test -s "$payload"
+          mapfile -t files < <(unzip -Z1 "$payload" | grep '^godot/art/rooftop/.*\.png$')
+          test "${#files[@]}" -eq 12
+          for f in "${files[@]}"; do
+            if [ -e "$f" ]; then
+              echo "Refusing to overwrite existing promoted asset: $f" >&2
+              exit 1
+            fi
+          done
+      - name: Promote exact approved PNGs
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -q .asset_payloads/rooftop_props_promote.zip
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          expected = {
+              'roof_ac_unit_v1.png': (160,160),
+              'roof_ac_unit_v2.png': (160,160),
+              'roof_vent_fan_v1.png': (96,96),
+              'roof_vent_fan_v2.png': (96,96),
+              'roof_skylight.png': (160,160),
+              'roof_exhaust_pipes.png': (128,128),
+              'roof_water_heater.png': (128,128),
+              'roof_debris_v1.png': (192,192),
+              'roof_debris_v2.png': (192,192),
+              'roof_sign_frame.png': (320,320),
+              'roof_tires.png': (128,128),
+              'roof_puddle.png': (192,192),
+          }
+          root=Path('godot/art/rooftop')
+          for name,size in expected.items():
+              p=root/name
+              assert p.exists(), name
+              im=Image.open(p).convert('RGBA')
+              assert im.size == size, (name, im.size, size)
+              lo,hi=im.getchannel('A').getextrema()
+              assert lo == 0 and hi == 255, (name, (lo,hi))
+          print('ROOFTOP_PROMOTION_VALIDATED 12')
+          PY
+      - name: Commit promoted assets and remove temporary promotion mechanism
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .asset_payloads/rooftop_props_promote.zip
+          rm -f .github/workflows/promote-rooftop-props.yml
+          rmdir .asset_payloads 2>/dev/null || true
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Promote approved transparent rooftop prop assets"
+          git push origin HEAD:feature/rooftop-props-textures-roofbuilder
