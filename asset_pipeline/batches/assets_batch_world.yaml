@@ -1,15 +1,13 @@
 # DeadShift – asset batch: OUTSKIRTS WORLD ART
-# Buildings, structures, objective props, ground decals, ground textures.
-# Merge into assets.yaml the same way as the enemies/icons batch (see ASSET_BATCH_HANDOFF.md):
-#   - add the new categories only if they don't already exist
-#   - skip duplicate names and tell me
+# Structures, objective props, ground decals/textures, roof textures, rooftop props.
+# Whole-building generations were rejected on 2026-10-16 and are intentionally absent.
+# Keep their previous candidates in staging/history for reference; do not promote them.
+# Merge into assets.yaml the same way as the enemies/icons batch:
+#   - add new categories only when the execution path supports them
+#   - skip duplicate names and report them
 # Style must match OUTSKIRTS_ART_TARGET.png: flat vector, bold dark outlines, light from top-left,
 # muted rust / olive / dusty gray palette. No red anywhere (red = survivor only).
 # Amber glow on interactables is added IN CODE, not painted into the art.
-#
-# IMPORTANT: building/structure `target` sizes come from the original gray-box spec.
-# Before generating, the agent must measure the CURRENT footprint of each building/collision shape
-# in the Outskirts scene and update `target` to match (1 tile = 128 px). Report any changes.
 
 categories:
   decals:
@@ -21,7 +19,7 @@ categories:
     negative: "photograph, photorealistic, 3D render, side view, perspective, square, rectangle, circle, perfect geometric shape, border, frame, objects, people, characters, text, watermark, blurry, red"
 
   textures:
-    workflow: texture          # NEW: no background removal; run the seamless/tileable post-process instead
+    workflow: texture
     size: [1024, 1024]
     target: {width: 256, height: 256}
     count: 4
@@ -30,46 +28,55 @@ categories:
     negative: "photograph, photorealistic, 3D render, perspective, horizon, objects, cars, people, characters, border, frame, vignette, text, watermark, blurry, seams, red"
 
 assets:
-  # ===== BUILDINGS (roofs, top-down) — buildings category, seed_group: outskirts_buildings =====
-  - {name: out_diner,       category: buildings, seed_group: outskirts_buildings, size: [1152, 896], target: {width: 896,  height: 768},  prompt: "roadside diner rooftop, rounded chrome trim edge, two rooftop vent fans, rusted AC unit, fallen neon sign frame lying on the roof, kitchen exhaust hood with grease stains, scattered debris"}
-  - {name: out_minimart,    category: buildings, seed_group: outskirts_buildings, size: [1344, 768], target: {width: 1024, height: 512},  prompt: "long low gas station convenience store rooftop, flat tar roof, two rusted AC units, broken skylight, faded blank sign board lying flat on the roof, puddles and debris"}
-  - {name: out_motel_north, category: buildings, seed_group: outskirts_buildings, size: [1536, 640], target: {width: 1024, height: 384},  prompt: "long narrow single-story motel roof, flat tar roof divided into a row of room sections, small rusted vent on each section, one collapsed section, debris"}
-  - {name: out_motel_east,  category: buildings, seed_group: outskirts_buildings, size: [640, 1536], target: {width: 384,  height: 896},  prompt: "long narrow single-story motel roof running vertically, flat tar roof divided into a row of room sections, small rusted vent on each section, rooftop water heater, debris"}
-  - {name: out_autoshop,    category: buildings, seed_group: outskirts_buildings, size: [1152, 896], target: {width: 896,  height: 768},  prompt: "auto repair garage rooftop, corrugated metal roof panels, rust streaks, oil stains dripping off one edge, rooftop exhaust pipes, a few old tires lying on the roof"}
-  - {name: out_canopy_roof, category: buildings, seed_group: outskirts_buildings, size: [1152, 896], target: {width: 1280, height: 1024}, prompt: "large flat gas station canopy roof, thin metal roof panels, rust stains, a few missing panels with gaps, bird droppings, scattered leaves and debris"}
-
   # ===== STRUCTURES / BLOCKERS — debris category =====
-  - {name: out_semi_trailer, category: debris, size: [640, 1536],  target: {width: 256, height: 896}, negative_extra: "truck cab, wheels visible", prompt: "abandoned semi truck trailer roof running vertically, long faded white roof, rust streaks, dents, torn tarp patch"}
-  - {name: out_pump_island,  category: debris, size: [1344, 768],  target: {width: 256, height: 128}, prompt: "gas station pump island, narrow raised concrete curb with two rusted fuel pumps, hanging hoses, faded yellow safety posts at each end"}
-  - {name: out_barrels,      category: debris, size: [1344, 768],  target: {width: 256, height: 128}, prompt: "cluster of four rusted orange fuel drums seen from above, round lids, hazard symbols, small spill of black oil"}
-  - {name: out_barrier,      category: debris, size: [1024, 1024], target: {width: 128, height: 128}, prompt: "single concrete highway jersey barrier segment, chipped edges, faded spray paint, cracks"}
-  - {name: out_fence,        category: debris, size: [1536, 640],  target: {width: 768, height: 128}, prompt: "long straight section of bent chain-link fence on rusted metal posts, torn mesh, sagging top rail"}
-  - {name: out_tanker_wreck, category: debris, size: [1536, 640],  target: {width: 896, height: 384}, prompt: "jackknifed burned-out fuel tanker truck wreck, blackened cylindrical tank split open, charred cab bent at an angle, scorched metal, smoldering"}
+  - {name: out_semi_trailer, category: debris, size: [640, 1536], target: {width: 256, height: 896}, negative_extra: "truck cab, wheels visible", prompt: "abandoned semi truck trailer roof running vertically, long faded white roof, rust streaks, dents, torn tarp patch"}
+  - {name: out_pump_island, category: debris, size: [1344, 768], target: {width: 256, height: 128}, prompt: "gas station pump island, narrow raised concrete curb with two rusted fuel pumps, hanging hoses, faded yellow safety posts at each end"}
+  - {name: out_barrels, category: debris, size: [1344, 768], target: {width: 256, height: 128}, prompt: "cluster of four rusted orange fuel drums seen from above, round lids, hazard symbols, small spill of black oil"}
+  - {name: out_barrier, category: debris, size: [1024, 1024], target: {width: 128, height: 128}, prompt: "single concrete highway jersey barrier segment, chipped edges, faded spray paint, cracks"}
+  - {name: out_fence, category: debris, size: [1536, 640], target: {width: 768, height: 128}, prompt: "long straight section of bent chain-link fence on rusted metal posts, torn mesh, sagging top rail"}
+  - {name: out_tanker_wreck, category: debris, size: [1536, 640], target: {width: 896, height: 384}, prompt: "jackknifed burned-out fuel tanker truck wreck, blackened cylindrical tank split open, charred cab bent at an angle, scorched metal, smoldering"}
 
-  # ===== OBJECTIVE PROPS (puzzle events) — debris category, seed_group: objectives =====
-  - {name: obj_generator,      category: debris, seed_group: objectives, target: {long_side: 256}, prompt: "portable industrial diesel generator seen from above, rusted yellow housing, thick cables coiled beside it, fuel cap, warning stripes"}
-  - {name: obj_supply_crate,   category: debris, seed_group: objectives, target: {long_side: 160}, prompt: "military supply crate seen from above, olive green wooden box with metal corner brackets, stenciled star symbol, rope handles"}
-  - {name: obj_gas_can,        category: debris, seed_group: objectives, target: {long_side: 112}, prompt: "dented metal jerry can fuel container seen from above, scuffed yellow paint, handle on top"}
-  - {name: obj_fuel_cache,     category: debris, seed_group: objectives, target: {long_side: 224}, prompt: "volatile fuel cache seen from above, pile of leaking fuel drums and gas cans strapped together, hazard symbols, small oil puddle"}
-  - {name: obj_relay_pad,      category: debris, seed_group: objectives, target: {long_side: 192}, prompt: "round metal floor plate with a small radio antenna and an unlit signal lamp in the center, bolts around the edge, seen from above"}
-  - {name: obj_switch_box,     category: debris, seed_group: objectives, target: {long_side: 128}, prompt: "metal electrical switch box with a big lever, rusted panel, cables running out, seen from above"}
-  - {name: obj_zombie_nest,    category: debris, seed_group: objectives, target: {long_side: 384}, negative_extra: "red, blood", prompt: "organic zombie infestation nest seen from above, mound of sickly green and purple flesh, pulsing sacs, tendrils spreading outward, glowing toxic green spots"}
-  - {name: obj_flame_trap,     category: debris, seed_group: objectives, target: {long_side: 192}, prompt: "makeshift flamethrower trap seen from above, propane tanks welded to a nozzle on a scrap metal frame, pilot light"}
-  - {name: obj_floodlight,     category: debris, seed_group: objectives, target: {long_side: 192}, prompt: "stadium floodlight tower base seen from above, square metal frame with four large round lamps, cables"}
+  # ===== OBJECTIVE PROPS — debris category, seed_group: objectives =====
+  - {name: obj_generator, category: debris, seed_group: objectives, target: {long_side: 256}, prompt: "portable industrial diesel generator seen from above, rusted yellow housing, thick cables coiled beside it, fuel cap, warning stripes"}
+  - {name: obj_supply_crate, category: debris, seed_group: objectives, target: {long_side: 160}, prompt: "military supply crate seen from above, olive green wooden box with metal corner brackets, stenciled star symbol, rope handles"}
+  - {name: obj_gas_can, category: debris, seed_group: objectives, target: {long_side: 112}, prompt: "dented metal jerry can fuel container seen from above, scuffed yellow paint, handle on top"}
+  - {name: obj_fuel_cache, category: debris, seed_group: objectives, target: {long_side: 224}, prompt: "volatile fuel cache seen from above, pile of leaking fuel drums and gas cans strapped together, hazard symbols, small oil puddle"}
+  - {name: obj_relay_pad, category: debris, seed_group: objectives, target: {long_side: 192}, prompt: "round metal floor plate with a small radio antenna and an unlit signal lamp in the center, bolts around the edge, seen from above"}
+  - {name: obj_switch_box, category: debris, seed_group: objectives, target: {long_side: 128}, prompt: "metal electrical switch box with a big lever, rusted panel, cables running out, seen from above"}
+  - {name: obj_zombie_nest, category: debris, seed_group: objectives, target: {long_side: 384}, negative_extra: "red, blood", prompt: "organic zombie infestation nest seen from above, mound of sickly green and purple flesh, pulsing sacs, tendrils spreading outward, glowing toxic green spots"}
+  - {name: obj_flame_trap, category: debris, seed_group: objectives, target: {long_side: 192}, prompt: "makeshift flamethrower trap seen from above, propane tanks welded to a nozzle on a scrap metal frame, pilot light"}
+  - {name: obj_floodlight, category: debris, seed_group: objectives, target: {long_side: 192}, prompt: "stadium floodlight tower base seen from above, square metal frame with four large round lamps, cables"}
 
-  # ===== GROUND DECALS (replace square hazard tiles + flat goo circles) — decals category =====
-  - {name: decal_oil_a,   category: decals, prompt: "glossy black oil spill puddle, (shiny rainbow sheen highlights:1.3), wet look, splatter droplets around the edge"}
-  - {name: decal_oil_b,   category: decals, prompt: "long smeared black oil slick trail, (shiny rainbow sheen highlights:1.3), wet glossy look"}
+  # ===== ROOFTOP PROPS — debris category, fixed later by RoofBuilder =====
+  - {name: roof_ac_unit, category: debris, seed_group: rooftop, target: {long_side: 160}, negative_extra: "side view, walls, building, perspective, isometric", prompt: "(orthographic top-down view:1.6), seen from straight above, flat 2D, rusted rooftop air conditioning unit with a round fan grille"}
+  - {name: roof_vent_fan, category: debris, seed_group: rooftop, target: {long_side: 96}, negative_extra: "side view, walls, building, perspective, isometric", prompt: "(orthographic top-down view:1.6), seen from straight above, flat 2D, round rooftop exhaust vent fan cap"}
+  - {name: roof_skylight, category: debris, seed_group: rooftop, target: {long_side: 160}, negative_extra: "side view, walls, building, perspective, isometric", prompt: "(orthographic top-down view:1.6), seen from straight above, flat 2D, rectangular rooftop skylight with cracked glass panes"}
+  - {name: roof_exhaust_pipes, category: debris, seed_group: rooftop, target: {long_side: 128}, negative_extra: "side view, walls, building, perspective, isometric", prompt: "(orthographic top-down view:1.6), seen from straight above, flat 2D, cluster of three rusted rooftop exhaust pipes"}
+  - {name: roof_water_heater, category: debris, seed_group: rooftop, target: {long_side: 128}, negative_extra: "side view, walls, building, perspective, isometric", prompt: "(orthographic top-down view:1.6), seen from straight above, flat 2D, round rooftop water heater tank"}
+  - {name: roof_debris, category: debris, seed_group: rooftop, target: {long_side: 192}, negative_extra: "side view, walls, building, perspective, isometric", prompt: "(orthographic top-down view:1.6), seen from straight above, flat 2D, pile of scattered roof debris, leaves, broken boards and trash"}
+  - {name: roof_sign_frame, category: debris, seed_group: rooftop, target: {long_side: 320}, negative_extra: "side view, walls, building, perspective, isometric", prompt: "(orthographic top-down view:1.6), seen from straight above, flat 2D, fallen rusted sign frame lying flat, empty, no text"}
+  - {name: roof_tires, category: debris, seed_group: rooftop, target: {long_side: 128}, negative_extra: "side view, walls, building, perspective, isometric", prompt: "(orthographic top-down view:1.6), seen from straight above, flat 2D, two old car tires lying flat"}
+  - {name: roof_puddle, category: debris, seed_group: rooftop, target: {long_side: 192}, negative_extra: "side view, walls, building, perspective, isometric", prompt: "(orthographic top-down view:1.6), seen from straight above, flat 2D, dark rainwater puddle on a roof, glossy"}
+
+  # ===== GROUND DECALS =====
+  - {name: decal_oil_a, category: decals, prompt: "glossy black oil spill puddle, (shiny rainbow sheen highlights:1.3), wet look, splatter droplets around the edge"}
+  - {name: decal_oil_b, category: decals, prompt: "long smeared black oil slick trail, (shiny rainbow sheen highlights:1.3), wet glossy look"}
   - {name: decal_crack_a, category: decals, target: {long_side: 512}, prompt: "patch of heavily cracked broken asphalt, deep jagged fractures, loose chunks, (brown-tinted cracks:1.2), dark gray"}
   - {name: decal_crack_b, category: decals, target: {long_side: 512}, prompt: "long branching crack running through asphalt, broken pieces, (brown-tinted cracks:1.2), dark gray"}
-  - {name: decal_goo,     category: decals, target: {long_side: 256}, prompt: "dark glossy olive green toxic goo puddle, thick and slimy, bubbles, wet highlights"}
-  - {name: decal_acid,    category: decals, target: {long_side: 192}, prompt: "small sizzling yellow-green acid puddle, bubbling, smoke wisps, glossy"}
+  - {name: decal_goo, category: decals, target: {long_side: 256}, prompt: "dark glossy olive green toxic goo puddle, thick and slimy, bubbles, wet highlights"}
+  - {name: decal_acid, category: decals, target: {long_side: 192}, prompt: "small sizzling yellow-green acid puddle, bubbling, smoke wisps, glossy"}
 
-  # ===== GROUND TEXTURES (seamless) — textures category =====
-  - {name: tex_asphalt,   category: textures, prompt: "worn dark gray asphalt, faint tire marks, small pebbles"}
-  - {name: tex_highway,   category: textures, prompt: "darker highway asphalt, slightly smoother, dust"}
+  # ===== GROUND TEXTURES (seamless) =====
+  - {name: tex_asphalt, category: textures, prompt: "worn dark gray asphalt, faint tire marks, small pebbles"}
+  - {name: tex_highway, category: textures, prompt: "darker highway asphalt, slightly smoother, dust"}
   - {name: tex_forecourt, category: textures, prompt: "smooth gas station concrete slabs with expansion joints, light oil stains"}
-  - {name: tex_sidewalk,  category: textures, prompt: "light gray concrete sidewalk squares, small cracks, dirt in the joints"}
-  - {name: tex_gravel,    category: textures, prompt: "loose tan gravel, small stones, dusty"}
-  - {name: tex_scrub,     category: textures, prompt: "dry cracked dirt, sparse yellow grass tufts, small rocks"}
-  - {name: tex_grass,     category: textures, prompt: "patchy dry olive green grass, dirt showing through, small weeds"}
+  - {name: tex_sidewalk, category: textures, prompt: "light gray concrete sidewalk squares, small cracks, dirt in the joints"}
+  - {name: tex_gravel, category: textures, prompt: "loose tan gravel, small stones, dusty"}
+  - {name: tex_scrub, category: textures, prompt: "dry cracked dirt, sparse yellow grass tufts, small rocks"}
+  - {name: tex_grass, category: textures, prompt: "patchy dry olive green grass, dirt showing through, small weeds"}
+
+  # ===== ROOF TEXTURES (seamless) =====
+  - {name: tex_roof_tar, category: textures, prompt: "flat black tar roof surface, gravel speckles, patched seams, weathered"}
+  - {name: tex_roof_corrugated, category: textures, prompt: "rusted corrugated metal roof panels, parallel ridges, rust streaks"}
+  - {name: tex_roof_canopy, category: textures, prompt: "flat painted metal canopy panels in a grid, faded off-white, rust stains"}
+  - {name: tex_roof_concrete, category: textures, prompt: "flat weathered concrete roof, water stains, small cracks"}
