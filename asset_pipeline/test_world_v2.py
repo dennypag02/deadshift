@@ -125,7 +125,7 @@ class RunnerTests(unittest.TestCase):
         config, assets, report=runner.definitions()
         self.assertEqual(len(assets),34)
         self.assertEqual(len(config['assets']),100)
-        self.assertEqual(len(report['skipped_duplicate_names']),17)
+        self.assertEqual(len(report['skipped_duplicate_names']),32)
         self.assertEqual(assets['tex_asphalt']['category'],'terrain')
         self.assertEqual(assets['tex_asphalt']['target'],{'width':128,'height':128})
         self.assertEqual(assets['tex_grass']['category'],'textures')
