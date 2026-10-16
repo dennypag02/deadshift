@@ -35,6 +35,37 @@ if ! grep -Fq 'lib/x86_64/libgodot_android.so' android-stability/apk-files.txt; 
   exit 21
 fi
 
+# A fresh emulator continues installing dynamic theme overlays after boot_completed.
+# Do not launch Godot while Android is recreating activities for CONFIG_ASSETS_PATHS.
+# This readiness gate runs before app installation; no in-app crash is retried or hidden.
+python3 - <<'PY'
+from pathlib import Path
+import hashlib, json, subprocess, time
+start = time.monotonic()
+stable_since = start
+previous = None
+records = []
+while time.monotonic() - start < 75:
+    boot = subprocess.run(['adb','shell','getprop','sys.boot_completed'],capture_output=True,text=True,timeout=10,check=True).stdout.strip()
+    overlays = subprocess.run(['adb','shell','cmd','overlay','list','--user','0'],capture_output=True,text=True,timeout=10,check=True).stdout
+    fingerprint = hashlib.sha256(overlays.encode()).hexdigest()
+    now = time.monotonic()
+    if fingerprint != previous:
+        stable_since = now
+        previous = fingerprint
+    row = {'elapsed_s':round(now-start,2),'unchanged_s':round(now-stable_since,2),'boot_completed':boot,'overlay_sha256':fingerprint}
+    records.append(row)
+    print('RUNNING - emulator readiness ' + json.dumps(row),flush=True)
+    Path('android-stability/boot-readiness.json').write_text(json.dumps(records,indent=2))
+    if boot == '1' and now-start >= 20 and now-stable_since >= 10:
+        Path('android-stability/settled-overlays.txt').write_text(overlays)
+        print('MILESTONE - first-boot overlay state settled; launching a clean test session.',flush=True)
+        break
+    time.sleep(2)
+else:
+    raise SystemExit('EMULATOR_FIRST_BOOT_NOT_SETTLED; app not launched')
+PY
+
 adb logcat -c
 echo "Installing APK..." | tee -a "$STATUS_FILE"
 set +e
