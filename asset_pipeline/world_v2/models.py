@@ -107,18 +107,73 @@ def candidates_for_python(roots: list[Path], configured: str | None = None) -> l
     return list(dict.fromkeys(p for p in paths if p.is_file()))
 
 
+def running_comfy_pythons() -> list[Path]:
+    """Read-only Windows process lookup, restricted to ComfyUI's Python process.
+
+    Command lines are used only as a local filter and are never returned or logged.
+    No process termination, package installation or elevated command is used.
+    """
+    if sys.platform != 'win32':
+        return []
+    command = (
+        "Get-CimInstance Win32_Process -Filter \"Name='python.exe' OR Name='pythonw.exe'\" | "
+        "Where-Object { $_.CommandLine -match '(?i)ComfyUI.*main[.]py|main[.]py.*ComfyUI' } | "
+        "Select-Object -ExpandProperty ExecutablePath | ConvertTo-Json -Compress"
+    )
+    try:
+        result = subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive',
+                                 '-Command', command], capture_output=True, text=True,
+                                check=True, timeout=20)
+        values = json.loads(result.stdout.strip() or '[]')
+        if isinstance(values, str):
+            values = [values]
+        return list(dict.fromkeys(Path(v) for v in values if isinstance(v, str) and Path(v).is_file()))
+    except (ValueError, OSError, subprocess.SubprocessError):
+        return []
+
+
 def select_python(roots: list[Path], configured: str | None = None) -> tuple[Path, dict]:
+    from .progress import atomic_json
     code = ('import importlib.metadata as m,json; out={}; '
             '\nfor name in ' + repr(REQUIRED) + ':\n'
             ' try: out[name]=m.version(name)\n except m.PackageNotFoundError: out[name]=None\n'
             'print(json.dumps(out))')
-    for executable in candidates_for_python(roots, configured):
-        result = subprocess.run([str(executable), '-c', code], capture_output=True, text=True, timeout=45)
-        if result.returncode == 0:
-            versions = json.loads(result.stdout.strip().splitlines()[-1])
-            if all(versions.values()):
+    # The running ComfyUI process is a stronger signal than a nearby venv folder.
+    running = running_comfy_pythons()
+    for executable in running:
+        if executable.parent.name.lower() == 'scripts' and executable.parent.parent.name.lower() in ('.venv', 'venv'):
+            root = executable.parent.parent.parent
+            if root not in roots:
+                roots.append(root)
+    candidates = list(dict.fromkeys(([Path(configured)] if configured else []) + running + candidates_for_python(roots)))
+    status_dir = Path(__file__).resolve().parents[1] / 'staging/world_v2'
+    execution_lock = status_dir / 'execution.lock'
+    report = {'job_id': execution_lock.read_text().strip() if execution_lock.exists() else None,
+              'root_count': len(roots), 'running_comfy_python_count': len(running),
+              'checks': [], 'selected': None}
+    best_missing = list(REQUIRED)
+    for index, executable in enumerate(candidates, 1):
+        check = {'candidate': index, 'running_comfy': executable in running}
+        try:
+            result = subprocess.run([str(executable), '-c', code], capture_output=True, text=True, timeout=45)
+            versions = json.loads(result.stdout.strip().splitlines()[-1]) if result.returncode == 0 else {}
+            versions = {key: versions.get(key) for key in REQUIRED}
+            missing = [key for key, value in versions.items() if not value]
+            check.update(versions=versions, missing=missing)
+            if len(missing) < len(best_missing):
+                best_missing = missing
+            report['checks'].append(check)
+            if not missing:
+                report['selected'] = index
+                atomic_json(status_dir / 'runtime_checks.json', report)
                 return executable, versions
-    raise RuntimeError('COMFY_PYTHON_DEPENDENCIES_MISSING_NO_PACKAGES_INSTALLED')
+        except (ValueError, IndexError, OSError, subprocess.SubprocessError) as exc:
+            check['error_type'] = type(exc).__name__
+            report['checks'].append(check)
+    atomic_json(status_dir / 'runtime_checks.json', report)
+    if not candidates:
+        raise RuntimeError('COMFY_PYTHON_NOT_LOCATED_NO_INSTALL')
+    raise RuntimeError('COMFY_PYTHON_MISSING_' + '_'.join(x.upper() for x in best_missing))
 
 
 def roots_from_stats(stats: dict, local: dict) -> list[Path]:
