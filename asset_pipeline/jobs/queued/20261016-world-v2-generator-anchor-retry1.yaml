@@ -1,0 +1,11 @@
+job_id: 20261016-world-v2-generator-anchor-retry1
+asset: obj_generator
+category: debris
+positive: Use the submitted world-art definition through world_v2.
+negative: red
+count: 4
+pipeline: world_v2
+world_assets: [obj_generator]
+# Previous job stopped before model download or image submission.
+# PR24 fixes Windows runtime discovery and receipt path line endings.
+# Candidate approval and promotion remain separate; no automatic promotion.
