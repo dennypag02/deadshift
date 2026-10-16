@@ -261,7 +261,14 @@ func _draw_curated_texture(texture: Texture2D, center: Vector2, footprint: Vecto
 	var size := dimensions * minf(footprint.x / dimensions.x, footprint.y / dimensions.y)
 	draw_texture_rect(texture, Rect2(center - size * 0.5, size), false)
 
+func _force_silent_audio() -> void:
+	var master_bus := AudioServer.get_bus_index("Master")
+	if master_bus >= 0:
+		AudioServer.set_bus_mute(master_bus, true)
+		AudioServer.set_bus_volume_db(master_bus, -80.0)
+
 func _ready() -> void:
+	_force_silent_audio()
 	_load_curated_art()
 	for kind in {"enemies":250,"bullets":400,"impact_marks":120,"stage1_hazards":64,"powerups":30}:
 		transient_pool.warm(kind, {"enemies":250,"bullets":400,"impact_marks":120,"stage1_hazards":64,"powerups":30}[kind])
