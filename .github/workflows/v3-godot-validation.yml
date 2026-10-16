@@ -36,6 +36,16 @@ jobs:
           set -o pipefail
           timeout 20s ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --quit-after 60 2>&1 | tee godot-smoke.log || test $? -eq 124
           ! grep -E "SCRIPT ERROR:|Parse Error:|Failed to load script|Invalid call|Invalid access" godot-smoke.log
+      - name: Verify silent audio contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(find godot -type f \( -iname '*.wav' -o -iname '*.ogg' -o -iname '*.mp3' -o -iname '*.flac' -o -iname '*.m4a' \) -print -quit)"
+          ! grep -R -E 'AudioStreamPlayer|AudioStreamGenerator|AudioStreamRandomizer' godot --include='*.gd' --include='*.tscn'
+          for script in godot/scripts/outskirts.gd godot/scripts/main.gd; do
+            grep -q 'AudioServer.set_bus_mute(master_bus, true)' "$script"
+            grep -q 'AudioServer.set_bus_volume_db(master_bus, -80.0)' "$script"
+          done
       - name: Verify configured first-level XP requirement
         shell: bash
         run: |
