@@ -54,8 +54,7 @@ echo "Launching $PACKAGE..." | tee -a "$STATUS_FILE"
 adb shell monkey -p "$PACKAGE" 1 | tee -a "$STATUS_FILE"
 sleep 8
 # Fresh Android installations show a system-owned immersive-mode teaching
-# overlay. Inspect its actual UI hierarchy and dismiss only its Got it button;
-# never assume an app has frozen merely because this system prompt is on top.
+# overlay. Dismiss only its observed Got it button, never an arbitrary app control.
 adb exec-out screencap -p > android-stability/before-system-prompt.png
 timeout 20s adb shell uiautomator dump /sdcard/deadshift-system-ui.xml > android-stability/system-ui-dump.log 2>&1
 adb pull /sdcard/deadshift-system-ui.xml android-stability/system-ui.xml >/dev/null
@@ -91,7 +90,6 @@ START=$(date +%s)
 END=$((START + DURATION_SECONDS))
 SAMPLES=0
 LAST_HEARTBEAT=$START
-
 while [ "$(date +%s)" -lt "$END" ]; do
   PID=$(adb shell pidof "$PACKAGE" 2>/dev/null | tr -d '\r' || true)
   if [ -z "$PID" ]; then
@@ -112,43 +110,61 @@ while [ "$(date +%s)" -lt "$END" ]; do
   sleep 5
 done
 adb exec-out screencap -p > android-stability/end-screen.png
-# Preserve actual local telemetry from this isolated emulator installation.
-# These are automation measurements even when the unmodified APK labels
-# its installation-local attempt human; do not mix them into a human cohort.
+# This isolated installation is automation evidence, never a human-player cohort.
 adb exec-out run-as "$PACKAGE" sh -c 'cd files; tar -cf - runs' > android-stability/local-runs.tar 2>/dev/null || true
-
 capture_logs
 
-if grep -Eiq 'FATAL EXCEPTION|AndroidRuntime.*FATAL|SIGSEGV|Fatal signal|Out of memory|OutOfMemoryError' "$CRASH_LOG"; then
-  echo "ANDROID_FATAL_SIGNATURE_DETECTED" | tee -a "$STATUS_FILE"
+if grep -Eiq 'FATAL EXCEPTION|AndroidRuntime.*FATAL|SIGSEGV|Fatal signal|Out of memory|OutOfMemoryError|SCRIPT ERROR|Parse Error' "$CRASH_LOG"; then
+  echo "ANDROID_FATAL_OR_SCRIPT_SIGNATURE_DETECTED" | tee -a "$STATUS_FILE"
   grep -Ein 'FATAL EXCEPTION|AndroidRuntime|SIGSEGV|Fatal signal|Out of memory|OutOfMemoryError|godot' "$CRASH_LOG" | tail -120 | tee -a "$STATUS_FILE"
   exit 31
 fi
-
 if ! grep -q "ANDROID_RUNTIME" "$RUNTIME_LOG"; then
   echo "MISSING_ANDROID_RUNTIME_TELEMETRY" | tee -a "$STATUS_FILE"
   exit 32
 fi
 
-python3 - "$RUNTIME_LOG" "$STATUS_FILE" "$CRASH_LOG" <<'PY'
-import json, re, sys
-runtime_path, status_path, crash_path = sys.argv[1:4]
+# Read the contract from the APK, not a hardcoded pre-tuning enemy count.
+# Preserve the 60-active-second gate and add non-silent mixer/cue/cap evidence.
+python3 - "$RUNTIME_LOG" "$STATUS_FILE" "$CRASH_LOG" "$APK_PATH" <<'PY'
+import json, math, re, sys, zipfile
+runtime_path, status_path, crash_path, apk_path = sys.argv[1:5]
 text = open(runtime_path, encoding='utf-8', errors='ignore').read()
 fps = [int(x) for x in re.findall(r'fps=(\d+)', text)]
 enemies = [int(x) for x in re.findall(r'enemies=(\d+)', text)]
 if not fps or not enemies:
     raise SystemExit('missing Android runtime telemetry')
-if max(enemies) < 40:
-    raise SystemExit(f'dense horde not reached; enemies_max={max(enemies)}')
-active = []
-for line in open(crash_path, encoding='utf-8', errors='ignore'):
-    if 'PACING {' not in line: continue
-    try: active.append(float(json.loads(line.split('PACING ',1)[1]).get('active_s',0)))
-    except (ValueError, TypeError): continue
+with zipfile.ZipFile(apk_path) as apk:
+    movement = json.loads(apk.read('assets/data/movement.json'))
+    tuning = json.loads(apk.read('assets/data/early_tuning.json'))
+    audio_cfg = json.loads(apk.read('assets/data/sounds.json'))
+expected_min = math.floor(float(movement['pressure']['minimums'][0][1])*float(tuning['pressure_by_wave'][0])+0.5)
+if expected_min < 1 or max(enemies) < expected_min:
+    raise SystemExit(f'configured horde not reached; enemies_max={max(enemies)} required={expected_min}')
+active, audio = [], []
+crash = open(crash_path, encoding='utf-8', errors='ignore').read()
+if re.search(r'SCRIPT ERROR|Parse Error|FATAL EXCEPTION|AndroidRuntime.*FATAL|SIGSEGV|Fatal signal|OutOfMemoryError',crash,re.I):
+    raise SystemExit('Android script/fatal signature detected')
+for line in crash.splitlines():
+    if 'PACING {' in line:
+        try: active.append(float(json.loads(line.split('PACING ',1)[1]).get('active_s',0)))
+        except (ValueError, TypeError): continue
+    if 'STAGE2 {' in line:
+        try: row = json.loads(line.split('STAGE2 ',1)[1])
+        except (ValueError, TypeError): continue
+        if row.get('event') == 'audio_sample': audio.append(row)
 if not active or max(active) < 60:
     raise SystemExit(f'insufficient active gameplay; active_seconds={max(active,default=0)}')
-line = f'ANDROID_STABILITY_PASS samples={len(fps)} fps_min={min(fps)} fps_avg={sum(fps)/len(fps):.1f} enemies_max={max(enemies)} active_seconds={max(active):.3f}'
+if not audio or not any(float(row.get('master_peak_db',-200)) > -70 for row in audio):
+    raise SystemExit('missing non-silent Android audio mixer evidence')
+if not any(int(row.get('played',{}).get('smg_fire',0)) > 0 for row in audio):
+    raise SystemExit('weapon sound hook did not run')
+if any(int(row.get('peak_voices',0)) > int(audio_cfg['hard_cap']) for row in audio):
+    raise SystemExit('audio voice cap exceeded')
+if any(int(row.get('sounds_loaded',0)) != len(audio_cfg['sounds']) for row in audio):
+    raise SystemExit('audio cue catalog not fully loaded')
+line = f'ANDROID_STABILITY_PASS samples={len(fps)} fps_min={min(fps)} fps_avg={sum(fps)/len(fps):.1f} enemies_max={max(enemies)} configured_min={expected_min} active_seconds={max(active):.3f} audio_samples={len(audio)} peak_voices={max(int(r.get("peak_voices",0)) for r in audio)}'
 print(line)
 with open(status_path, 'a', encoding='utf-8') as fh: fh.write(line+'\n')
-print('This is 180 wall seconds of Android runtime validation, not 180 active seconds survived, human input or a physical-phone FPS claim.')
+print('180 wall seconds of process validation, not 180 active seconds survived or physical-phone FPS/audibility acceptance.')
 PY
