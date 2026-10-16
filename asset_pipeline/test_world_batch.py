@@ -14,16 +14,16 @@ GAME = next((p for p in (world.HERE.parent / '_game_reference/godot/scripts/outs
 
 class MergeTests(unittest.TestCase):
     def setUp(self):
-        self.base = world.load_yaml(world.HERE / 'tests/fixtures/assets_oct15.yaml')
+        self.base = world.load_yaml(world.HERE / 'assets.yaml')
         self.request = world.load_yaml(world.REQUEST)
         self.geometry = {'assets': {}}
 
     def test_counts_and_unique_names(self):
         merged, report = world.merge_proposal(self.base, self.request, self.geometry)
-        self.assertEqual((report['requested_assets'], report['new_assets'], report['planned_new_candidates']), (34, 17, 68))
-        self.assertEqual(report['new_by_category'], {'debris': 9, 'decals': 6, 'textures': 2})
-        self.assertEqual(len(merged['assets']), 100)
-        self.assertEqual(len({a['name'] for a in merged['assets']}), 100)
+        self.assertEqual((report['requested_assets'], report['new_assets'], report['planned_new_candidates']), (41, 15, 60))
+        self.assertEqual(report['new_by_category'], {'debris': 9, 'textures': 6})
+        self.assertEqual(len(merged['assets']), 113)
+        self.assertEqual(len({a['name'] for a in merged['assets']}), 113)
 
     def test_existing_entries_and_inputs_unchanged(self):
         original_base, original_request = copy.deepcopy(self.base), copy.deepcopy(self.request)
@@ -31,7 +31,7 @@ class MergeTests(unittest.TestCase):
         self.assertEqual(self.base, original_base)
         self.assertEqual(self.request, original_request)
         self.assertEqual(merged['assets'][:len(self.base['assets'])], self.base['assets'])
-        self.assertEqual(len(report['skipped_duplicate_names']), 17)
+        self.assertEqual(len(report['skipped_duplicate_names']), 26)
         for name, settings in self.base['categories'].items():
             self.assertEqual(merged['categories'][name], settings)
 
@@ -41,6 +41,20 @@ class MergeTests(unittest.TestCase):
         self.assertEqual(asphalt['category'], 'terrain')
         self.assertEqual(asphalt['target'], {'width': 128, 'height': 128})
         self.assertTrue(any(x['name'] == 'tex_asphalt' and 'category' in x['differences'] for x in report['duplicate_differences']))
+
+    def test_rejected_whole_buildings_are_not_in_request(self):
+        names = {item['name'] for item in self.request['assets']}
+        rejected = {'out_diner', 'out_minimart', 'out_motel_north', 'out_motel_east',
+                    'out_autoshop', 'out_canopy_roof'}
+        self.assertTrue(rejected.isdisjoint(names))
+
+    def test_roof_assets_present(self):
+        names = {item['name'] for item in self.request['assets']}
+        self.assertTrue({'tex_roof_tar', 'tex_roof_corrugated', 'tex_roof_canopy',
+                         'tex_roof_concrete'}.issubset(names))
+        self.assertTrue({'roof_ac_unit', 'roof_vent_fan', 'roof_skylight',
+                         'roof_exhaust_pipes', 'roof_water_heater', 'roof_debris',
+                         'roof_sign_frame', 'roof_tires', 'roof_puddle'}.issubset(names))
 
     def test_texture_is_not_scene(self):
         merged, _ = world.merge_proposal(self.base, self.request, self.geometry)
@@ -137,22 +151,22 @@ class GeometryTests(unittest.TestCase):
         self.assertEqual(issues[1]['collision_tile_origin'], [22, 2])
 
     def test_readonly_audit_request_hash(self):
-        paths = [world.REQUEST, world.HERE / 'tests/fixtures/assets_oct15.yaml', GAME]
+        paths = [world.REQUEST, world.HERE / 'assets.yaml', GAME]
         before = [p.read_bytes() for p in paths]
-        merged, report = world.build_report(GAME, assets_path=world.HERE / 'tests/fixtures/assets_oct15.yaml')
-        self.assertEqual(report['source']['request_sha256'], 'a97a1eb034ae2db0463912f9915344f774dcb24f90adc26dbe76b117f2928e04')
+        merged, report = world.build_report(GAME)
+        self.assertEqual(report['source']['request_sha256'], world.sha256(world.REQUEST))
         self.assertEqual(report['source']['audited_gameplay_commit'], world.GAMEPLAY_SHA)
         self.assertEqual(report['target_changes_from_source'], [])
         self.assertEqual([p.read_bytes() for p in paths], before)
 
     def test_changed_geometry_updates_proposal_not_input(self):
         request = world.load_yaml(world.REQUEST)
-        base = {'categories': world.load_yaml(world.HERE / 'tests/fixtures/assets_oct15.yaml')['categories'], 'assets': []}
+        base = {'categories': world.load_yaml(world.HERE / 'assets.yaml')['categories'], 'assets': []}
         original = copy.deepcopy(request)
-        text = self.text.replace('_tiles_rect(1, 8, 7, 6)', '_tiles_rect(1, 8, 7, 5)')
+        text = self.text.replace('_tiles_rect(13,34,7,3)', '_tiles_rect(13,34,7,2)')
         merged, report = world.merge_proposal(base, request, world.measure_geometry(text))
-        diner = next(a for a in merged['assets'] if a['name'] == 'out_diner')
-        self.assertEqual(diner['target'], {'width': 896, 'height': 640})
+        tanker = next(a for a in merged['assets'] if a['name'] == 'out_tanker_wreck')
+        self.assertEqual(tanker['target'], {'width': 896, 'height': 256})
         self.assertEqual(len(report['target_changes_from_source']), 1)
         self.assertEqual(request, original)
 
