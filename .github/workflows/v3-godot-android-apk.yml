@@ -9,6 +9,7 @@ on:
       - feature/stage2-guidance-zombie-feedback
       - feature/mobile-performance-pacing
       - feature/stage2-timed-events-cleanup
+      - assets/integrate-outskirts-world-selection
     paths:
       - 'godot/**'
       - '.github/workflows/v3-godot-android-apk.yml'
@@ -114,10 +115,13 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest permissions "$APK" | tee build/evidence/manifest-permissions.txt
           grep -Fxq android.permission.VIBRATE build/evidence/manifest-permissions.txt
           unzip -l "$APK" > build/evidence/apk-contents.txt
-          for resource in assets/data/phase_a.json assets/data/stage2_events.json BebasNeue-Regular.ttf BarlowCondensed-SemiBold.ttf gameplay_config_fallback actor_batch.gdshader approved_art_receipt.json actors_atlas.png actors_atlas.json pacing_telemetry stage2_events run_telemetry event_countdown; do
+          for resource in assets/data/phase_a.json assets/data/stage2_events.json BebasNeue-Regular.ttf BarlowCondensed-SemiBold.ttf gameplay_config_fallback actor_batch.gdshader approved_art_receipt.json outskirts_curated_art_receipt.json actors_atlas.png actors_atlas.json pacing_telemetry stage2_events run_telemetry event_countdown; do
             grep -q "$resource" build/evidence/apk-contents.txt
           done
           for name in zombie_shambler zombie_runner zombie_spitter zombie_elite zombie_bloater zombie_brute mech_miniboss; do
+            grep -q "${name}.png" build/evidence/apk-contents.txt
+          done
+          for name in out_diner out_minimart out_motel_north out_motel_east out_autoshop out_canopy_roof out_semi_trailer out_pump_island out_barrels out_fence out_tanker_wreck obj_generator obj_supply_crate obj_gas_can obj_fuel_cache obj_relay_pad obj_switch_box obj_zombie_nest obj_flame_trap obj_floodlight decal_crack_a decal_crack_b decal_goo decal_acid; do
             grep -q "${name}.png" build/evidence/apk-contents.txt
           done
           "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print "$APK" > build/evidence/AndroidManifest.xml

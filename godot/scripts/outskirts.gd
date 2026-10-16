@@ -25,18 +25,18 @@ const ZOMBIE_ART := preload("res://art/zombie_shambler.svg")
 var curated_pickup_textures: Dictionary = {}
 const CAR_SEDAN_ART := preload("res://art/cars/car_sedan.png")
 const CAR_SUV_ART := preload("res://art/cars/car_suv.png")
-const OUT_DINER_ART := preload("res://art/outskirts/out_diner.svg")
-const OUT_MINIMART_ART := preload("res://art/outskirts/out_minimart.svg")
-const OUT_MOTEL_N_ART := preload("res://art/outskirts/out_motel_north.svg")
-const OUT_MOTEL_E_ART := preload("res://art/outskirts/out_motel_east.svg")
-const OUT_AUTOSHOP_ART := preload("res://art/outskirts/out_autoshop.svg")
-const OUT_CANOPY_ART := preload("res://art/outskirts/out_canopy.svg")
-const OUT_SEMI_ART := preload("res://art/outskirts/out_semi_trailer.svg")
-const OUT_PUMP_ART := preload("res://art/outskirts/out_pump_island.svg")
-const OUT_BARRELS_ART := preload("res://art/outskirts/out_barrels.svg")
+const OUT_DINER_ART := preload("res://art/outskirts/out_diner.png")
+const OUT_MINIMART_ART := preload("res://art/outskirts/out_minimart.png")
+const OUT_MOTEL_N_ART := preload("res://art/outskirts/out_motel_north.png")
+const OUT_MOTEL_E_ART := preload("res://art/outskirts/out_motel_east.png")
+const OUT_AUTOSHOP_ART := preload("res://art/outskirts/out_autoshop.png")
+const OUT_CANOPY_ART := preload("res://art/outskirts/out_canopy_roof.png")
+const OUT_SEMI_ART := preload("res://art/outskirts/out_semi_trailer.png")
+const OUT_PUMP_ART := preload("res://art/outskirts/out_pump_island.png")
+const OUT_BARRELS_ART := preload("res://art/outskirts/out_barrels.png")
 const OUT_BARRIER_ART := preload("res://art/outskirts/out_barrier.svg")
-const OUT_FENCE_ART := preload("res://art/outskirts/out_fence.svg")
-const OUT_TANKER_ART := preload("res://art/outskirts/out_tanker.svg")
+const OUT_FENCE_ART := preload("res://art/outskirts/out_fence.png")
+const OUT_TANKER_ART := preload("res://art/outskirts/out_tanker_wreck.png")
 const TEX_FORECOURT := preload("res://art/outskirts/tex_forecourt.svg")
 const TEX_ASPHALT := preload("res://art/outskirts/tex_asphalt.svg")
 const TEX_HIGHWAY := preload("res://art/outskirts/tex_highway.svg")
@@ -44,6 +44,10 @@ const TEX_CRACKED := preload("res://art/outskirts/tex_cracked.svg")
 const TEX_OIL := preload("res://art/outskirts/tex_oil.svg")
 const TEX_GRAVEL := preload("res://art/outskirts/tex_gravel.svg")
 const TEX_SCRUB := preload("res://art/outskirts/tex_scrub.svg")
+const DECAL_CRACK_A := preload("res://art/decals/decal_crack_a.png")
+const DECAL_CRACK_B := preload("res://art/decals/decal_crack_b.png")
+const DECAL_GOO := preload("res://art/decals/decal_goo.png")
+const DECAL_ACID := preload("res://art/decals/decal_acid.png")
 const MAP_ROWS: Array[String] = [
 	",,,,,,,,,,,,,,GGG,,,,,,,,,,,,,,,",
 	",,,,,S,,,,,,,,...,,,,,,,,,S,,,,,",
@@ -1405,6 +1409,12 @@ func _draw_map_art() -> void:
 	if tanker_event:
 		_draw_art_rect(OUT_TANKER_ART, _tiles_rect(13,34,7,3))
 
+	# Curated crack decals overlay existing cracked-ground hazard zones only.
+	_draw_curated_texture(DECAL_CRACK_A, Vector2(7.5, 5.5) * TILE, Vector2(512, 512))
+	_draw_curated_texture(DECAL_CRACK_B, Vector2(9.5, 33.5) * TILE, Vector2(512, 512))
+	_draw_curated_texture(DECAL_CRACK_A, Vector2(24.5, 33.5) * TILE, Vector2(512, 512))
+	_draw_curated_texture(DECAL_CRACK_B, Vector2(4.5, 38.5) * TILE, Vector2(512, 512))
+
 func _tiles_rect(x: int, y: int, w: int, h: int) -> Rect2:
 	return Rect2(Vector2(float(x),float(y))*TILE, Vector2(float(w),float(h))*TILE)
 
@@ -1541,8 +1551,11 @@ func _draw_combat() -> void:
 
 	for h in stage1_hazards:
 		var hpos: Vector2 = h["pos"]
-		var hc := Color(0.28, 0.7, 0.23, 0.38) if str(h["kind"]) == "goo" else Color(0.95, 0.38, 0.08, 0.40)
-		draw_circle(hpos, float(h["radius"]), hc)
+		var radius := float(h["radius"])
+		var is_goo := str(h["kind"]) == "goo"
+		var hc := Color(0.28, 0.7, 0.23, 0.30) if is_goo else Color(0.95, 0.38, 0.08, 0.30)
+		draw_circle(hpos, radius, hc)
+		_draw_curated_texture(DECAL_GOO if is_goo else DECAL_ACID, hpos, Vector2(radius * 2.0, radius * 2.0))
 	for pickup in powerups:
 		var ppos: Vector2 = pickup["pos"]
 		var bob := sin(float(pickup["age"]) * 5.0) * 8.0

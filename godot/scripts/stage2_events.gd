@@ -2,6 +2,15 @@ extends Node2D
 ## One optional event per wave. Timers use the same pause-aware active clock as waves.
 const AMBER := Color("#F2A23A")
 const GUIDE = preload("res://scripts/objective_guidance.gd")
+const OBJ_GENERATOR = preload("res://art/objectives/obj_generator.png")
+const OBJ_SUPPLY_CRATE = preload("res://art/objectives/obj_supply_crate.png")
+const OBJ_GAS_CAN = preload("res://art/objectives/obj_gas_can.png")
+const OBJ_FUEL_CACHE = preload("res://art/objectives/obj_fuel_cache.png")
+const OBJ_RELAY_PAD = preload("res://art/objectives/obj_relay_pad.png")
+const OBJ_SWITCH_BOX = preload("res://art/objectives/obj_switch_box.png")
+const OBJ_ZOMBIE_NEST = preload("res://art/objectives/obj_zombie_nest.png")
+const OBJ_FLAME_TRAP = preload("res://art/objectives/obj_flame_trap.png")
+const OBJ_FLOODLIGHT = preload("res://art/objectives/obj_floodlight.png")
 var game: Node2D
 var config: Dictionary = {}
 var active: Dictionary = {}
@@ -25,6 +34,12 @@ func _ready() -> void:
 
 func value(key: String) -> float:
 	return float(config[key])
+
+func _draw_prop(texture: Texture2D, center: Vector2, tint: Color = Color.WHITE) -> void:
+	var size := texture.get_size()
+	if size.x <= 0.0 or size.y <= 0.0:
+		return
+	draw_texture_rect(texture, Rect2(center - size * 0.5, size), false, tint)
 
 func kind() -> String:
 	return str(active.get("kind", ""))
@@ -400,17 +415,43 @@ func _unhandled_input(event: InputEvent) -> void:
 func _draw() -> void:
 	if game == null: return
 	if earned.has("auto_turret"):
+		_draw_prop(OBJ_GENERATOR, game.GENERATOR_POS)
 		GUIDE.draw_icon(self,game.GENERATOR_POS,"relay",20.0,AMBER)
 		if shot_left > 0.0: draw_line(game.GENERATOR_POS,shot_to,AMBER,3.0)
+	if earned.has("floodlights"):
+		_draw_prop(OBJ_FLOODLIGHT, _walk(game.GENERATOR_POS + Vector2(180, -80)))
 	if earned.has("flamethrower"):
-		var point := _walk(Vector2(16,35)*game.TILE)
-		draw_arc(point,value("flame_radius"),0,TAU,24,Color(AMBER,0.3),5.0)
+		var flame_point := _walk(Vector2(16,35)*game.TILE)
+		_draw_prop(OBJ_FLAME_TRAP, flame_point)
+		draw_arc(flame_point,value("flame_radius"),0,TAU,24,Color(AMBER,0.3),5.0)
 	if active.is_empty(): return
 	var point: Vector2 = target()["pos"]
-	if kind() == "supplies":
-		for cache in game.supply_caches:
-			if not cache["collected"]: GUIDE.draw_icon(self,cache["pos"],"crate",25.0,AMBER)
-	else:
+	match kind():
+		"generator":
+			_draw_prop(OBJ_GENERATOR, point)
+		"supplies":
+			for cache in game.supply_caches:
+				if not cache["collected"]:
+					_draw_prop(OBJ_SUPPLY_CRATE, cache["pos"])
+					GUIDE.draw_icon(self,cache["pos"],"crate",25.0,AMBER)
+		"nest":
+			_draw_prop(OBJ_ZOMBIE_NEST, point)
+		"relay":
+			for relay_point in active["points"]:
+				_draw_prop(OBJ_RELAY_PAD, relay_point)
+		"fuel":
+			if bool(active["carrying"]):
+				_draw_prop(OBJ_GAS_CAN, game.player_pos + Vector2(0,-48))
+				_draw_prop(OBJ_FUEL_CACHE, active["points"][1])
+			else:
+				_draw_prop(OBJ_GAS_CAN, active["points"][0])
+				_draw_prop(OBJ_FUEL_CACHE, active["points"][1])
+		"lockdown":
+			for switch_point in active["points"]:
+				_draw_prop(OBJ_SWITCH_BOX, switch_point)
+		_:
+			pass
+	if kind() != "supplies":
 		GUIDE.draw_icon(self,point,str(target()["kind"]),25.0,AMBER)
 	if kind() in ["generator","relay"]:
 		draw_arc(point,value("interact_radius"),0,TAU,32,Color(AMBER,0.25),4.0)
