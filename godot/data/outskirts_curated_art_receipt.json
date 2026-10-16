@@ -1,0 +1,145 @@
+{
+  "schema": "DEADSHIFT_OUTSKIRTS_CURATED_ART_V1",
+  "submission_id": "curation-87da4d8fe04a862953b2bd9b",
+  "source_branch": "feature/asset-pipeline-step1",
+  "selected_count": 24,
+  "selected_assets": [
+    {
+      "asset": "out_motel_east",
+      "path": "art/outskirts/out_motel_east.png",
+      "git_blob": "6d3898bf377788c689304bfbeaa09a2f4dba1799"
+    },
+    {
+      "asset": "obj_fuel_cache",
+      "path": "art/objectives/obj_fuel_cache.png",
+      "git_blob": "a8ba9a70a65904b98566e1f1b579cc84641831ae"
+    },
+    {
+      "asset": "out_fence",
+      "path": "art/outskirts/out_fence.png",
+      "git_blob": "d526107ecf775384a689830ab4a7224af7220882"
+    },
+    {
+      "asset": "out_semi_trailer",
+      "path": "art/outskirts/out_semi_trailer.png",
+      "git_blob": "72427cabcb8e69a4ec62188f9740f5a6875dfb1c"
+    },
+    {
+      "asset": "out_canopy_roof",
+      "path": "art/outskirts/out_canopy_roof.png",
+      "git_blob": "700930edea4b4c45614569fb9cd4bec1d9588d12"
+    },
+    {
+      "asset": "obj_zombie_nest",
+      "path": "art/objectives/obj_zombie_nest.png",
+      "git_blob": "e39cf61d9efa025ddffe022fcc15c1c60a468e74"
+    },
+    {
+      "asset": "out_motel_north",
+      "path": "art/outskirts/out_motel_north.png",
+      "git_blob": "2d44643f53b6212c955886af5ad7fd594ea00794"
+    },
+    {
+      "asset": "out_barrels",
+      "path": "art/outskirts/out_barrels.png",
+      "git_blob": "789bc979896f9648c87b7ee2c3f051877541ccd4"
+    },
+    {
+      "asset": "obj_switch_box",
+      "path": "art/objectives/obj_switch_box.png",
+      "git_blob": "1454574e1264c2a0e0dab04418b04cad09e6b34a"
+    },
+    {
+      "asset": "obj_gas_can",
+      "path": "art/objectives/obj_gas_can.png",
+      "git_blob": "061cc740df31112f46f3ee0ff4e523c3e606864c"
+    },
+    {
+      "asset": "decal_acid",
+      "path": "art/decals/decal_acid.png",
+      "git_blob": "9311eba783c01ad43624a9a72c0126031f97d904"
+    },
+    {
+      "asset": "out_tanker_wreck",
+      "path": "art/outskirts/out_tanker_wreck.png",
+      "git_blob": "dabaa4a88c3b75e1586cff356223eb7c8bda3a37"
+    },
+    {
+      "asset": "obj_floodlight",
+      "path": "art/objectives/obj_floodlight.png",
+      "git_blob": "4d2fc0e48d1f716d76a891bdf4da79cc5e140953"
+    },
+    {
+      "asset": "out_pump_island",
+      "path": "art/outskirts/out_pump_island.png",
+      "git_blob": "48ff5324db386c220b570d00b6ad9f164778b771"
+    },
+    {
+      "asset": "out_diner",
+      "path": "art/outskirts/out_diner.png",
+      "git_blob": "b3b5a3cd57e9f2910b2dbc8277886751895b53c9"
+    },
+    {
+      "asset": "obj_relay_pad",
+      "path": "art/objectives/obj_relay_pad.png",
+      "git_blob": "694ca396f617be8dd6c3e4b62727d3a77378c915"
+    },
+    {
+      "asset": "decal_crack_b",
+      "path": "art/decals/decal_crack_b.png",
+      "git_blob": "09518ac9d4734dfe1de254e19494973ca66e0ba4"
+    },
+    {
+      "asset": "decal_goo",
+      "path": "art/decals/decal_goo.png",
+      "git_blob": "45980fd78e6ef2611b89e0ffc4139a781133682e"
+    },
+    {
+      "asset": "obj_flame_trap",
+      "path": "art/objectives/obj_flame_trap.png",
+      "git_blob": "6bb88ce7f98d1b95336da00607ce5683e8cc325d"
+    },
+    {
+      "asset": "decal_crack_a",
+      "path": "art/decals/decal_crack_a.png",
+      "git_blob": "095f8e5e4e7891715b2e8c0772993d9b0799e0bf"
+    },
+    {
+      "asset": "out_autoshop",
+      "path": "art/outskirts/out_autoshop.png",
+      "git_blob": "d3bef7efe970ceda9b6becad6cf009a02ab3345a"
+    },
+    {
+      "asset": "out_minimart",
+      "path": "art/outskirts/out_minimart.png",
+      "git_blob": "d3ce5c0ee5e0f65bc2e3a8a4522bdb104864ec36"
+    },
+    {
+      "asset": "obj_supply_crate",
+      "path": "art/objectives/obj_supply_crate.png",
+      "git_blob": "c7baf179488091203fc921cc4df3e688b7b66d9a"
+    },
+    {
+      "asset": "obj_generator",
+      "path": "art/objectives/obj_generator.png",
+      "git_blob": "c60751d2c35231d176aeb35021f4183447303295"
+    }
+  ],
+  "unselected_requested_assets": [
+    "out_barrier",
+    "decal_oil_a",
+    "decal_oil_b",
+    "tex_asphalt",
+    "tex_highway",
+    "tex_forecourt",
+    "tex_sidewalk",
+    "tex_gravel",
+    "tex_scrub",
+    "tex_grass"
+  ],
+  "notes": [
+    "Only explicit bulk-selected October 16 world candidates are installed.",
+    "Gameplay footprint/collision data is unchanged.",
+    "Existing approved art is not overwritten by selection transfer; PNGs are added under canonical world/objective/decal paths."
+  ]
+}
