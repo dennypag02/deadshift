@@ -14,7 +14,7 @@ GAME = next((p for p in (world.HERE.parent / '_game_reference/godot/scripts/outs
 
 class MergeTests(unittest.TestCase):
     def setUp(self):
-        self.base = world.load_yaml(world.HERE / 'assets.yaml')
+        self.base = world.load_yaml(world.HERE / 'tests/fixtures/assets_oct15.yaml')
         self.request = world.load_yaml(world.REQUEST)
         self.geometry = {'assets': {}}
 
@@ -137,9 +137,9 @@ class GeometryTests(unittest.TestCase):
         self.assertEqual(issues[1]['collision_tile_origin'], [22, 2])
 
     def test_readonly_audit_request_hash(self):
-        paths = [world.REQUEST, world.HERE / 'assets.yaml', GAME]
+        paths = [world.REQUEST, world.HERE / 'tests/fixtures/assets_oct15.yaml', GAME]
         before = [p.read_bytes() for p in paths]
-        merged, report = world.build_report(GAME)
+        merged, report = world.build_report(GAME, assets_path=world.HERE / 'tests/fixtures/assets_oct15.yaml')
         self.assertEqual(report['source']['request_sha256'], 'a97a1eb034ae2db0463912f9915344f774dcb24f90adc26dbe76b117f2928e04')
         self.assertEqual(report['source']['audited_gameplay_commit'], world.GAMEPLAY_SHA)
         self.assertEqual(report['target_changes_from_source'], [])
@@ -147,7 +147,7 @@ class GeometryTests(unittest.TestCase):
 
     def test_changed_geometry_updates_proposal_not_input(self):
         request = world.load_yaml(world.REQUEST)
-        base = {'categories': world.load_yaml(world.HERE / 'assets.yaml')['categories'], 'assets': []}
+        base = {'categories': world.load_yaml(world.HERE / 'tests/fixtures/assets_oct15.yaml')['categories'], 'assets': []}
         original = copy.deepcopy(request)
         text = self.text.replace('_tiles_rect(1, 8, 7, 6)', '_tiles_rect(1, 8, 7, 5)')
         merged, report = world.merge_proposal(base, request, world.measure_geometry(text))

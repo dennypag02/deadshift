@@ -64,6 +64,21 @@ categories:
     style: "(flat vector illustration:1.3), game UI icon, bold dark outlines, cel shaded, centered single object, slight 3/4 angle, high contrast, vibrant highlight color on muted rust and steel base, (isolated on plain white background:1.4)"
     negative: "photograph, photorealistic, 3D render, text, letters, numbers, frame, border, multiple objects, cropped, blurry, watermark, background scenery, red"
 
+  decals:
+    workflow: sprite
+    size:
+    - 1024
+    - 1024
+    target:
+      long_side: 384
+    count: 4
+    style: (flat vector illustration:1.3), 2D game decal, (top-down view:1.6), seen
+      from directly above, flat on the ground, irregular organic shape, soft natural
+      edges, cel shaded, muted palette, (isolated on plain white background:1.4)
+    negative: photograph, photorealistic, 3D render, side view, perspective, square,
+      rectangle, circle, perfect geometric shape, border, frame, objects, people, characters,
+      text, watermark, blurry, red
+
 assets:
   - {name: car_sedan, category: cars, prompt: "abandoned modern sedan, 2020s car design, sleek rounded body, panoramic glass roof, cracked windshield, dented roof, faded paint and rust patches"}
   - {name: car_suv, category: cars, prompt: "abandoned modern SUV, boxy shape, roof rails, tinted windows, sunroof, faded paint and rust patches"}
@@ -162,3 +177,20 @@ assets:
   - {name: icon_arsenal_floodlights, category: icons, seed_group: icons, prompt: "stadium floodlight lamp beaming bright light"}
   - {name: icon_arsenal_airstrike,   category: icons, seed_group: icons, prompt: "fighter jet silhouette dropping a bomb with a target reticle, amber"}
   - {name: icon_arsenal_nest_down,   category: icons, seed_group: icons, prompt: "destroyed organic zombie nest with a crossed-out mark, amber"}
+
+# October 16 world sprites: existing October 14-15 generator, no runner substitution.
+  - {name: obj_generator, category: debris, seed_group: objectives, target: {long_side: 256}, prompt: 'portable industrial diesel generator seen from above, rusted yellow housing, thick cables coiled beside it, fuel cap, warning stripes'}
+  - {name: obj_supply_crate, category: debris, seed_group: objectives, target: {long_side: 160}, prompt: 'military supply crate seen from above, olive green wooden box with metal corner brackets, stenciled star symbol, rope handles'}
+  - {name: obj_gas_can, category: debris, seed_group: objectives, target: {long_side: 112}, prompt: 'dented metal jerry can fuel container seen from above, scuffed yellow paint, handle on top'}
+  - {name: obj_fuel_cache, category: debris, seed_group: objectives, target: {long_side: 224}, prompt: 'volatile fuel cache seen from above, pile of leaking fuel drums and gas cans strapped together, hazard symbols, small oil puddle'}
+  - {name: obj_relay_pad, category: debris, seed_group: objectives, target: {long_side: 192}, prompt: 'round metal floor plate with a small radio antenna and an unlit signal lamp in the center, bolts around the edge, seen from above'}
+  - {name: obj_switch_box, category: debris, seed_group: objectives, target: {long_side: 128}, prompt: 'metal electrical switch box with a big lever, rusted panel, cables running out, seen from above'}
+  - {name: obj_zombie_nest, category: debris, seed_group: objectives, target: {long_side: 384}, negative_extra: 'red, blood', prompt: 'organic zombie infestation nest seen from above, mound of sickly green and purple flesh, pulsing sacs, tendrils spreading outward, glowing toxic green spots'}
+  - {name: obj_flame_trap, category: debris, seed_group: objectives, target: {long_side: 192}, prompt: 'makeshift flamethrower trap seen from above, propane tanks welded to a nozzle on a scrap metal frame, pilot light'}
+  - {name: obj_floodlight, category: debris, seed_group: objectives, target: {long_side: 192}, prompt: 'stadium floodlight tower base seen from above, square metal frame with four large round lamps, cables'}
+  - {name: decal_oil_a, category: decals, prompt: 'glossy black oil spill puddle, (shiny rainbow sheen highlights:1.3), wet look, splatter droplets around the edge'}
+  - {name: decal_oil_b, category: decals, prompt: 'long smeared black oil slick trail, (shiny rainbow sheen highlights:1.3), wet glossy look'}
+  - {name: decal_crack_a, category: decals, target: {long_side: 512}, prompt: 'patch of heavily cracked broken asphalt, deep jagged fractures, loose chunks, (brown-tinted cracks:1.2), dark gray'}
+  - {name: decal_crack_b, category: decals, target: {long_side: 512}, prompt: 'long branching crack running through asphalt, broken pieces, (brown-tinted cracks:1.2), dark gray'}
+  - {name: decal_goo, category: decals, target: {long_side: 256}, prompt: 'dark glossy olive green toxic goo puddle, thick and slimy, bubbles, wet highlights'}
+  - {name: decal_acid, category: decals, target: {long_side: 192}, prompt: 'small sizzling yellow-green acid puddle, bubbling, smoke wisps, glossy'}

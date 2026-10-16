@@ -1,0 +1,6 @@
+job_id: 20261016-oct15-world-05-out_motel_east
+asset: out_motel_east
+category: buildings
+positive: (flat vector illustration:1.3), 2D game sprite, cel shaded, bold dark outlines, (top-down view:1.6), seen from directly above, flat rooftop, sharp rectangular footprint, single building, muted palette of rust brown, olive green and dusty gray, warm golden hour light from top left, (isolated on plain white background:1.4), long narrow single-story motel roof running vertically, flat tar roof divided into a row of room sections, small rusted vent on each section, rooftop water heater, debris
+negative: photograph, photorealistic, realistic, 3D render, side view, front view, building facade, windows on walls, three-quarter view, isometric, perspective, horizon, sky, street, road, ground, grass, parking lot, cars, people, characters, zombies, multiple buildings, round building, irregular shape, red, sticker, border, frame, shadow on ground, text, letters, signage text, watermark, blurry
+count: 4
