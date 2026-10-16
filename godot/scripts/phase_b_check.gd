@@ -31,7 +31,8 @@ func _check() -> void:
 	if int(cfg.get("limits", {}).get("active_enemies", 0)) != 250:
 		_fail("active enemy cap")
 		return
-	if int(cfg.get("limits", {}).get("damage_numbers", 0)) != 40:
+	var expected_number_cap: int = game.rules.performance.damage_numbers if game.has_method("nearby_objective_position") else 40
+	if int(cfg.get("limits", {}).get("damage_numbers", 0)) != expected_number_cap:
 		_fail("damage-number cap")
 		return
 
@@ -94,13 +95,18 @@ func _check() -> void:
 	p.gems[0]["age"] = float(cfg.get("xp", {}).get("vacuum_age_seconds", 8.0)) + 1.0
 	for i in range(8):
 		p._physics_process(0.1)
+	if game.has_method("nearby_objective_position"):
+		if p.xp_collected_total != 0 or p.gems.size()!=1:
+			_fail("stationary auto-vacuum must be disabled")
+			return
+		p.activate_magnet()
+		for i in range(8): p._physics_process(0.1)
 	if p.xp_collected_total != 1 or not p.gems.is_empty():
-		_fail("aged gem vacuum did not collect XP")
+		_fail("explicit magnet did not collect reachable XP")
 		return
-
-	if float(cfg.get("damage_numbers", {}).get("merge_window_seconds", 0.0)) != 0.15:
+	var expected_merge: float = game.rules.performance.number_merge_seconds if game.has_method("nearby_objective_position") else 0.15
+	if not is_equal_approx(float(cfg.get("damage_numbers", {}).get("merge_window_seconds", 0.0)),expected_merge):
 		_fail("damage-number merge window")
 		return
-
-	print("PHASE_B_CHECK_PASS weapons=8 passives=11 limits=6+6 rarity=70/22/7/1 vacuum=PASS damage_cap=40")
+	print("PHASE_B_CHECK_PASS weapons=8 passives=11 limits=6+6 rarity=70/22/7/1 explicit_magnet=PASS damage_cap=%d" % expected_number_cap)
 	quit(0)

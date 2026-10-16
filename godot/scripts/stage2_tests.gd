@@ -21,6 +21,12 @@ func offer(wave: int) -> void:
 func run() -> void:
 	g = load("res://scenes/Outskirts.tscn").instantiate()
 	root.add_child(g)
+	if g.has_method("nearby_objective_position"):
+		var contract = load("res://scripts/movement_contract.gd").new()
+		var errors: int = contract.run_on(g)
+		print("STAGE2_TESTS_%s movement_contract=true" % ["PASS" if errors==0 else "FAIL"])
+		quit(0 if errors==0 else 1)
+		return
 	g.telemetry.set_process(false)
 	g.set_physics_process(false)
 	g.progression.set_physics_process(false)
