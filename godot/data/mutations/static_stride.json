@@ -1,0 +1,34 @@
+{
+  "id": "static_stride",
+  "name": "Static Stride",
+  "slot": "legs",
+  "tags": [
+    "shock"
+  ],
+  "effect_type": "passive_stat",
+  "levels": [
+    {
+      "charge_distance": 430,
+      "pulse_damage": 4,
+      "pulse_radius": 170,
+      "meter_cost": 10
+    },
+    {
+      "charge_distance": 380,
+      "pulse_damage": 6,
+      "pulse_radius": 190,
+      "meter_cost": 6
+    },
+    {
+      "charge_distance": 330,
+      "pulse_damage": 8,
+      "pulse_radius": 215,
+      "meter_cost": 6
+    }
+  ],
+  "visual": {
+    "layer": "legs",
+    "sprite": "static_stride"
+  },
+  "description": "Movement builds charge; full charge releases a shock pulse."
+}
