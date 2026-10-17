@@ -2,6 +2,14 @@
 
 Newest entries first. Do not delete historical entries.
 
+## 2026-10-16 — Milestone 2 validator array-type failure and fix
+
+- Signed APK run `38994519094` failed in the new DataRegistry test and timed out before legacy suites could complete.
+- The malformed-JSON check itself produced the expected clear `DATAREGISTRY_ERROR ... malformed_json` message.
+- The next missing-field probe called `validate_json_file` dynamically with a generic `Array`, while the validator parameter was declared `Array[String]`; Godot rejected the runtime type mismatch.
+- Changed only the validator's optional `required_fields` parameter to generic `Array`, preserving string field checks internally and allowing deterministic dynamic test calls.
+- No gameplay, map, combat, tuning, art, audio, collision, objective, or mutation behavior changed.
+
 ## 2026-10-16 — Milestone 2 CI typing failure and fix
 
 - Signed APK run `38994426266` failed before export in the regression step.
