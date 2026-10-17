@@ -60,8 +60,9 @@ func validate_json_file(path: String, required_fields: Array[String] = []) -> bo
 		_record_error(path, "invalid_root expected=object_or_array")
 		return false
 	if value is Dictionary:
+		var dictionary_value: Dictionary = value
 		for field in required_fields:
-			if not value.has(field):
+			if not dictionary_value.has(field):
 				_record_error(path, "missing_field field=%s" % field)
 				return false
 	records[path] = value
