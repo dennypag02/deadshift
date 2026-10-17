@@ -2,6 +2,14 @@
 
 Newest entries first. Do not delete historical entries.
 
+## 2026-10-16 — Milestone 2 CI typing failure and fix
+
+- Signed APK run `38994426266` failed before export in the regression step.
+- Existing approved-art/base-combat and silent-audio contract checks passed.
+- Failure was isolated to `godot/tests/data_registry_test.gd`: Godot 4.4.1 refused inferred types for dynamically instantiated test objects.
+- Fixed the test to use explicit `Script`, `Node`, `Array`, `int`, and `bool` types plus dynamic `call/get` access.
+- No runtime gameplay code, tuning, art, collision, audio, or mutation behavior changed.
+
 ## 2026-10-16 — Milestone 2 data and event backbone
 
 - Owner approved Milestone 1; PR #30 merged into the Stage 2 gameplay baseline as `758cfaecc0b919d4058465438828e5952a965148`.
