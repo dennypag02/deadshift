@@ -1,0 +1,37 @@
+{
+  "id": "acid_treads",
+  "name": "Acid Treads",
+  "slot": "legs",
+  "tags": [
+    "acid"
+  ],
+  "effect_type": "trail",
+  "levels": [
+    {
+      "damage": 2,
+      "interval": 0.45,
+      "radius": 58,
+      "duration": 2,
+      "meter_cost": 10
+    },
+    {
+      "damage": 3,
+      "interval": 0.38,
+      "radius": 68,
+      "duration": 2.4,
+      "meter_cost": 6
+    },
+    {
+      "damage": 4,
+      "interval": 0.32,
+      "radius": 78,
+      "duration": 2.8,
+      "meter_cost": 6
+    }
+  ],
+  "visual": {
+    "layer": "legs",
+    "sprite": "acid_treads"
+  },
+  "description": "Moving leaves short-lived acid trail zones."
+}
