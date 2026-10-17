@@ -7,6 +7,11 @@ run/main_scene="res://scenes/Outskirts.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/description="Deadshift Gas Station Outskirts tutorial district prototype"
 
+[autoload]
+DataRegistry="*res://autoload/data_registry.gd"
+EventBus="*res://autoload/event_bus.gd"
+RunState="*res://autoload/run_state.gd"
+
 [display]
 window/size/viewport_width=432
 window/size/viewport_height=960
