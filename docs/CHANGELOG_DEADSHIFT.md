@@ -2,6 +2,14 @@
 
 Newest entries first. Do not delete historical entries.
 
+## 2026-10-17 — Milestone 3 standalone-test autoload compile failure and fix
+
+- Signed APK run `39025884327` failed before export in the new mutation-manager test.
+- `DataRegistry` passed, and the MutationManager autoload itself loaded all 15 starter definitions successfully (`MUTATION_DATA_READY count=15`).
+- Failure was limited to the standalone `--script` test compiler not resolving the `MutationManager` global identifier.
+- Updated the test harness to retrieve `MutationManager` and `RunState` dynamically from the SceneTree root, matching the proven Milestone 2 standalone-test pattern.
+- No mutation rules, gameplay behavior, tuning, art, audio, collision or map code changed in this fix.
+
 ## 2026-10-17 — Milestone 3 mutation progression implementation
 
 - Owner phone-tested Milestone 2 and confirmed it felt exactly the same; PR #31 merged as `b77ce885317726ebfa553d18075ef95de41d9515`.
