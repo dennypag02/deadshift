@@ -11,6 +11,7 @@ config/description="Deadshift Gas Station Outskirts tutorial district prototype"
 DataRegistry="*res://autoload/data_registry.gd"
 EventBus="*res://autoload/event_bus.gd"
 RunState="*res://autoload/run_state.gd"
+MutationManager="*res://autoload/mutation_manager.gd"
 
 [display]
 window/size/viewport_width=432
