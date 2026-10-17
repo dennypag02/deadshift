@@ -1,0 +1,37 @@
+{
+  "id": "tesla_knuckles",
+  "name": "Tesla Knuckles",
+  "slot": "arms",
+  "tags": [
+    "shock"
+  ],
+  "effect_type": "on_hit",
+  "levels": [
+    {
+      "damage": 4,
+      "trigger_every": 4,
+      "chains": 3,
+      "chain_range": 230,
+      "meter_cost": 10
+    },
+    {
+      "damage": 6,
+      "trigger_every": 4,
+      "chains": 4,
+      "chain_range": 250,
+      "meter_cost": 6
+    },
+    {
+      "damage": 8,
+      "trigger_every": 3,
+      "chains": 5,
+      "chain_range": 275,
+      "meter_cost": 6
+    }
+  ],
+  "visual": {
+    "layer": "arms",
+    "sprite": "tesla_knuckles"
+  },
+  "description": "Every fourth base-weapon hit releases chained shock damage."
+}

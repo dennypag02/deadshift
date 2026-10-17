@@ -1,0 +1,37 @@
+{
+  "id": "grafted_flamer",
+  "name": "Grafted Flamer",
+  "slot": "arms",
+  "tags": [
+    "fire"
+  ],
+  "effect_type": "aura",
+  "levels": [
+    {
+      "damage": 2,
+      "cooldown": 0.35,
+      "radius": 170,
+      "cone_degrees": 70,
+      "meter_cost": 10
+    },
+    {
+      "damage": 3,
+      "cooldown": 0.3,
+      "radius": 190,
+      "cone_degrees": 80,
+      "meter_cost": 6
+    },
+    {
+      "damage": 4,
+      "cooldown": 0.25,
+      "radius": 210,
+      "cone_degrees": 90,
+      "meter_cost": 6
+    }
+  ],
+  "visual": {
+    "layer": "arms",
+    "sprite": "grafted_flamer"
+  },
+  "description": "Short cone of fire in the survivor's aim direction."
+}

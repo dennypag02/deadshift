@@ -2,6 +2,44 @@
 
 Newest entries first. Do not delete historical entries.
 
+## 2026-10-17 — Milestone 3 legacy 4-second break contract replaced
+
+- Signed APK run `39026037611` passed DataRegistry, mutation-manager tests, the inherited tuning/splash-safety contract, and Stage 2 tests.
+- The retained performance suite then failed its old assertion that every wave automatically advances after a 4-second break.
+- Milestone 3 intentionally replaces that behavior with the approved 15-second between-wave mutation picker.
+- Updated the regression to require the mutation offer to open, hold the current wave while selection is active, close cleanly on Skip, unpause the game, and then advance to the next wave.
+- The regression was replaced with the new design contract rather than removed.
+- No mutation data, combat tuning, art, audio, collision or map behavior changed in this fix.
+
+## 2026-10-17 — Milestone 3 inherited-progression regression contract fix
+
+- Signed APK run `39025965538` passed DataRegistry and the complete mutation-manager acceptance test (`15 mutations / 5 slots / level 3 / replacement / 3 offers`).
+- The retained Stage 2 tuning contract then failed because it required the active progression script path itself to end in `tuned_progression.gd`.
+- Milestone 3 correctly uses `mutation_progression.gd`, which inherits `tuned_progression.gd`; therefore the permitted explosive-splash safety hook remains installed.
+- Updated the regression contract to walk the script inheritance chain and require `tuned_progression.gd` anywhere in that chain, preserving the safety assertion instead of weakening it.
+- No gameplay, tuning, mutation data, art, audio, collision or map behavior changed in this fix.
+
+## 2026-10-17 — Milestone 3 standalone-test autoload compile failure and fix
+
+- Signed APK run `39025884327` failed before export in the new mutation-manager test.
+- `DataRegistry` passed, and the MutationManager autoload itself loaded all 15 starter definitions successfully (`MUTATION_DATA_READY count=15`).
+- Failure was limited to the standalone `--script` test compiler not resolving the `MutationManager` global identifier.
+- Updated the test harness to retrieve `MutationManager` and `RunState` dynamically from the SceneTree root, matching the proven Milestone 2 standalone-test pattern.
+- No mutation rules, gameplay behavior, tuning, art, audio, collision or map code changed in this fix.
+
+## 2026-10-17 — Milestone 3 mutation progression implementation
+
+- Owner phone-tested Milestone 2 and confirmed it felt exactly the same; PR #31 merged as `b77ce885317726ebfa553d18075ef95de41d9515`.
+- Added the 15 starter mutations from the approved spec as one JSON file per mutation: three each for arms, legs, torso, back and head.
+- Added `MutationManager` with five-slot ownership, three random offers, max level 3, replacement behavior, tag counting and the eight approved generic effect types.
+- Kept the prototype Scrap SMG as the mutation-free starting attack, matching the spec's explicit first-run rule.
+- Replaced XP-driven weapon/passive choices with between-wave mutation offers. XP and player level remain for existing difficulty scaling and telemetry only.
+- Added a 15-second between-wave picker with Skip and two-tap replacement confirmation.
+- Added placeholder gameplay visuals, allied crawler placeholders, and the five tag-count HUD pills. Production mutation art remains deferred to Milestone 8.
+- Mutation effects emit `hit_landed` with their tags; persistent statuses, tag-stack bonuses, combos, mutation meter and fusion are intentionally not implemented before their later milestones.
+- Added deterministic tests for 15 definitions, 5 slots, level 1–3, replacement, dual-tag counts and 3-offer generation.
+- Extended signed Android CI to run the mutation tests while retaining all Stage 2 regression suites.
+
 ## 2026-10-16 — Milestone 2 stale APK asset assertion and fix
 
 - Signed APK run `38994808724` passed Godot import, DataRegistry validation, all seven legacy regression suites, and APK export.

@@ -1,0 +1,14 @@
+{
+  "id": "ember_eyes",
+  "name": "Ember Eyes",
+  "slot": "head",
+  "tags": ["fire"],
+  "effect_type": "projectile",
+  "levels": [
+    {"damage": 4, "cooldown": 1.5, "count": 1, "range": 620, "meter_cost": 10},
+    {"damage": 6, "cooldown": 1.2, "count": 1, "range": 660, "meter_cost": 6},
+    {"damage": 8, "cooldown": 0.9, "count": 2, "range": 700, "meter_cost": 6}
+  ],
+  "visual": {"layer": "head", "sprite": "ember_eyes"},
+  "description": "Auto-targets the nearest zombie with fire-tagged bolts."
+}

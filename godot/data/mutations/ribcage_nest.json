@@ -1,0 +1,14 @@
+{
+  "id": "ribcage_nest",
+  "name": "Ribcage Nest",
+  "slot": "torso",
+  "tags": ["swarm", "bone"],
+  "effect_type": "summon",
+  "levels": [
+    {"cooldown": 6.0, "count": 1, "crawler_damage": 2, "crawler_speed": 145, "crawler_lifetime": 12, "max_crawlers": 3, "meter_cost": 10},
+    {"cooldown": 5.0, "count": 1, "crawler_damage": 3, "crawler_speed": 160, "crawler_lifetime": 14, "max_crawlers": 4, "meter_cost": 6},
+    {"cooldown": 4.0, "count": 2, "crawler_damage": 4, "crawler_speed": 175, "crawler_lifetime": 15, "max_crawlers": 5, "meter_cost": 6}
+  ],
+  "visual": {"layer": "torso", "sprite": "ribcage_nest"},
+  "description": "Armored crawlers emerge from the survivor at intervals."
+}

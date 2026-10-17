@@ -1,0 +1,14 @@
+{
+  "id": "acid_glands",
+  "name": "Acid Glands",
+  "slot": "torso",
+  "tags": ["acid"],
+  "effect_type": "on_hit",
+  "levels": [
+    {"damage": 4, "trigger": "player_damaged", "cooldown": 3.0, "radius": 145, "meter_cost": 10},
+    {"damage": 6, "trigger": "player_damaged", "cooldown": 2.5, "radius": 165, "meter_cost": 6},
+    {"damage": 8, "trigger": "player_damaged", "cooldown": 2.0, "radius": 185, "meter_cost": 6}
+  ],
+  "visual": {"layer": "torso", "sprite": "acid_glands"},
+  "description": "Taking damage sprays acid around the survivor."
+}
