@@ -1,0 +1,14 @@
+{
+  "id": "capacitor_hump",
+  "name": "Capacitor Hump",
+  "slot": "back",
+  "tags": ["shock", "fire"],
+  "effect_type": "aura",
+  "levels": [
+    {"damage": 5, "cooldown": 6.0, "radius": 185, "meter_cost": 10},
+    {"damage": 7, "cooldown": 5.0, "radius": 210, "meter_cost": 6},
+    {"damage": 9, "cooldown": 4.0, "radius": 235, "meter_cost": 6}
+  ],
+  "visual": {"layer": "back", "sprite": "capacitor_hump"},
+  "description": "Periodic blast carries both shock and fire tags."
+}
