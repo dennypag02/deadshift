@@ -45,7 +45,7 @@ func _scan_directory(path: String) -> void:
 			validate_json_file(child)
 	directory.list_dir_end()
 
-func validate_json_file(path: String, required_fields: Array[String] = []) -> bool:
+func validate_json_file(path: String, required_fields: Array = []) -> bool:
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		_record_error(path, "file_unavailable:%s" % error_string(FileAccess.get_open_error()))
