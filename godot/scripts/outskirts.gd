@@ -449,6 +449,8 @@ func _setup_objectives() -> void:
 
 func _start_wave(next_wave: int) -> void:
 	wave = next_wave
+	RunState.wave_number = wave
+	EventBus.wave_started.emit({"wave":wave})
 	if telemetry != null: telemetry.event("wave_start",{"duration_s":_wave_duration(),"carried_enemies":enemies.size()})
 	wave_damage_taken = 0
 	wave_min_hp = player_hp
@@ -521,9 +523,9 @@ func _finish_wave() -> void:
 		_try_unlock_district()
 		if run_log != null: run_log.finish("final_stand_survived")
 		return
-	break_clock=float(progression.config.get("pacing",{}).get("break_seconds",4.0))
-	banner.text="WAVE %d CLEARED - NEXT WAVE IN %.0f" % [wave,break_clock]
-	if wave>=2 and phase_ui!=null: phase_ui.queue_upgrade_crate()
+	break_clock=0.0
+	banner.text="WAVE %d CLEARED - CHOOSE A MUTATION" % wave
+	MutationManager.begin_between_wave_offer(wave)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if events != null and events.aiming: return
@@ -899,7 +901,9 @@ func _update_bullets(delta: float) -> void:
 				var bullet_mult := float(bullet.get("damage_mult", 1.0))
 				var raw_damage: float = float(bullet_damage) * bullet_mult * (progression.damage_multiplier() if progression != null else 1.0)
 				var crit: bool = progression.roll_crit() if progression != null else false
+				var hit_position := Vector2(enemy["pos"])
 				var killed := phase_b_damage_enemy(j, raw_damage, crit, "bullet")
+				EventBus.hit_landed.emit({"source":"base_weapon","tags":[],"position":hit_position,"damage":raw_damage,"crit":crit})
 				if not killed and j < enemies.size() and str(enemies[j]["kind"]) == "trucker":
 					enemies[j]["charge"] = 1.1
 				var knockback := float(bullet.get("knockback", 0.0))
@@ -1664,6 +1668,7 @@ func _phase_a_kill_enemy(index: int) -> void:
 		return
 	var enemy: Dictionary = enemies[index]
 	var kind := str(enemy["kind"])
+	EventBus.zombie_killed.emit({"uid":int(enemy.get("uid",-1)),"kind":kind,"position":Vector2(enemy["pos"]),"elite":bool(enemy.get("elite",false))})
 	if bool(enemy.get("elite", false)):
 		transient_pool.push(powerups,"powerups",{"pos": Vector2(enemy["pos"]), "kind": "Chest", "age": 0.0},30)
 		if progression != null:
