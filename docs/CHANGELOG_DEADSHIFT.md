@@ -2,6 +2,15 @@
 
 Newest entries first. Do not delete historical entries.
 
+## 2026-10-17 — Milestone 3 legacy 4-second break contract replaced
+
+- Signed APK run `39026037611` passed DataRegistry, mutation-manager tests, the inherited tuning/splash-safety contract, and Stage 2 tests.
+- The retained performance suite then failed its old assertion that every wave automatically advances after a 4-second break.
+- Milestone 3 intentionally replaces that behavior with the approved 15-second between-wave mutation picker.
+- Updated the regression to require the mutation offer to open, hold the current wave while selection is active, close cleanly on Skip, unpause the game, and then advance to the next wave.
+- The regression was replaced with the new design contract rather than removed.
+- No mutation data, combat tuning, art, audio, collision or map behavior changed in this fix.
+
 ## 2026-10-17 — Milestone 3 inherited-progression regression contract fix
 
 - Signed APK run `39025965538` passed DataRegistry and the complete mutation-manager acceptance test (`15 mutations / 5 slots / level 3 / replacement / 3 offers`).
