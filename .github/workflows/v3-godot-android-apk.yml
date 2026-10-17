@@ -136,7 +136,13 @@ jobs:
           for name in zombie_shambler zombie_runner zombie_spitter zombie_elite zombie_bloater zombie_brute mech_miniboss; do
             grep -q "${name}.png" build/evidence/apk-contents.txt
           done
-          for name in out_diner out_minimart out_motel_north out_motel_east out_autoshop out_canopy_roof out_semi_trailer out_pump_island out_barrels out_fence out_tanker_wreck obj_generator obj_supply_crate obj_gas_can obj_fuel_cache obj_relay_pad obj_switch_box obj_zombie_nest obj_flame_trap obj_floodlight decal_crack_a decal_crack_b decal_goo decal_acid; do
+          # Six whole-building PNG candidates were explicitly rejected in PR #29 and
+          # restored to SVG placeholders. Verify their canonical basenames regardless
+          # of Godot's imported resource extension, then verify promoted PNG assets.
+          for name in out_diner out_minimart out_motel_north out_motel_east out_autoshop out_canopy; do
+            grep -q "${name}" build/evidence/apk-contents.txt
+          done
+          for name in out_semi_trailer out_pump_island out_barrels out_fence out_tanker_wreck obj_generator obj_supply_crate obj_gas_can obj_fuel_cache obj_relay_pad obj_switch_box obj_zombie_nest obj_flame_trap obj_floodlight decal_crack_a decal_crack_b decal_goo decal_acid; do
             grep -q "${name}.png" build/evidence/apk-contents.txt
           done
           "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print "$APK" > build/evidence/AndroidManifest.xml
