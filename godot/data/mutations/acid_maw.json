@@ -1,0 +1,14 @@
+{
+  "id": "acid_maw",
+  "name": "Acid Maw",
+  "slot": "head",
+  "tags": ["acid"],
+  "effect_type": "projectile",
+  "levels": [
+    {"damage": 8, "cooldown": 1.2, "pool_radius": 40, "pool_duration": 2.5, "range": 560, "meter_cost": 10},
+    {"damage": 12, "cooldown": 1.0, "pool_radius": 55, "pool_duration": 3.0, "range": 600, "meter_cost": 6},
+    {"damage": 16, "cooldown": 0.8, "pool_radius": 70, "pool_duration": 3.5, "range": 640, "meter_cost": 6}
+  ],
+  "visual": {"layer": "head", "sprite": "acid_maw"},
+  "description": "Spit acid that leaves a damaging pool."
+}
