@@ -5,6 +5,8 @@ var firing_source := "facing_weapon"
 
 func _ready() -> void:
 	super._ready()
+	MutationManager.reset_run()
+	MutationManager.bind_game(self)
 	rules.fairness.pump_warning_seconds = float(tuning.pumps.warning_seconds)
 	rules.source_labels["player_pump_explosion"] = "Pump explosion"
 	rules.source_labels["player_barrel_explosion"] = "Barrel explosion"
@@ -140,12 +142,25 @@ func _physics_process(delta: float) -> void:
 
 func _setup_ui() -> void:
 	super._setup_ui()
-	# Swap progression before any physics or input, preserving the existing HUD/card wiring.
+	# Keep XP/level telemetry and the base SMG, but remove the old weapon/passive
+	# selection loop. Mutation choices are owned by MutationManager between waves.
 	var old: Node = progression
 	remove_child(old)
 	old.queue_free()
-	progression = preload("res://scripts/tuned_progression.gd").new()
+	progression = preload("res://scripts/mutation_progression.gd").new()
 	progression.game = self
 	add_child(progression)
 	phase_ui.progression = progression
-	progression.level_up_requested.connect(phase_ui._show_choices)
+
+	var mutation_layer := CanvasLayer.new()
+	mutation_layer.layer = 20
+	add_child(mutation_layer)
+
+	var tag_hud := Control.new()
+	tag_hud.set_script(load("res://scripts/mutation_hud.gd"))
+	mutation_layer.add_child(tag_hud)
+
+	var picker := Control.new()
+	picker.set_script(load("res://scripts/mutation_picker.gd"))
+	picker.set("game", self)
+	mutation_layer.add_child(picker)
