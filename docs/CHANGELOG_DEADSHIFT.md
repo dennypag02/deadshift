@@ -2,6 +2,19 @@
 
 Newest entries first. Do not delete historical entries.
 
+## 2026-10-17 — Milestone 3 mutation progression implementation
+
+- Owner phone-tested Milestone 2 and confirmed it felt exactly the same; PR #31 merged as `b77ce885317726ebfa553d18075ef95de41d9515`.
+- Added the 15 starter mutations from the approved spec as one JSON file per mutation: three each for arms, legs, torso, back and head.
+- Added `MutationManager` with five-slot ownership, three random offers, max level 3, replacement behavior, tag counting and the eight approved generic effect types.
+- Kept the prototype Scrap SMG as the mutation-free starting attack, matching the spec's explicit first-run rule.
+- Replaced XP-driven weapon/passive choices with between-wave mutation offers. XP and player level remain for existing difficulty scaling and telemetry only.
+- Added a 15-second between-wave picker with Skip and two-tap replacement confirmation.
+- Added placeholder gameplay visuals, allied crawler placeholders, and the five tag-count HUD pills. Production mutation art remains deferred to Milestone 8.
+- Mutation effects emit `hit_landed` with their tags; persistent statuses, tag-stack bonuses, combos, mutation meter and fusion are intentionally not implemented before their later milestones.
+- Added deterministic tests for 15 definitions, 5 slots, level 1–3, replacement, dual-tag counts and 3-offer generation.
+- Extended signed Android CI to run the mutation tests while retaining all Stage 2 regression suites.
+
 ## 2026-10-16 — Milestone 2 stale APK asset assertion and fix
 
 - Signed APK run `38994808724` passed Godot import, DataRegistry validation, all seven legacy regression suites, and APK export.
