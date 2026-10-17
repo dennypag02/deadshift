@@ -2,6 +2,13 @@
 
 Newest entries first. Do not delete historical entries.
 
+## 2026-10-16 — Milestone 2 stale APK asset assertion and fix
+
+- Signed APK run `38994808724` passed Godot import, DataRegistry validation, all seven legacy regression suites, and APK export.
+- It then failed only in package-content verification because the workflow still expected six whole-building PNGs that PR #29 had explicitly rejected and replaced with SVG placeholders.
+- Updated the verifier to require the current canonical placeholder basenames for diner, minimart, motel north/east, auto shop, and canopy while continuing to require promoted PNGs for the remaining Outskirts/objective/decal assets.
+- This is a CI-evidence correction to match the already-approved Stage 2 baseline; no game resource, gameplay code, tuning, collision, art selection, audio, objective, or mutation behavior changed.
+
 ## 2026-10-16 — Milestone 2 validator array-type failure and fix
 
 - Signed APK run `38994519094` failed in the new DataRegistry test and timed out before legacy suites could complete.
