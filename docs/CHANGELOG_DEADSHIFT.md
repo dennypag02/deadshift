@@ -2,6 +2,14 @@
 
 Newest entries first. Do not delete historical entries.
 
+## 2026-10-17 — Milestone 3 inherited-progression regression contract fix
+
+- Signed APK run `39025965538` passed DataRegistry and the complete mutation-manager acceptance test (`15 mutations / 5 slots / level 3 / replacement / 3 offers`).
+- The retained Stage 2 tuning contract then failed because it required the active progression script path itself to end in `tuned_progression.gd`.
+- Milestone 3 correctly uses `mutation_progression.gd`, which inherits `tuned_progression.gd`; therefore the permitted explosive-splash safety hook remains installed.
+- Updated the regression contract to walk the script inheritance chain and require `tuned_progression.gd` anywhere in that chain, preserving the safety assertion instead of weakening it.
+- No gameplay, tuning, mutation data, art, audio, collision or map behavior changed in this fix.
+
 ## 2026-10-17 — Milestone 3 standalone-test autoload compile failure and fix
 
 - Signed APK run `39025884327` failed before export in the new mutation-manager test.
