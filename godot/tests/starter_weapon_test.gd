@@ -16,6 +16,9 @@ func _run() -> void:
 	if p.weapons.size() != 1 or int(p.weapons.get("boomstick",0)) != 1 or p.weapons.has("scrap_smg"):
 		_fail("starting_inventory_not_boomstick_only")
 		return
+	if p.weapons.size() > int(cfg.get("limits",{}).get("weapons",6)):
+		_fail("starter_does_not_count_toward_weapon_limit")
+		return
 	var options: Array[String] = p._eligible_options()
 	if not options.has("scrap_smg") or not options.has("boomstick"):
 		_fail("starter_or_previous_weapon_missing_from_card_pool")
