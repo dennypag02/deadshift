@@ -141,6 +141,8 @@ func _record() -> void:
 						break
 				game.telemetry.event("upgrade_choice", {"id":game.phase_ui.current_choices[selected], "offered":game.phase_ui.current_choices,"hp":game.player_hp})
 				game.phase_ui._pick(selected)
+				card_frames = 0
+				picking = false
 		else:
 			card_frames = 0
 			picking = false
@@ -196,6 +198,20 @@ func _record() -> void:
 				if distance < avoidance_radius and distance > 0.1:
 					repulsion += away.normalized() * pow(1.0 - distance / avoidance_radius, 2.0) * avoidance_weight
 			desired = (desired + repulsion).normalized()
+			# Model an ordinary active player for facing-direction weapons: when a
+			# threat is at a safe firing distance, briefly turn into it instead of
+			# permanently kiting with the muzzle pointed away. At close range the
+			# existing repulsion/evasion remains dominant.
+			var nearest_enemy_dir := Vector2.ZERO
+			var nearest_enemy_distance := INF
+			for enemy in game.enemies:
+				var offset: Vector2 = Vector2(enemy["pos"]) - Vector2(game.player_pos)
+				var distance := offset.length()
+				if distance < nearest_enemy_distance:
+					nearest_enemy_distance = distance
+					nearest_enemy_dir = offset.normalized()
+			if nearest_enemy_distance >= 170.0 and nearest_enemy_distance <= 480.0:
+				desired = (desired * 0.40 + nearest_enemy_dir * 0.60).normalized()
 			for angle in [0.0, 0.55, -0.55, 1.1, -1.1, 1.65, -1.65, PI]:
 				var test := desired.rotated(angle)
 				if not game._circle_hits_blocker(Vector2(game.player_pos) + test * 65.0, game.PLAYER_RADIUS):
