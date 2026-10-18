@@ -195,8 +195,8 @@
       "max_level": 5,
       "description": "Punchy facing-direction shotgun with light aim assist and knockback",
       "base_pellets": 6,
-      "base_damage": 1,
-      "base_knockback": 55,
+      "base_damage": 3,
+      "base_knockback": 80,
       "base_cone_step": 0.105,
       "level_adds": [
         "Unlock shotgun cone",
@@ -205,8 +205,8 @@
         "Wider cone",
         "+2 pellets / knockback ×2"
       ],
-      "base_fire_period": 0.9,
-      "base_range_pixels": 400,
+      "base_fire_period": 0.8,
+      "base_range_pixels": 420,
       "aim_assist_degrees": 45
     },
     "molotov": {
