@@ -40,6 +40,15 @@ func shot(position: Vector2, direction: Vector2) -> void:
 	if effects.size() < 80:
 		emit("casing",position+direction*20.0,direction.orthogonal(),J.CASING_LIFE)
 
+func shotgun_shot(position: Vector2, direction: Vector2) -> void:
+	# Stronger visual kick than the automatic starter: still intentionally brief
+	# so it reads as punch without making mobile aiming uncomfortable.
+	emit("muzzle",position+direction*38.0,direction,J.MUZZLE_LIFE*1.35)
+	if effects.size() < 80:
+		emit("casing",position+direction*22.0,direction.orthogonal(),J.CASING_LIFE*1.35)
+	shake_clock = maxf(shake_clock,0.10)
+	shake_strength = maxf(shake_strength,4.0)
+
 func hit(position: Vector2, direction: Vector2) -> void:
 	emit("hit",position,direction,J.HIT_FLASH_LIFE)
 	for i in range(J.BLOOD_DROPLETS):
