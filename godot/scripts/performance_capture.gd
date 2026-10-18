@@ -197,6 +197,18 @@ func _record() -> void:
 				var distance := away.length()
 				if distance < avoidance_radius and distance > 0.1:
 					repulsion += away.normalized() * pow(1.0 - distance / avoidance_radius, 2.0) * avoidance_weight
+			# A normal moving player avoids visible telegraphs and active damaging
+			# zones. This affects only the scripted evidence driver, not gameplay.
+			for hazard in game.stage1_hazards:
+				var kind := str(hazard.get("kind",""))
+				if kind not in ["acid_warning","acid","pump_warning","fire"]:
+					continue
+				var hazard_pos := Vector2(hazard.get("pos",game.player_pos))
+				var safe_radius := float(hazard.get("radius",80.0)) + 150.0
+				var away := Vector2(game.player_pos) - hazard_pos
+				var distance := away.length()
+				if distance < safe_radius and distance > 0.1:
+					repulsion += away.normalized() * pow(1.0 - distance / safe_radius, 2.0) * 7.0
 			desired = (desired + repulsion).normalized()
 			# Model an ordinary active player for facing-direction weapons: when a
 			# threat is at a safe firing distance, briefly turn into it instead of
