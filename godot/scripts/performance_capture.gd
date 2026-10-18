@@ -111,7 +111,8 @@ func _stress() -> void:
 func _record() -> void:
 	game.capture_mode = false # Drive ordinary input; no capture-mode revivals or forced deaths.
 	game.phase_ui.capture_mode = false # Script chooses only normally offered cards below.
-	game.phase_ui._start_capture_title()
+	if OS.get_environment("DEADSHIFT_SKIP_CAPTURE_TITLE") != "1":
+		game.phase_ui._start_capture_title()
 	game.phase_ui.god_mode = false
 	game.guidance.disabled_for_test = false
 	game.rng.seed = capture_seed
@@ -122,6 +123,7 @@ func _record() -> void:
 	var picking := false
 	var saved_gameplay := false
 	var deaths := 0
+	var stationary := OS.get_environment("DEADSHIFT_CAPTURE_STATIONARY") == "1"
 	for frame in range(12000):
 		await process_frame
 		if game.phase_ui.panel.visible and not game.phase_ui.current_choices.is_empty():
@@ -199,6 +201,8 @@ func _record() -> void:
 				if not game._circle_hits_blocker(Vector2(game.player_pos) + test * 65.0, game.PLAYER_RADIUS):
 					desired = test
 					break
+			if stationary:
+				desired = Vector2.ZERO
 			game.touch_active = true
 			game.touch_origin = Vector2.ZERO
 			game.touch_position = desired * 90.0
@@ -213,7 +217,7 @@ func _record() -> void:
 		if game.run_clock >= target_seconds or death_frames >= 90:
 			break
 	game.run_log.finish("death" if deaths > 0 else "capture_complete")
-	var report := {"seed":capture_seed,"requested_active_seconds":target_seconds,"run_log_directory":game.run_log.directory,"recording": "desktop scripted input, normal damage, god mode OFF; fixed-FPS/offline capture is not a performance benchmark", "gameplay_seconds": game.run_clock, "level": game.progression.level, "hp": game.player_hp, "kills": game.kills, "deaths": deaths, "level_up_times": game.progression.level_times, "active_seconds":game.telemetry.active_seconds, "wall_seconds":game.telemetry.wall_seconds, "explicit_pause_seconds":game.telemetry.pause_seconds}
+	var report := {"seed":capture_seed,"requested_active_seconds":target_seconds,"run_log_directory":game.run_log.directory,"recording": "desktop scripted input, normal damage, god mode OFF; fixed-FPS/offline capture is not a performance benchmark", "stationary":stationary, "gameplay_seconds": game.run_clock, "wave":game.wave, "level": game.progression.level, "hp": game.player_hp, "kills": game.kills, "deaths": deaths, "level_up_times": game.progression.level_times, "active_seconds":game.telemetry.active_seconds, "wall_seconds":game.telemetry.wall_seconds, "explicit_pause_seconds":game.telemetry.pause_seconds}
 	FileAccess.open(output.path_join("playthrough.json"), FileAccess.WRITE).store_string(JSON.stringify(report, "  "))
 	print("FEEDBACK_RECORDING_COMPLETE ", JSON.stringify(report))
 	quit()
