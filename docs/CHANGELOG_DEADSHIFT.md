@@ -2,6 +2,21 @@
 
 Newest entries first. Do not delete historical entries.
 
+## 2026-10-17 — Milestone 3 playtest amendment: data-driven Boomstick starter
+
+- Owner playtested the Milestone 3 APK and approved the mutation feel, but reported the opening minutes remained too hard.
+- Changed only the starting-weapon path and Boomstick's own data; all non-Boomstick difficulty, enemy pressure/damage, XP pacing, hazards and wave numbers remain semantically unchanged.
+- Added `run.starting_weapon: "boomstick"` to `phase_a.json` and mirrored it in the fallback config. Progression now initializes its starting inventory from that data value rather than hardcoding Scrap SMG.
+- Boomstick LV1 starter data: 6 pellets, ~30 degree total spread, 0.9 s base fire period, ~400 px range, light knockback (55), 45 degree facing-cone aim assist.
+- Refactored the shared fire loop so Scrap SMG is emitted only when owned and Boomstick has its own fire clock. This prevents the old invisible-SMG shot and prevents Boomstick from inheriting the SMG's 0.3 s cadence.
+- Boomstick aim is based on the retained facing direction and may snap only to the nearest enemy inside the configured ~45 degree cone; stopping does not switch to full auto-aim.
+- Restored normal level-up weapon/passive cards alongside between-wave mutation offers. Boomstick occupies one normal weapon slot and can level from the first card offer; Scrap SMG is now an ordinary eligible weapon card.
+- Dragon's Breath evolution pairing remains Boomstick + Muscle with the same existing requirements.
+- Added stronger Boomstick muzzle/casing feedback and a brief light screen shake. No audio asset was added; the current silent-audio contract remains intact until the scheduled sound pass.
+- Added `starter_weapon_test.gd` plus CI checks for starter inventory, card eligibility, slot count, Boomstick data ranges, facing-cone aim assist and Dragon's Breath requirements.
+- Added a deterministic evidence workflow for three normal moving-player runs, a stationary anti-camping control and a 3-minute 720x1280 H.264 recording. The first capture attempt failed before gameplay because the X display was unavailable; capture infrastructure was changed to use isolated `xvfb-run` sessions.
+- Tightened `verify_mobile_contract.py` so only the explicitly approved starter/Boomstick fields are exempted; all other combat configuration and approved art remain frozen.
+
 ## 2026-10-17 — Milestone 3 legacy 4-second break contract replaced
 
 - Signed APK run `39026037611` passed DataRegistry, mutation-manager tests, the inherited tuning/splash-safety contract, and Stage 2 tests.
