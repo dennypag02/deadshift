@@ -1,0 +1,160 @@
+name: DeadShift Boomstick Balance Evidence
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - mutations/03-mutations-picker
+    paths:
+      - 'godot/**'
+      - '.github/workflows/boomstick-balance-capture.yml'
+permissions:
+  contents: read
+jobs:
+  balance-and-record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot and capture dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb ffmpeg libgl1-mesa-dri >/dev/null
+          curl -fL --retry 3 -o godot.zip https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip -q godot.zip
+          chmod +x Godot_v4.4.1-stable_linux.x86_64
+      - name: Strict Godot import
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p boomstick-evidence
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --audio-driver Dummy --path godot --editor --quit 2>&1 | tee boomstick-evidence/import.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|Shader compilation failed' boomstick-evidence/import.log
+      - name: Run three normal moving-player balance captures
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DEADSHIFT_OFFLINE_CAPTURE=1
+          export DEADSHIFT_SKIP_CAPTURE_TITLE=1
+          export GODOT_SILENCE_ROOT_WARNING=1
+          G=./Godot_v4.4.1-stable_linux.x86_64
+          seeds=(2026101701 2026101702 2026101703)
+          for i in 1 2 3; do
+            dir="$GITHUB_WORKSPACE/boomstick-evidence/run-$i"
+            mkdir -p "$dir"
+            export DEADSHIFT_EVIDENCE_DIR="$dir"
+            export DEADSHIFT_RUN_KIND="boomstick_balance_$i"
+            export DEADSHIFT_VALIDATION_SEED="${seeds[$((i-1))]}"
+            export DEADSHIFT_CAPTURE_SECONDS=480
+            unset DEADSHIFT_CAPTURE_STATIONARY
+            timeout 600s xvfb-run -a -s "-screen 0 720x1600x24 -ac +extension GLX +render -noreset" "$G" --audio-driver Dummy --path godot --script res://scripts/performance_capture.gd --rendering-driver opengl3 --fixed-fps 30 2>&1 | tee "$dir/run.log"
+            grep -q FEEDBACK_RECORDING_COMPLETE "$dir/run.log"
+            ! grep -E 'SCRIPT ERROR|Parse Error|Shader compilation failed' "$dir/run.log"
+          done
+      - name: Run stationary anti-camping capture
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DEADSHIFT_OFFLINE_CAPTURE=1
+          export DEADSHIFT_SKIP_CAPTURE_TITLE=1
+          export DEADSHIFT_CAPTURE_STATIONARY=1
+          export DEADSHIFT_CAPTURE_SECONDS=240
+          export DEADSHIFT_RUN_KIND=boomstick_stationary
+          export DEADSHIFT_VALIDATION_SEED=2026101799
+          export DEADSHIFT_EVIDENCE_DIR="$GITHUB_WORKSPACE/boomstick-evidence/stationary"
+          mkdir -p "$DEADSHIFT_EVIDENCE_DIR"
+          timeout 480s xvfb-run -a -s "-screen 0 720x1600x24 -ac +extension GLX +render -noreset" ./Godot_v4.4.1-stable_linux.x86_64 --audio-driver Dummy --path godot --script res://scripts/performance_capture.gd --rendering-driver opengl3 --fixed-fps 30 2>&1 | tee "$DEADSHIFT_EVIDENCE_DIR/run.log"
+          grep -q FEEDBACK_RECORDING_COMPLETE "$DEADSHIFT_EVIDENCE_DIR/run.log"
+      - name: Summarize and enforce balance targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+          root=Path("boomstick-evidence")
+          rows=[]
+          lines=["DeadShift Boomstick starter - three normal moving-player runs",""]
+          reached5=0
+          wave2_above50=0
+          for i in range(1,4):
+              d=root/f"run-{i}"
+              report=json.loads((d/"playthrough.json").read_text())
+              log=(d/"run.log").read_text(errors="replace")
+              minima={int(w):float(hp) for w,hp in re.findall(r"STAGE1_WAVE wave=(\d+) min_hp_pct=([0-9.]+)",log)}
+              death=re.search(r"STAGE1_RUN_END death_wave=(\d+).*?min_hp_pct=([0-9.]+)",log)
+              death_wave=int(death.group(1)) if death else None
+              death_min=float(death.group(2)) if death else None
+              if death_wave is not None:
+                  minima[death_wave]=min(minima.get(death_wave,100.0),death_min)
+              max_wave=max([report.get("wave",1),*minima.keys()])
+              if max_wave>=5: reached5+=1
+              if minima.get(2,100.0)>=50.0: wave2_above50+=1
+              row={"run":i,"seed":report["seed"],"end_wave":report.get("wave"),"death_wave":death_wave,"gameplay_seconds":report["gameplay_seconds"],"final_hp":report["hp"],"min_hp_pct_by_wave":minima}
+              rows.append(row)
+              min_text=", ".join(f"W{w}: {minima[w]:.1f}%" for w in sorted(minima))
+              lines.append(f"Run {i} (seed {report['seed']}): {min_text}; death wave: {death_wave if death_wave is not None else 'none'}; end wave: {report.get('wave')}")
+          stationary_report=json.loads((root/"stationary"/"playthrough.json").read_text())
+          stationary_log=(root/"stationary"/"run.log").read_text(errors="replace")
+          stationary_death=re.search(r"STAGE1_RUN_END death_wave=(\d+)",stationary_log)
+          stationary_wave=int(stationary_death.group(1)) if stationary_death else None
+          lines += ["",f"Stationary anti-camping check: death wave {stationary_wave if stationary_wave is not None else 'none'}."]
+          summary={"normal_runs":rows,"normal_runs_reaching_wave5_or_later":reached5,"normal_runs_wave2_min_hp_at_least_50":wave2_above50,"stationary_death_wave":stationary_wave}
+          (root/"balance-summary.json").write_text(json.dumps(summary,indent=2))
+          (root/"three-run-log.txt").write_text("\n".join(lines)+"\n")
+          print("\n".join(lines))
+          assert reached5>=2, f"Only {reached5}/3 normal runs reached wave 5+"
+          assert wave2_above50>=2, f"Only {wave2_above50}/3 normal runs stayed >=50% through wave 2"
+          assert stationary_wave is not None and stationary_wave<=3, f"Stationary anti-camping run did not die by wave 3: {stationary_wave}"
+          PY
+      - name: Record first three gameplay minutes
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DISPLAY=:99
+          export DEADSHIFT_OFFLINE_CAPTURE=1
+          export DEADSHIFT_SKIP_CAPTURE_TITLE=1
+          unset DEADSHIFT_CAPTURE_STATIONARY
+          export DEADSHIFT_CAPTURE_SECONDS=180
+          export DEADSHIFT_RUN_KIND=boomstick_recording
+          export DEADSHIFT_VALIDATION_SEED=2026101701
+          export DEADSHIFT_EVIDENCE_DIR="$GITHUB_WORKSPACE/boomstick-evidence/recording"
+          mkdir -p "$DEADSHIFT_EVIDENCE_DIR"
+          timeout 600s xvfb-run -a -s "-screen 0 720x1600x24 -ac +extension GLX +render -noreset" ./Godot_v4.4.1-stable_linux.x86_64 --audio-driver Dummy --path godot --script res://scripts/performance_capture.gd --rendering-driver opengl3 --fixed-fps 30 --write-movie "$DEADSHIFT_EVIDENCE_DIR/source.avi" 2>&1 | tee "$DEADSHIFT_EVIDENCE_DIR/run.log"
+          grep -q FEEDBACK_RECORDING_COMPLETE "$DEADSHIFT_EVIDENCE_DIR/run.log"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("boomstick-evidence/recording/playthrough.json").read_text())
+          assert r["deaths"]==0 and r["gameplay_seconds"]>=180, r
+          PY
+          ffmpeg -y -i "$DEADSHIFT_EVIDENCE_DIR/source.avi" -vf "scale=-2:1280,pad=720:1280:(ow-iw)/2:(oh-ih)/2:black" -c:v libx264 -preset fast -crf 22 -pix_fmt yuv420p -an -movflags +faststart boomstick-evidence/deadshift-boomstick-first-3min-720p.mp4 > boomstick-evidence/ffmpeg.log 2>&1
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height -of json boomstick-evidence/deadshift-boomstick-first-3min-720p.mp4 > boomstick-evidence/video.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          v=json.loads(Path("boomstick-evidence/video.json").read_text())
+          s=v["streams"][0]
+          assert s["codec_name"]=="h264"
+          assert s["width"]==720 and s["height"]==1280
+          assert float(v["format"]["duration"])>=180
+          print("VIDEO_720P_PASS",v["format"])
+          PY
+          rm -f "$DEADSHIFT_EVIDENCE_DIR/source.avi"
+          git rev-parse HEAD > boomstick-evidence/source-sha.txt
+          sha256sum boomstick-evidence/deadshift-boomstick-first-3min-720p.mp4 > boomstick-evidence/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deadshift-boomstick-balance-evidence
+          path: |
+            boomstick-evidence/**/*.log
+            boomstick-evidence/**/*.json
+            boomstick-evidence/**/*.jsonl
+            boomstick-evidence/**/*.txt
+            boomstick-evidence/*.json
+            boomstick-evidence/*.txt
+            boomstick-evidence/*.mp4
+          if-no-files-found: error
+          retention-days: 14

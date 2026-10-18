@@ -1,0 +1,77 @@
+name: DeadShift Windows Desktop Export
+on:
+  push:
+    branches:
+      - mutations/03-mutations-picker
+    paths:
+      - 'godot/**'
+      - '.github/workflows/windows-desktop-export.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot 4.4.1 and export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 -o godot.zip https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip -q godot.zip
+          chmod +x Godot_v4.4.1-stable_linux.x86_64
+          curl -fL --retry 3 -o templates.tpz https://github.com/godotengine/godot-builds/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable"
+          unzip -q templates.tpz -d templates
+          cp -r templates/templates/* "$HOME/.local/share/godot/export_templates/4.4.1.stable/"
+
+      - name: Strict import and regression smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/windows build/evidence
+          G=./Godot_v4.4.1-stable_linux.x86_64
+          "$G" --headless --audio-driver Dummy --path godot --editor --quit 2>&1 | tee build/evidence/import.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|Shader compilation failed' build/evidence/import.log
+          "$G" --headless --audio-driver Dummy --path godot --script res://tests/starter_weapon_test.gd 2>&1 | tee build/evidence/starter_weapon_test.log
+          grep -q STARTER_WEAPON_TEST_PASS build/evidence/starter_weapon_test.log
+
+      - name: Export Windows Desktop
+        shell: bash
+        run: |
+          set -euo pipefail
+          G=./Godot_v4.4.1-stable_linux.x86_64
+          "$G" --headless --path godot --export-release "Windows Desktop" "$GITHUB_WORKSPACE/build/windows/DeadShift.exe" 2>&1 | tee build/evidence/windows-export.log
+          test -s build/windows/DeadShift.exe
+          test -s build/windows/DeadShift.pck
+          file build/windows/DeadShift.exe | tee build/evidence/windows-file.txt
+          grep -q 'PE32+' build/evidence/windows-file.txt
+          sha256sum build/windows/DeadShift.exe build/windows/DeadShift.pck > build/evidence/SHA256SUMS.txt
+
+      - name: Package Windows build
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp README.md build/windows/README.txt 2>/dev/null || true
+          cd build/windows
+          zip -9 -r ../DeadShift-Windows.zip DeadShift.exe DeadShift.pck README.txt 2>/dev/null || zip -9 -r ../DeadShift-Windows.zip DeadShift.exe DeadShift.pck
+          cd ../..
+          test -s build/DeadShift-Windows.zip
+          sha256sum build/DeadShift-Windows.zip >> build/evidence/SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deadshift-windows-desktop
+          path: |
+            build/DeadShift-Windows.zip
+            build/windows/DeadShift.exe
+            build/windows/DeadShift.pck
+            build/evidence/windows-export.log
+            build/evidence/windows-file.txt
+            build/evidence/SHA256SUMS.txt
+          retention-days: 14

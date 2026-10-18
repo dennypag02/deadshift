@@ -1,0 +1,37 @@
+{
+  "id": "leaper_tendons",
+  "name": "Leaper Tendons",
+  "slot": "legs",
+  "tags": [
+    "bone"
+  ],
+  "effect_type": "dash",
+  "levels": [
+    {
+      "damage": 5,
+      "cooldown": 4,
+      "dash_distance": 150,
+      "landing_radius": 115,
+      "meter_cost": 10
+    },
+    {
+      "damage": 7,
+      "cooldown": 3.5,
+      "dash_distance": 180,
+      "landing_radius": 130,
+      "meter_cost": 6
+    },
+    {
+      "damage": 9,
+      "cooldown": 3,
+      "dash_distance": 210,
+      "landing_radius": 145,
+      "meter_cost": 6
+    }
+  ],
+  "visual": {
+    "layer": "legs",
+    "sprite": "leaper_tendons"
+  },
+  "description": "Periodic directional leap; landing sprouts a damaging bone-spike burst."
+}

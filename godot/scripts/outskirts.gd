@@ -166,6 +166,7 @@ var runners_spawned := 0
 var trucker_spawned := false
 var spawn_clock := 0.0
 var fire_clock := 0.0
+var boomstick_fire_clock := 0.0
 var health_spawn_clock := 18.0
 var health_available := false
 var district_cleared := false
@@ -254,12 +255,12 @@ func _load_curated_art() -> void:
 		if ResourceLoader.exists(pickup_paths[kind]):
 			curated_pickup_textures[kind] = load(pickup_paths[kind])
 
-func _draw_curated_texture(texture: Texture2D, center: Vector2, footprint: Vector2) -> void:
+func _draw_curated_texture(texture: Texture2D, center: Vector2, footprint: Vector2, tint: Color = Color.WHITE) -> void:
 	var dimensions := texture.get_size()
 	if dimensions.x <= 0 or dimensions.y <= 0:
 		return
 	var size := dimensions * minf(footprint.x / dimensions.x, footprint.y / dimensions.y)
-	draw_texture_rect(texture, Rect2(center - size * 0.5, size), false)
+	draw_texture_rect(texture, Rect2(center - size * 0.5, size), false, tint)
 
 func _force_silent_audio() -> void:
 	var master_bus := AudioServer.get_bus_index("Master")
@@ -449,6 +450,8 @@ func _setup_objectives() -> void:
 
 func _start_wave(next_wave: int) -> void:
 	wave = next_wave
+	RunState.wave_number = wave
+	EventBus.wave_started.emit({"wave":wave})
 	if telemetry != null: telemetry.event("wave_start",{"duration_s":_wave_duration(),"carried_enemies":enemies.size()})
 	wave_damage_taken = 0
 	wave_min_hp = player_hp
@@ -521,9 +524,9 @@ func _finish_wave() -> void:
 		_try_unlock_district()
 		if run_log != null: run_log.finish("final_stand_survived")
 		return
-	break_clock=float(progression.config.get("pacing",{}).get("break_seconds",4.0))
-	banner.text="WAVE %d CLEARED - NEXT WAVE IN %.0f" % [wave,break_clock]
-	if wave>=2 and phase_ui!=null: phase_ui.queue_upgrade_crate()
+	break_clock=0.0
+	banner.text="WAVE %d CLEARED - CHOOSE A MUTATION" % wave
+	MutationManager.begin_between_wave_offer(wave)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if events != null and events.aiming: return
@@ -652,53 +655,69 @@ func _physics_process(delta: float) -> void:
 		
 
 	fire_clock -= delta
+	boomstick_fire_clock -= delta
 	var objective_aim: Dictionary = events.aim_target() if events != null else {}
-	if fire_clock <= 0.0 and (not enemies.is_empty() or not objective_aim.is_empty()):
+	var has_targets := not enemies.is_empty() or not objective_aim.is_empty()
+	var ammo_bonus: int = progression.ammo_bonus() if progression != null else 0
+	var trigger_bonus: float = progression.attack_speed_multiplier() if progression != null else 1.0
+	var rage_mult := 2.0 if rage_clock > 0.0 else 1.0
+	var mega_mult := 3.0 if mega_clock > 0.0 else 1.0
+
+	if has_targets and progression != null and progression.weapons.has("scrap_smg") and fire_clock <= 0.0:
 		var nearest := 0
 		for i in range(1, enemies.size()):
 			if player_pos.distance_squared_to(enemies[i]["pos"]) < player_pos.distance_squared_to(enemies[nearest]["pos"]):
 				nearest = i
 		var aim_at: Vector2 = objective_aim["pos"] if not objective_aim.is_empty() else enemies[nearest]["pos"]
-		# Threats in contact range take priority; otherwise shoot the indicated event.
-		if not enemies.is_empty() and player_pos.distance_to(enemies[nearest]["pos"]) < 150.0: aim_at = enemies[nearest]["pos"]
-		var heading: Vector2 = (aim_at - player_pos).normalized()
-		var smg_level := int(progression.weapons.get("scrap_smg", 1)) if progression != null else 1
-		var ammo_bonus: int = progression.ammo_bonus() if progression != null else 0
+		if not enemies.is_empty() and player_pos.distance_to(enemies[nearest]["pos"]) < 150.0:
+			aim_at = enemies[nearest]["pos"]
+		var heading := (aim_at - player_pos).normalized()
+		var smg_level := int(progression.weapons["scrap_smg"])
 		var smg_burst := 1
 		if smg_level >= 2:
 			smg_burst += maxi(1, roundi(progression.weapon_step_mult("scrap_smg", 2)))
 		if smg_level >= 5:
 			smg_burst += maxi(1, roundi(progression.weapon_step_mult("scrap_smg", 5)))
-		var shot_count: int = (maxi(12, smg_burst) if progression != null and progression.evolutions.has("scrap_smg") else smg_burst) + ammo_bonus
+		var shot_count: int = (maxi(12, smg_burst) if progression.evolutions.has("scrap_smg") else smg_burst) + ammo_bonus
 		var smg_hits := 1 + (maxi(1, roundi(progression.weapon_step_mult("scrap_smg", 4))) if smg_level >= 4 else 0)
-		var smg_damage_mult: float = 1.0 + (0.25 * progression.weapon_step_mult("scrap_smg", 5) if smg_level >= 5 else 0.0)
+		var smg_damage_mult: float = float(progression.config["weapons"]["scrap_smg"].get("base_damage",1.0)) * (1.0 + (0.25 * progression.weapon_step_mult("scrap_smg", 5) if smg_level >= 5 else 0.0))
 		for shot in range(shot_count):
-			var spread := (TAU * float(shot) / float(shot_count) + run_clock * 2.0) if progression != null and progression.evolutions.has("scrap_smg") else (float(shot) - float(shot_count - 1) * 0.5) * 0.12
-			if progression == null or projectile_count() < int(progression.config.get("limits", {}).get("projectiles", 400)):
-				transient_pool.push(bullets,"bullets",{"pos": player_pos, "dir": heading.rotated(spread), "life": 1.6, "hits_left": smg_hits, "damage_mult": smg_damage_mult, "knockback": 0.0},400)
-		if progression != null and progression.weapons.has("boomstick"):
-			var boom_level := int(progression.weapons["boomstick"])
-			var boom_data: Dictionary = progression.config["weapons"]["boomstick"]
-			var pellet_count: int = (12 if progression.evolutions.has("boomstick") else int(boom_data.get("base_pellets", 3))) + ammo_bonus
-			if boom_level >= 2:
-				pellet_count += maxi(1, roundi(2.0 * progression.weapon_step_mult("boomstick", 2)))
-			if boom_level >= 5:
-				pellet_count += maxi(1, roundi(2.0 * progression.weapon_step_mult("boomstick", 5)))
-			var boom_damage_mult: float = (2.0 if progression.evolutions.has("boomstick") else 1.0) + (0.20 * progression.weapon_step_mult("boomstick", 3) if boom_level >= 3 else 0.0)
-			var cone_step := (0.085 if progression.evolutions.has("boomstick") else float(boom_data.get("base_cone_step", 0.14))) * (1.30 if boom_level >= 4 else 1.0)
-			var boom_knockback := float(boom_data.get("base_knockback", 36.0)) * (2.0 if boom_level >= 5 else 1.0)
-			for pellet in range(pellet_count):
-				var angle := (float(pellet) - float(pellet_count-1)*0.5) * cone_step
-				if progression == null or projectile_count() < int(progression.config.get("limits", {}).get("projectiles", 400)):
-					transient_pool.push(bullets,"bullets",{"pos": player_pos, "dir": heading.rotated(angle), "life": 0.48, "hits_left": 1, "damage_mult": boom_damage_mult, "knockback": boom_knockback},400)
+			var spread := (TAU * float(shot) / float(shot_count) + run_clock * 2.0) if progression.evolutions.has("scrap_smg") else (float(shot) - float(shot_count - 1) * 0.5) * 0.12
+			if projectile_count() < int(progression.config.get("limits", {}).get("projectiles", 400)):
+				transient_pool.push(bullets,"bullets",{"weapon":"scrap_smg","pos": player_pos, "dir": heading.rotated(spread), "life": 1.6, "hits_left": smg_hits, "damage_mult": smg_damage_mult, "knockback": 0.0},400)
 		if juice_fx != null:
 			juice_fx.call("shot", player_pos, heading)
-			recoil_vector = -heading * 3.0
-			last_aim = heading
-		var trigger_bonus: float = progression.attack_speed_multiplier() if progression != null else 1.0
+		last_aim = heading
 		var smg_rate_bonus: float = 1.0 + (0.20 * progression.weapon_step_mult("scrap_smg", 3) if smg_level >= 3 else 0.0)
-		var smg_base_period := float(progression.config["weapons"]["scrap_smg"].get("base_fire_period", fire_period)) if progression != null else fire_period
-		fire_clock = smg_base_period / (trigger_bonus * smg_rate_bonus * (2.0 if rage_clock > 0.0 else 1.0) * (3.0 if mega_clock > 0.0 else 1.0))
+		var smg_base_period := float(progression.config["weapons"]["scrap_smg"].get("base_fire_period", fire_period))
+		fire_clock = smg_base_period / (trigger_bonus * smg_rate_bonus * rage_mult * mega_mult)
+
+	if has_targets and progression != null and progression.weapons.has("boomstick") and boomstick_fire_clock <= 0.0:
+		var boom_level := int(progression.weapons["boomstick"])
+		var boom_data: Dictionary = progression.config["weapons"]["boomstick"]
+		var heading := _boomstick_heading(float(boom_data.get("aim_assist_degrees",45.0)))
+		var pellet_count: int = (12 if progression.evolutions.has("boomstick") else int(boom_data.get("base_pellets", 6))) + ammo_bonus
+		if boom_level >= 2:
+			pellet_count += maxi(1, roundi(2.0 * progression.weapon_step_mult("boomstick", 2)))
+		if boom_level >= 5:
+			pellet_count += maxi(1, roundi(2.0 * progression.weapon_step_mult("boomstick", 5)))
+		var boom_damage_mult: float = float(boom_data.get("base_damage",1.0)) * ((2.0 if progression.evolutions.has("boomstick") else 1.0) + (0.20 * progression.weapon_step_mult("boomstick", 3) if boom_level >= 3 else 0.0))
+		var cone_step := (0.085 if progression.evolutions.has("boomstick") else float(boom_data.get("base_cone_step", 0.105))) * (1.30 if boom_level >= 4 else 1.0)
+		var boom_knockback := float(boom_data.get("base_knockback", 55.0)) * (2.0 if boom_level >= 5 else 1.0)
+		var boom_life := float(boom_data.get("base_range_pixels",400.0)) / BULLET_SPEED
+		for pellet in range(pellet_count):
+			var angle := (float(pellet) - float(pellet_count-1)*0.5) * cone_step
+			if projectile_count() < int(progression.config.get("limits", {}).get("projectiles", 400)):
+				transient_pool.push(bullets,"bullets",{"weapon":"boomstick","facing_bound":true,"pos": player_pos, "dir": heading.rotated(angle), "life": boom_life, "hits_left": 1, "damage_mult": boom_damage_mult, "knockback": boom_knockback},400)
+		if juice_fx != null:
+			if juice_fx.has_method("shotgun_shot"):
+				juice_fx.call("shotgun_shot", player_pos, heading)
+			else:
+				juice_fx.call("shot", player_pos, heading)
+		recoil_vector = -heading * 5.0
+		last_aim = heading
+		var boom_period := float(boom_data.get("base_fire_period",0.9))
+		boomstick_fire_clock = boom_period / (trigger_bonus * rage_mult * mega_mult)
 
 	_update_phase_c(delta)
 	_stage1_update_hazards(delta)
@@ -710,6 +729,27 @@ func _physics_process(delta: float) -> void:
 	_update_puzzle(delta)
 	_update_hud()
 	queue_redraw()
+
+func _boomstick_heading(assist_degrees: float) -> Vector2:
+	var facing_heading := last_aim.normalized()
+	if facing_heading.length_squared() < 0.5:
+		facing_heading = Vector2.RIGHT
+	var chosen := facing_heading
+	var best_distance := INF
+	var max_angle := deg_to_rad(assist_degrees)
+	for enemy in enemies:
+		var offset := Vector2(enemy["pos"]) - player_pos
+		if offset.length_squared() < 1.0:
+			continue
+		var candidate := offset.normalized()
+		if absf(facing_heading.angle_to(candidate)) > max_angle:
+			continue
+		var distance := offset.length_squared()
+		if distance < best_distance:
+			best_distance = distance
+			chosen = candidate
+	return chosen
+
 
 func _active_horde_target() -> int:
 	if progression == null:
@@ -899,7 +939,9 @@ func _update_bullets(delta: float) -> void:
 				var bullet_mult := float(bullet.get("damage_mult", 1.0))
 				var raw_damage: float = float(bullet_damage) * bullet_mult * (progression.damage_multiplier() if progression != null else 1.0)
 				var crit: bool = progression.roll_crit() if progression != null else false
+				var hit_position := Vector2(enemy["pos"])
 				var killed := phase_b_damage_enemy(j, raw_damage, crit, "bullet")
+				EventBus.hit_landed.emit({"source":"base_weapon","tags":[],"position":hit_position,"damage":raw_damage,"crit":crit})
 				if not killed and j < enemies.size() and str(enemies[j]["kind"]) == "trucker":
 					enemies[j]["charge"] = 1.1
 				var knockback := float(bullet.get("knockback", 0.0))
@@ -1417,15 +1459,19 @@ func _draw_map_art() -> void:
 		_draw_art_rect(OUT_TANKER_ART, _tiles_rect(13,34,7,3))
 
 	# Curated crack decals overlay existing cracked-ground hazard zones only.
-	_draw_curated_texture(DECAL_CRACK_A, Vector2(7.5, 5.5) * TILE, Vector2(512, 512))
-	_draw_curated_texture(DECAL_CRACK_B, Vector2(9.5, 33.5) * TILE, Vector2(512, 512))
-	_draw_curated_texture(DECAL_CRACK_A, Vector2(24.5, 33.5) * TILE, Vector2(512, 512))
-	_draw_curated_texture(DECAL_CRACK_B, Vector2(4.5, 38.5) * TILE, Vector2(512, 512))
+	# Tinted down to the ground's value range so they read as damage, not pasted patches.
+	for decal in [[DECAL_CRACK_A, Vector2(7.5, 5.5)], [DECAL_CRACK_B, Vector2(9.5, 33.5)], [DECAL_CRACK_A, Vector2(24.5, 33.5)], [DECAL_CRACK_B, Vector2(4.5, 38.5)]]:
+		_draw_curated_texture(decal[0], decal[1] * TILE, Vector2(512, 512), Color(0.42, 0.40, 0.38, 0.85))
 
 func _tiles_rect(x: int, y: int, w: int, h: int) -> Rect2:
 	return Rect2(Vector2(float(x),float(y))*TILE, Vector2(float(w),float(h))*TILE)
 
+const SHADOW_OFFSET := Vector2(14, 20)      # light from the upper left
+const SHADOW_COLOR := Color(0.0, 0.0, 0.03, 0.42)
+
 func _draw_art_rect(texture: Texture2D, rect: Rect2, tint: Color = Color.WHITE) -> void:
+	# Drop shadow from the art's own silhouette so buildings and props sit on the ground.
+	draw_texture_rect(texture, Rect2(rect.position + SHADOW_OFFSET, rect.size), false, SHADOW_COLOR)
 	draw_texture_rect(texture, rect, false, tint)
 
 func _draw_hazard_debug() -> void:
@@ -1664,6 +1710,7 @@ func _phase_a_kill_enemy(index: int) -> void:
 		return
 	var enemy: Dictionary = enemies[index]
 	var kind := str(enemy["kind"])
+	EventBus.zombie_killed.emit({"uid":int(enemy.get("uid",-1)),"kind":kind,"position":Vector2(enemy["pos"]),"elite":bool(enemy.get("elite",false))})
 	if bool(enemy.get("elite", false)):
 		transient_pool.push(powerups,"powerups",{"pos": Vector2(enemy["pos"]), "kind": "Chest", "age": 0.0},30)
 		if progression != null:

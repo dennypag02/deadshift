@@ -5,6 +5,8 @@ var firing_source := "facing_weapon"
 
 func _ready() -> void:
 	super._ready()
+	MutationManager.reset_run()
+	MutationManager.bind_game(self)
 	rules.fairness.pump_warning_seconds = float(tuning.pumps.warning_seconds)
 	rules.source_labels["player_pump_explosion"] = "Pump explosion"
 	rules.source_labels["player_barrel_explosion"] = "Barrel explosion"
@@ -26,11 +28,16 @@ func _ready() -> void:
 	feedback.game = self
 	add_child(feedback)
 	if bool(tuning.remove_decorative_asphalt_speckles):
+		# Load OUTSIDE assert(): release exports strip assert() lines entirely, so the
+		# old assert-wrapped load never ran and the asphalt drew as blank white quads.
 		var image := Image.new()
-		assert(image.load_svg_from_string(str(tuning.asphalt_without_speckles))==OK)
-		var clean := ImageTexture.create_from_image(image)
-		for batch in terrain_batches.batches:
-			if batch.texture==TEX_ASPHALT: batch.texture = clean
+		var svg_err := image.load_svg_from_string(str(tuning.asphalt_without_speckles))
+		if svg_err == OK:
+			var clean := ImageTexture.create_from_image(image)
+			for batch in terrain_batches.batches:
+				if batch.texture==TEX_ASPHALT: batch.texture = clean
+		else:
+			push_error("asphalt_without_speckles SVG failed to load: %d" % svg_err)
 	run_log.emit("early_tuning",{"pressure_multipliers":tuning.pressure_by_wave,"enemy_damage_multipliers":tuning.enemy_damage_by_wave,"pump_hits":tuning.pumps.hits_required,"pump_warning_s":tuning.pumps.warning_seconds,"anti_camp_unchanged":true})
 
 func wave_multiplier(key: String) -> float:
@@ -140,12 +147,26 @@ func _physics_process(delta: float) -> void:
 
 func _setup_ui() -> void:
 	super._setup_ui()
-	# Swap progression before any physics or input, preserving the existing HUD/card wiring.
+	# Keep XP/level telemetry and the base SMG, but remove the old weapon/passive
+	# selection loop. Mutation choices are owned by MutationManager between waves.
 	var old: Node = progression
 	remove_child(old)
 	old.queue_free()
-	progression = preload("res://scripts/tuned_progression.gd").new()
+	progression = preload("res://scripts/mutation_progression.gd").new()
 	progression.game = self
 	add_child(progression)
 	phase_ui.progression = progression
 	progression.level_up_requested.connect(phase_ui._show_choices)
+
+	var mutation_layer := CanvasLayer.new()
+	mutation_layer.layer = 20
+	add_child(mutation_layer)
+
+	var tag_hud := Control.new()
+	tag_hud.set_script(load("res://scripts/mutation_hud.gd"))
+	mutation_layer.add_child(tag_hud)
+
+	var picker := Control.new()
+	picker.set_script(load("res://scripts/mutation_picker.gd"))
+	picker.set("game", self)
+	mutation_layer.add_child(picker)

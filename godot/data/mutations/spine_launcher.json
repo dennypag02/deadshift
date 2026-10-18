@@ -1,0 +1,14 @@
+{
+  "id": "spine_launcher",
+  "name": "Spine Launcher",
+  "slot": "back",
+  "tags": ["bone"],
+  "effect_type": "projectile",
+  "levels": [
+    {"damage": 4, "cooldown": 2.2, "count": 3, "range": 520, "meter_cost": 10},
+    {"damage": 6, "cooldown": 1.9, "count": 4, "range": 560, "meter_cost": 6},
+    {"damage": 8, "cooldown": 1.6, "count": 5, "range": 600, "meter_cost": 6}
+  ],
+  "visual": {"layer": "back", "sprite": "spine_launcher"},
+  "description": "Fires a fan of bone shards at nearby zombies."
+}

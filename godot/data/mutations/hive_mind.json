@@ -1,0 +1,14 @@
+{
+  "id": "hive_mind",
+  "name": "Hive Mind",
+  "slot": "head",
+  "tags": ["swarm"],
+  "effect_type": "passive_stat",
+  "levels": [
+    {"max_crawlers_bonus": 2, "crawler_speed_multiplier": 1.15, "meter_cost": 10},
+    {"max_crawlers_bonus": 3, "crawler_speed_multiplier": 1.25, "meter_cost": 6},
+    {"max_crawlers_bonus": 4, "crawler_speed_multiplier": 1.35, "meter_cost": 6}
+  ],
+  "visual": {"layer": "head", "sprite": "hive_mind"},
+  "description": "Raises crawler capacity and movement speed."
+}

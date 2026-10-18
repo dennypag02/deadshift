@@ -1,0 +1,37 @@
+{
+  "id": "bone_blade",
+  "name": "Bone Blade",
+  "slot": "arms",
+  "tags": [
+    "bone"
+  ],
+  "effect_type": "melee_arc",
+  "levels": [
+    {
+      "damage": 4,
+      "cooldown": 0.9,
+      "radius": 150,
+      "arc_degrees": 110,
+      "meter_cost": 10
+    },
+    {
+      "damage": 6,
+      "cooldown": 0.75,
+      "radius": 165,
+      "arc_degrees": 120,
+      "meter_cost": 6
+    },
+    {
+      "damage": 8,
+      "cooldown": 0.6,
+      "radius": 180,
+      "arc_degrees": 130,
+      "meter_cost": 6
+    }
+  ],
+  "visual": {
+    "layer": "arms",
+    "sprite": "bone_blade"
+  },
+  "description": "Wide slash; hits carry the bone tag."
+}

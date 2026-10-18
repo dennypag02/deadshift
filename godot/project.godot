@@ -11,6 +11,7 @@ config/description="Deadshift Gas Station Outskirts tutorial district prototype"
 DataRegistry="*res://autoload/data_registry.gd"
 EventBus="*res://autoload/event_bus.gd"
 RunState="*res://autoload/run_state.gd"
+MutationManager="*res://autoload/mutation_manager.gd"
 
 [display]
 window/size/viewport_width=432
@@ -19,6 +20,8 @@ window/stretch/mode="canvas_items"
 window/handheld/orientation=1
 
 [rendering]
+
+environment/defaults/default_clear_color=Color(0.09, 0.095, 0.105, 1)
 textures/vram_compression/import_etc2_astc=true
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
