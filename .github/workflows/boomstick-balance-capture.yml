@@ -35,10 +35,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          Xvfb :99 -screen 0 720x1600x24 -ac +extension GLX +render -noreset > boomstick-evidence/xvfb.log 2>&1 &
-          XVFB_PID=$!
-          trap 'kill "$XVFB_PID" 2>/dev/null || true' EXIT
-          export DISPLAY=:99
           export DEADSHIFT_OFFLINE_CAPTURE=1
           export DEADSHIFT_SKIP_CAPTURE_TITLE=1
           export GODOT_SILENCE_ROOT_WARNING=1
@@ -52,7 +48,7 @@ jobs:
             export DEADSHIFT_VALIDATION_SEED="${seeds[$((i-1))]}"
             export DEADSHIFT_CAPTURE_SECONDS=480
             unset DEADSHIFT_CAPTURE_STATIONARY
-            timeout 600s "$G" --audio-driver Dummy --path godot --script res://scripts/performance_capture.gd --rendering-driver opengl3 --fixed-fps 30 2>&1 | tee "$dir/run.log"
+            timeout 600s xvfb-run -a -s "-screen 0 720x1600x24 -ac +extension GLX +render -noreset" "$G" --audio-driver Dummy --path godot --script res://scripts/performance_capture.gd --rendering-driver opengl3 --fixed-fps 30 2>&1 | tee "$dir/run.log"
             grep -q FEEDBACK_RECORDING_COMPLETE "$dir/run.log"
             ! grep -E 'SCRIPT ERROR|Parse Error|Shader compilation failed' "$dir/run.log"
           done
@@ -60,7 +56,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          export DISPLAY=:99
           export DEADSHIFT_OFFLINE_CAPTURE=1
           export DEADSHIFT_SKIP_CAPTURE_TITLE=1
           export DEADSHIFT_CAPTURE_STATIONARY=1
@@ -69,7 +64,7 @@ jobs:
           export DEADSHIFT_VALIDATION_SEED=2026101799
           export DEADSHIFT_EVIDENCE_DIR="$GITHUB_WORKSPACE/boomstick-evidence/stationary"
           mkdir -p "$DEADSHIFT_EVIDENCE_DIR"
-          timeout 480s ./Godot_v4.4.1-stable_linux.x86_64 --audio-driver Dummy --path godot --script res://scripts/performance_capture.gd --rendering-driver opengl3 --fixed-fps 30 2>&1 | tee "$DEADSHIFT_EVIDENCE_DIR/run.log"
+          timeout 480s xvfb-run -a -s "-screen 0 720x1600x24 -ac +extension GLX +render -noreset" ./Godot_v4.4.1-stable_linux.x86_64 --audio-driver Dummy --path godot --script res://scripts/performance_capture.gd --rendering-driver opengl3 --fixed-fps 30 2>&1 | tee "$DEADSHIFT_EVIDENCE_DIR/run.log"
           grep -q FEEDBACK_RECORDING_COMPLETE "$DEADSHIFT_EVIDENCE_DIR/run.log"
       - name: Summarize and enforce balance targets
         shell: bash
@@ -126,7 +121,7 @@ jobs:
           export DEADSHIFT_VALIDATION_SEED=2026101701
           export DEADSHIFT_EVIDENCE_DIR="$GITHUB_WORKSPACE/boomstick-evidence/recording"
           mkdir -p "$DEADSHIFT_EVIDENCE_DIR"
-          timeout 600s ./Godot_v4.4.1-stable_linux.x86_64 --audio-driver Dummy --path godot --script res://scripts/performance_capture.gd --rendering-driver opengl3 --fixed-fps 30 --write-movie "$DEADSHIFT_EVIDENCE_DIR/source.avi" 2>&1 | tee "$DEADSHIFT_EVIDENCE_DIR/run.log"
+          timeout 600s xvfb-run -a -s "-screen 0 720x1600x24 -ac +extension GLX +render -noreset" ./Godot_v4.4.1-stable_linux.x86_64 --audio-driver Dummy --path godot --script res://scripts/performance_capture.gd --rendering-driver opengl3 --fixed-fps 30 --write-movie "$DEADSHIFT_EVIDENCE_DIR/source.avi" 2>&1 | tee "$DEADSHIFT_EVIDENCE_DIR/run.log"
           grep -q FEEDBACK_RECORDING_COMPLETE "$DEADSHIFT_EVIDENCE_DIR/run.log"
           python3 - <<'PY'
           import json
