@@ -151,6 +151,7 @@ func _setup_ui() -> void:
 	progression.game = self
 	add_child(progression)
 	phase_ui.progression = progression
+	progression.level_up_requested.connect(phase_ui._show_choices)
 
 	var mutation_layer := CanvasLayer.new()
 	mutation_layer.layer = 20
