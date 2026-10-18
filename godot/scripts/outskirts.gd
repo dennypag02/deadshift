@@ -255,12 +255,12 @@ func _load_curated_art() -> void:
 		if ResourceLoader.exists(pickup_paths[kind]):
 			curated_pickup_textures[kind] = load(pickup_paths[kind])
 
-func _draw_curated_texture(texture: Texture2D, center: Vector2, footprint: Vector2) -> void:
+func _draw_curated_texture(texture: Texture2D, center: Vector2, footprint: Vector2, tint: Color = Color.WHITE) -> void:
 	var dimensions := texture.get_size()
 	if dimensions.x <= 0 or dimensions.y <= 0:
 		return
 	var size := dimensions * minf(footprint.x / dimensions.x, footprint.y / dimensions.y)
-	draw_texture_rect(texture, Rect2(center - size * 0.5, size), false)
+	draw_texture_rect(texture, Rect2(center - size * 0.5, size), false, tint)
 
 func _force_silent_audio() -> void:
 	var master_bus := AudioServer.get_bus_index("Master")
@@ -1459,15 +1459,19 @@ func _draw_map_art() -> void:
 		_draw_art_rect(OUT_TANKER_ART, _tiles_rect(13,34,7,3))
 
 	# Curated crack decals overlay existing cracked-ground hazard zones only.
-	_draw_curated_texture(DECAL_CRACK_A, Vector2(7.5, 5.5) * TILE, Vector2(512, 512))
-	_draw_curated_texture(DECAL_CRACK_B, Vector2(9.5, 33.5) * TILE, Vector2(512, 512))
-	_draw_curated_texture(DECAL_CRACK_A, Vector2(24.5, 33.5) * TILE, Vector2(512, 512))
-	_draw_curated_texture(DECAL_CRACK_B, Vector2(4.5, 38.5) * TILE, Vector2(512, 512))
+	# Tinted down to the ground's value range so they read as damage, not pasted patches.
+	for decal in [[DECAL_CRACK_A, Vector2(7.5, 5.5)], [DECAL_CRACK_B, Vector2(9.5, 33.5)], [DECAL_CRACK_A, Vector2(24.5, 33.5)], [DECAL_CRACK_B, Vector2(4.5, 38.5)]]:
+		_draw_curated_texture(decal[0], decal[1] * TILE, Vector2(512, 512), Color(0.42, 0.40, 0.38, 0.85))
 
 func _tiles_rect(x: int, y: int, w: int, h: int) -> Rect2:
 	return Rect2(Vector2(float(x),float(y))*TILE, Vector2(float(w),float(h))*TILE)
 
+const SHADOW_OFFSET := Vector2(14, 20)      # light from the upper left
+const SHADOW_COLOR := Color(0.0, 0.0, 0.03, 0.42)
+
 func _draw_art_rect(texture: Texture2D, rect: Rect2, tint: Color = Color.WHITE) -> void:
+	# Drop shadow from the art's own silhouette so buildings and props sit on the ground.
+	draw_texture_rect(texture, Rect2(rect.position + SHADOW_OFFSET, rect.size), false, SHADOW_COLOR)
 	draw_texture_rect(texture, rect, false, tint)
 
 func _draw_hazard_debug() -> void:
