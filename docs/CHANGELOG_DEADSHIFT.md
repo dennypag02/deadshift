@@ -2,6 +2,14 @@
 
 Newest entries first. Do not delete historical entries.
 
+## 2026-10-17 — Boomstick balance gate failed first pass; weapon-only retune
+
+- First complete three-run Boomstick balance capture failed the owner target: normal moving runs died on waves 4, 2 and 4; stationary control died on wave 2 as intended.
+- Wave-2 minimum HP was 60%, 0%, and 78%; only 2/3 cleared the requested 50% threshold, and 0/3 reached wave 5.
+- No global difficulty value was changed in response.
+- Retuned Boomstick data only: base damage 1 -> 3, knockback 55 -> 80, base fire period 0.9 s -> 0.8 s, range 400 -> 420 px. Pellet count (6), ~30 degree spread and 45 degree facing-cone aim assist are unchanged.
+- The three normal runs, stationary control, signed APK build and 720p capture are rerunning against this weapon-only retune.
+
 ## 2026-10-17 — Milestone 3 playtest amendment: data-driven Boomstick starter
 
 - Owner playtested the Milestone 3 APK and approved the mutation feel, but reported the opening minutes remained too hard.
