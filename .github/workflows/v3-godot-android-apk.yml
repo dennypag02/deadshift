@@ -111,6 +111,9 @@ jobs:
           timeout 180s "$G" --headless --audio-driver Dummy --path godot --script res://tests/mutation_manager_test.gd 2>&1 | tee build/evidence/mutation_manager_test.log
           grep -q MUTATION_MANAGER_TESTS_PASS build/evidence/mutation_manager_test.log
           ! grep -E 'SCRIPT ERROR|Parse Error|MUTATION_MANAGER_TESTS_FAIL|MUTATION_DATA_ERROR' build/evidence/mutation_manager_test.log
+          timeout 180s "$G" --headless --audio-driver Dummy --path godot --script res://tests/starter_weapon_test.gd 2>&1 | tee build/evidence/starter_weapon_test.log
+          grep -q STARTER_WEAPON_TEST_PASS build/evidence/starter_weapon_test.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|STARTER_WEAPON_TEST_FAIL' build/evidence/starter_weapon_test.log
           for test in stage2_tests performance_tests feedback_tests phase_a_xp_check phase_b_check survivability_ui_check hud_layout_check; do
             echo "MILESTONE - $test" >> "$GITHUB_STEP_SUMMARY"
             timeout 180s "$G" --headless --audio-driver Dummy --path godot --script "res://scripts/${test}.gd" 2>&1 | tee "build/evidence/${test}.log"
