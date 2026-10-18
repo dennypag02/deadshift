@@ -40,10 +40,9 @@ func _run() -> void:
 		return
 
 	game.last_aim = Vector2.RIGHT
-	game.enemies = [
-		{"pos":game.player_pos+Vector2(160,80)},
-		{"pos":game.player_pos+Vector2(-80,0)}
-	]
+	game.enemies.clear()
+	game.enemies.append({"pos":game.player_pos+Vector2(160,80)})
+	game.enemies.append({"pos":game.player_pos+Vector2(-80,0)})
 	var assisted: Vector2 = game._boomstick_heading(float(boom["aim_assist_degrees"]))
 	if assisted.dot(Vector2.RIGHT) <= 0.7:
 		_fail("aim_assist_left_facing_cone")
