@@ -38,17 +38,17 @@
       170
     ],
     "collection_multiplier_by_level": {
-      "1": 1.0,
+      "1": 1,
       "2": 2.5,
       "3": 1.8,
-      "4": 1.0,
-      "5": 1.0,
+      "4": 1,
+      "5": 1,
       "6": 0.9,
       "default": 0.6
     },
     "vacuum_age_seconds_by_level": {
       "1": 6.5,
-      "default": 8.0
+      "default": 8
     },
     "tail_linear": 24,
     "tail_quadratic": 2
@@ -193,18 +193,21 @@
     "boomstick": {
       "name": "Boomstick",
       "max_level": 5,
-      "description": "Shotgun cone with heavy knockback",
-      "base_pellets": 3,
+      "description": "Punchy facing-direction shotgun with light aim assist and knockback",
+      "base_pellets": 6,
       "base_damage": 1,
-      "base_knockback": 36,
-      "base_cone_step": 0.14,
+      "base_knockback": 55,
+      "base_cone_step": 0.105,
       "level_adds": [
         "Unlock shotgun cone",
         "+2 pellets",
         "+20% damage",
         "Wider cone",
-        "+2 pellets / knockback \u00d72"
-      ]
+        "+2 pellets / knockback ×2"
+      ],
+      "base_fire_period": 0.9,
+      "base_range_pixels": 400,
+      "aim_assist_degrees": 45
     },
     "molotov": {
       "name": "Molotov Lobber",
@@ -252,7 +255,7 @@
         "Unlock Lightning Rod",
         "+1 chain",
         "+20% damage",
-        "\u221215% cooldown",
+        "−15% cooldown",
         "+2 chains / stun 0.3 s"
       ]
     },
@@ -356,14 +359,14 @@
     "battery_pack": {
       "name": "Battery Pack",
       "max_level": 5,
-      "description": "\u22128% cooldowns",
+      "description": "−8% cooldowns",
       "per_level": 0.08,
       "level_adds": [
-        "\u22128% cooldown",
-        "\u22128% cooldown",
-        "\u22128% cooldown",
-        "\u22128% cooldown",
-        "\u22128% cooldown"
+        "−8% cooldown",
+        "−8% cooldown",
+        "−8% cooldown",
+        "−8% cooldown",
+        "−8% cooldown"
       ]
     },
     "blast_radius": {
@@ -551,5 +554,8 @@
     "score_popups": 20,
     "hazards": 64,
     "telemetry_seconds": 1
+  },
+  "run": {
+    "starting_weapon": "boomstick"
   }
 }
