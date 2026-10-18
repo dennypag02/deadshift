@@ -2,6 +2,23 @@
 
 Newest entries first. Do not delete historical entries.
 
+## 2026-10-17 — Milestone 3 Boomstick starter tuning amendment accepted by automated balance evidence
+
+- Owner playtest approved Milestone 3 feel except the opening difficulty and requested a starter-weapon-only tuning pass.
+- Added `run.starting_weapon = "boomstick"` as the single data-driven run starter value; progression initializes the equipped LV1 weapon from that field instead of hardcoding Scrap SMG.
+- Scrap SMG is no longer implicitly equipped and remains eligible in the normal weapon level-up card pool. Normal weapon/passive level-up cards remain active alongside the between-wave mutation picker.
+- Boomstick LV1 data: 6 pellets, base damage 3, knockback 80, 0.105 rad pellet step (~30.1 degrees total spread for 6 pellets), 0.8 s base fire period, 420 px range, 45-degree facing-cone aim assist.
+- Boomstick fires only when owned and uses its own cadence; it no longer inherits or stacks an invisible Scrap SMG starter burst.
+- Aim remains facing/movement based: assist only snaps to the nearest enemy inside the 45-degree facing cone and last facing is retained while stopped.
+- Added stronger muzzle/casing feedback and a small screen shake; audio remains intentionally silent in this build.
+- Enemy pressure, enemy damage, wave pacing, HP scaling, spawn rates and other difficulty values were not changed.
+- Added starter-weapon regression coverage for data-driven selection, normal weapon-slot occupancy, Scrap SMG card eligibility, Boomstick cadence/spread/assist, and unchanged Dragon's Breath requirements.
+- Canonical signed APK workflow run `39083515701` succeeded from source `e2c34d4c85c3b8cb32d5df6fe842f299f0dc41ff`.
+- Canonical balance/recording workflow run `39083515714` succeeded from the same source.
+- Three moving-player runs: Run 1 min HP W1/W2/W3/W4/W5 = 100/90/64/40/0%, death W5; Run 2 = 100/98/94/20/0%, death W5; Run 3 = 99/73/25/0%, death W4.
+- Stationary anti-camping run died in wave 2.
+- The requested 3-minute start-of-run recording completed with 68 HP at 180.025 active seconds, wave 3, 808 kills; H.264 720x1280 evidence video verified.
+
 ## 2026-10-17 — Boomstick balance gate failed first pass; weapon-only retune
 
 - First complete three-run Boomstick balance capture failed the owner target: normal moving runs died on waves 4, 2 and 4; stationary control died on wave 2 as intended.
