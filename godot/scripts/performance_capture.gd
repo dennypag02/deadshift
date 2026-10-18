@@ -118,6 +118,7 @@ func _record() -> void:
 	var shown_map := false
 	var map_frames := 0
 	var card_frames := 0
+	var mutation_offer_frames := 0
 	var picking := false
 	var saved_gameplay := false
 	var deaths := 0
@@ -127,7 +128,7 @@ func _record() -> void:
 			card_frames += 1
 			if card_frames >= 24 and not picking:
 				picking = true
-				var preference := ["scrap_smg", "buzzsaw", "boomstick", "molotov", "drone", "lightning", "rocket", "chakram", "muscle", "trigger_finger", "ammo_belt", "thick_hide", "magnet"]
+				var preference := ["boomstick", "scrap_smg", "buzzsaw", "molotov", "drone", "lightning", "rocket", "chakram", "muscle", "trigger_finger", "ammo_belt", "thick_hide", "magnet"]
 				if game.player_hp < game.player_max_hp*0.6:
 					preference.push_front("thick_hide")
 					preference.push_front("fallback_heal")
@@ -141,6 +142,20 @@ func _record() -> void:
 		else:
 			card_frames = 0
 			picking = false
+
+		var mutation_manager: Node = root.get_node_or_null("MutationManager")
+		if mutation_manager != null and bool(mutation_manager.get("offer_open")):
+			mutation_offer_frames += 1
+			if mutation_offer_frames >= 24:
+				var mutation_offers: Array = mutation_manager.get("current_offers")
+				if not mutation_offers.is_empty():
+					var picked_id := str(mutation_offers[0])
+					var result: Dictionary = mutation_manager.call("take_mutation", picked_id)
+					game.telemetry.event("mutation_choice", {"id":picked_id,"offered":mutation_offers,"ok":bool(result.get("ok",false))})
+				mutation_manager.call("complete_offer")
+				mutation_offer_frames = 0
+		else:
+			mutation_offer_frames = 0
 		if frame == 40:
 			_save("title-screen.png")
 		if frame % 900 == 0:
