@@ -10,12 +10,12 @@ var record_pool = preload("res://scripts/record_pool.gd").new()
 var level := 1
 var xp := 0
 var gems: Array[Dictionary] = []
-var weapons: Dictionary = {"scrap_smg": 1}
+var weapons: Dictionary = {}
 var passives: Dictionary = {}
 var evolutions: Dictionary = {}
 const EVOLUTION_PARTNERS := {"scrap_smg": "ammo_belt", "boomstick": "muscle", "molotov": "fuel_tank", "buzzsaw": "ball_bearings", "lightning": "battery_pack", "rocket": "blast_radius", "drone": "trigger_finger", "chakram": "sharpened_edge"}
 const EVOLUTION_NAMES := {"scrap_smg": "Lead Hurricane", "boomstick": "Dragon\u2019s Breath", "molotov": "Napalm Rain", "buzzsaw": "Meat Grinder", "lightning": "Thunderdome", "rocket": "Carpet Bomber", "drone": "Drone Swarm", "chakram": "Chrome Tornado"}
-var weapon_steps: Dictionary = {"scrap_smg": [1.0]}
+var weapon_steps: Dictionary = {}
 var passive_steps: Dictionary = {}
 var invulnerability := 0.0
 var orbit_clock := 0.0
@@ -58,6 +58,7 @@ func _ready() -> void:
 	else:
 		rng.randomize()
 	config = _load_config_safe()
+	_initialize_starting_weapon()
 	rerolls_left = int(config.get("ui", {}).get("rerolls_per_run", 2))
 	banishes_left = int(config.get("ui", {}).get("banishes_per_run", 1))
 	z_index = 3
@@ -66,13 +67,27 @@ func _config_valid(candidate: Variant) -> bool:
 	if not (candidate is Dictionary):
 		return false
 	var d: Dictionary = candidate
-	for key in ["xp", "pacing", "limits", "rarity", "fallbacks", "damage_numbers", "weapons", "passives", "enemy_xp", "ui"]:
+	for key in ["run", "xp", "pacing", "limits", "rarity", "fallbacks", "damage_numbers", "weapons", "passives", "enemy_xp", "ui"]:
 		if not d.has(key) or not (d[key] is Dictionary):
 			return false
 	for weapon_id in ["scrap_smg", "boomstick", "molotov", "buzzsaw", "lightning", "rocket", "drone", "chakram"]:
 		if not d["weapons"].has(weapon_id):
 			return false
+	var starting_weapon := str(d.get("run", {}).get("starting_weapon", ""))
+	if starting_weapon == "" or not d["weapons"].has(starting_weapon):
+		return false
 	return true
+
+func _initialize_starting_weapon() -> void:
+	weapons.clear()
+	weapon_steps.clear()
+	var starting_weapon := str(config.get("run", {}).get("starting_weapon", "boomstick"))
+	if not config.get("weapons", {}).has(starting_weapon):
+		push_error("DEADSHIFT_STARTING_WEAPON_INVALID id=%s; falling back to boomstick" % starting_weapon)
+		starting_weapon = "boomstick"
+	weapons[starting_weapon] = 1
+	weapon_steps[starting_weapon] = [1.0]
+	print("DEADSHIFT_STARTING_WEAPON id=%s level=1" % starting_weapon)
 
 func _load_config_safe() -> Dictionary:
 	var parsed: Variant = null
@@ -92,6 +107,7 @@ func _load_config_safe() -> Dictionary:
 		return fallback
 	push_error("DEADSHIFT_CONFIG_FATAL_FALLBACK_INVALID")
 	return {
+		"run":{"starting_weapon":"boomstick"},
 		"xp":{"base":6,"linear":4,"quadratic":0.12,"pickup_radius_tiles":1.2,"merge_threshold":200,"vacuum_age_seconds":6.0,"pickup_speed":850.0,"vacuum_speed":1250.0,"pickup_distance":28.0},
 		"pacing":{"wave1_duration_seconds":52.0,"break_seconds":8.0,"pressure_start":12,"pressure_at_60s":20,"spawn_group_min":4,"spawn_group_max":6,"spawn_interval_seconds":1.0,"spawn_distance":720.0,"spawn_directions_min":2,"spawn_directions_max":2,"final_surge_size":6,"wave_start_group_size":6,"wave1_start_groups":1,"later_wave_start_groups":1},
 		"limits":{"weapons":6,"passives":6,"active_enemies":80,"projectiles":160,"damage_numbers":20},
@@ -100,7 +116,7 @@ func _load_config_safe() -> Dictionary:
 		"damage_numbers":{"enabled_default":false,"merge_window_seconds":0.15,"normal_color":"#FFFFFF","crit_color":"#F2C14E","normal_size":24,"crit_size":36,"lifetime_seconds":0.75},
 		"weapons":{
 			"scrap_smg":{"name":"Scrap SMG","max_level":5,"base_damage":1.0,"base_fire_period":0.30,"level_adds":[]},
-			"boomstick":{"name":"Boomstick","max_level":5,"base_pellets":3,"base_damage":1.0,"base_knockback":36.0,"base_cone_step":0.14,"level_adds":[]},
+			"boomstick":{"name":"Boomstick","max_level":5,"base_pellets":6,"base_damage":1.0,"base_knockback":55.0,"base_cone_step":0.105,"base_fire_period":0.9,"base_range_pixels":400.0,"aim_assist_degrees":45.0,"level_adds":[]},
 			"molotov":{"name":"Molotov Lobber","max_level":5,"base_bottles":1,"base_cooldown":3.2,"base_pool_radius":120.0,"base_duration":3.0,"base_dps":3.0,"level_adds":[]},
 			"buzzsaw":{"name":"Buzzsaw Orbit","max_level":5,"base_blades":1,"base_damage_per_second":4.0,"base_radius":125.0,"base_speed":3.2,"level_adds":[]},
 			"lightning":{"name":"Lightning Rod","max_level":5,"base_damage":4.0,"base_cooldown":2.2,"base_chains":2,"level_adds":[]},
