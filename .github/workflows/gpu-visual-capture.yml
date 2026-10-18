@@ -1,0 +1,124 @@
+name: DeadShift GPU Visual Capture
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'mutations/**'
+    paths:
+      - 'godot/**'
+      - '.github/workflows/gpu-visual-capture.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gpu-visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    runs-on: [self-hosted, Windows, gpu]
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: powershell
+    env:
+      DEADSHIFT_OFFLINE_CAPTURE: '1'
+      DEADSHIFT_SKIP_CAPTURE_TITLE: '1'
+      GODOT_SILENCE_ROOT_WARNING: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check runner tools
+        run: |
+          $ErrorActionPreference = 'Continue'
+          if (-not $env:GODOT_BIN -or -not (Test-Path $env:GODOT_BIN)) { Write-Error "GODOT_BIN is not set on this runner"; exit 1 }
+          & $env:GODOT_BIN --version
+          ffmpeg -version | Select-Object -First 1
+          exit 0
+
+      - name: Wait until ComfyUI is idle (max 30 min)
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $deadline = (Get-Date).AddMinutes(30)
+          while ((Get-Date) -lt $deadline) {
+            try {
+              $q = Invoke-RestMethod -Uri "http://127.0.0.1:8188/queue" -TimeoutSec 5
+              $busy = @($q.queue_running).Count + @($q.queue_pending).Count
+            } catch { $busy = 0 }
+            if ($busy -eq 0) { Write-Host "GPU is free."; exit 0 }
+            Write-Host "ComfyUI has $busy job(s) queued. Waiting 60s..."
+            Start-Sleep -Seconds 60
+          }
+          Write-Host "ComfyUI still busy after 30 min; continuing anyway."
+          exit 0
+
+      - name: Strict Godot import
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $ev = Join-Path $env:GITHUB_WORKSPACE 'gpu-evidence'
+          New-Item -ItemType Directory -Force -Path $ev | Out-Null
+          & $env:GODOT_BIN --headless --audio-driver Dummy --path godot --editor --quit 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath "$ev\import.log"
+          if (Select-String -Path "$ev\import.log" -Pattern 'SCRIPT ERROR|Parse Error|Shader compilation failed' -Quiet) { Write-Error "Import errors found"; exit 1 }
+          exit 0
+
+      - name: Record 3 minutes of gameplay on the GPU
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $ev = ((Join-Path $env:GITHUB_WORKSPACE 'gpu-evidence/recording') -replace '\\','/')
+          New-Item -ItemType Directory -Force -Path $ev | Out-Null
+          $env:DEADSHIFT_EVIDENCE_DIR = $ev
+          $env:DEADSHIFT_RUN_KIND = 'gpu_visual'
+          $env:DEADSHIFT_VALIDATION_SEED = '2026101701'
+          $env:DEADSHIFT_CAPTURE_SECONDS = '180'
+          & $env:GODOT_BIN --audio-driver Dummy --path godot --script res://scripts/performance_capture.gd --rendering-driver opengl3 --fixed-fps 30 --write-movie "$ev/source.avi" 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath "$ev/run.log"
+          if (-not (Select-String -Path "$ev/run.log" -Pattern 'FEEDBACK_RECORDING_COMPLETE' -Quiet)) { Write-Error "Capture did not complete"; exit 1 }
+          if (Select-String -Path "$ev/run.log" -Pattern 'SCRIPT ERROR|Parse Error|Shader compilation failed' -Quiet) { Write-Error "Runtime script errors"; exit 1 }
+          if (-not (Test-Path "$ev/source.avi")) { Write-Error "No movie was written"; exit 1 }
+          exit 0
+
+      - name: Real-GPU stress sample (180 enemies)
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $ev = ((Join-Path $env:GITHUB_WORKSPACE 'gpu-evidence/stress') -replace '\\','/')
+          New-Item -ItemType Directory -Force -Path $ev | Out-Null
+          $env:DEADSHIFT_EVIDENCE_DIR = $ev
+          & $env:GODOT_BIN --audio-driver Dummy --path godot --script res://scripts/performance_capture.gd --rendering-driver opengl3 -- --stress 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath "$ev/run.log"
+          if (Test-Path "$ev/stress-180.json") { Get-Content "$ev/stress-180.json" } else { Write-Warning "No stress report produced" }
+          exit 0
+
+      - name: Encode video and contact sheet
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $ev = Join-Path $env:GITHUB_WORKSPACE 'gpu-evidence'
+          $src = "$ev\recording\source.avi"
+          ffmpeg -y -v error -i $src -vf "scale=-2:1280,pad=720:1280:(ow-iw)/2:(oh-ih)/2:black" -c:v libx264 -preset fast -crf 22 -pix_fmt yuv420p -an -movflags +faststart "$ev\deadshift-gpu-3min-720p.mp4"
+          if ($LASTEXITCODE -ne 0) { Write-Error "Video encode failed"; exit 1 }
+          ffmpeg -y -v error -i "$ev\deadshift-gpu-3min-720p.mp4" -vf "fps=1/10,scale=240:-1,tile=6x3" -frames:v 1 "$ev\contact-sheet.png"
+          if ($LASTEXITCODE -ne 0) { Write-Error "Contact sheet failed"; exit 1 }
+          git rev-parse HEAD | Out-File -Encoding ascii "$ev\source-sha.txt"
+          exit 0
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deadshift-gpu-visual-${{ github.run_number }}
+          path: |
+            gpu-evidence/*.mp4
+            gpu-evidence/*.png
+            gpu-evidence/*.txt
+            gpu-evidence/*.log
+            gpu-evidence/recording/*.png
+            gpu-evidence/recording/*.json
+            gpu-evidence/recording/*.log
+            gpu-evidence/stress/*.json
+            gpu-evidence/stress/*.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Clean up raw recording
+        if: always()
+        run: |
+          Remove-Item -Recurse -Force (Join-Path $env:GITHUB_WORKSPACE 'gpu-evidence') -ErrorAction SilentlyContinue
+          exit 0
