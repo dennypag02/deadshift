@@ -124,6 +124,9 @@ func _record() -> void:
 	var saved_gameplay := false
 	var deaths := 0
 	var stationary := OS.get_environment("DEADSHIFT_CAPTURE_STATIONARY") == "1"
+	var layout := _layout_fingerprint()
+	print("FEEDBACK_LAYOUT ", layout)
+	var trace: Array = []
 	for frame in range(12000):
 		await process_frame
 		if game.phase_ui.panel.visible and not game.phase_ui.current_choices.is_empty():
@@ -162,6 +165,8 @@ func _record() -> void:
 			mutation_offer_frames = 0
 		if frame == 40:
 			_save("title-screen.png")
+		if frame % 30 == 0:
+			trace.append({"f":frame,"t":snappedf(game.run_clock,0.01),"paused":paused,"modal":str(game.phase_ui.active_modal),"hp":game.player_hp,"pos":[snappedf(game.player_pos.x,0.1),snappedf(game.player_pos.y,0.1)],"enemies":game.enemies.size(),"wave":game.wave,"level":game.progression.level,"kills":game.kills})
 		if frame % 900 == 0:
 			print("FEEDBACK_RECORDING seconds=%d gameplay_t=%.1f level=%d hp=%d enemies=%d god_mode=false" % [frame / 30, game.run_clock, game.progression.level, game.player_hp, game.enemies.size()])
 		if false and frame >= 1500 and not shown_map and not paused and game.player_hp > 0:
@@ -245,7 +250,16 @@ func _record() -> void:
 		if game.run_clock >= target_seconds or death_frames >= 90:
 			break
 	game.run_log.finish("death" if deaths > 0 else "capture_complete")
-	var report := {"seed":capture_seed,"requested_active_seconds":target_seconds,"run_log_directory":game.run_log.directory,"recording": "desktop scripted input, normal damage, god mode OFF; fixed-FPS/offline capture is not a performance benchmark", "stationary":stationary, "gameplay_seconds": game.run_clock, "wave":game.wave, "level": game.progression.level, "hp": game.player_hp, "kills": game.kills, "deaths": deaths, "level_up_times": game.progression.level_times, "active_seconds":game.telemetry.active_seconds, "wall_seconds":game.telemetry.wall_seconds, "explicit_pause_seconds":game.telemetry.pause_seconds}
+	FileAccess.open(output.path_join("trace.json"), FileAccess.WRITE).store_string(JSON.stringify(trace))
+	var report := {"seed":capture_seed,"layout":layout,"requested_active_seconds":target_seconds,"run_log_directory":game.run_log.directory,"recording": "desktop scripted input, normal damage, god mode OFF; fixed-FPS/offline capture is not a performance benchmark", "stationary":stationary, "gameplay_seconds": game.run_clock, "wave":game.wave, "level": game.progression.level, "hp": game.player_hp, "kills": game.kills, "deaths": deaths, "level_up_times": game.progression.level_times, "active_seconds":game.telemetry.active_seconds, "wall_seconds":game.telemetry.wall_seconds, "explicit_pause_seconds":game.telemetry.pause_seconds}
 	FileAccess.open(output.path_join("playthrough.json"), FileAccess.WRITE).store_string(JSON.stringify(report, "  "))
 	print("FEEDBACK_RECORDING_COMPLETE ", JSON.stringify(report))
 	quit()
+
+func _layout_fingerprint() -> String:
+	# Hash of the startup map roll (hazard tiles + parked cars) so two captures can be compared.
+	var parts: Array[String] = []
+	parts.append("\n".join(game.generated_map_rows))
+	for car in game.generated_cars:
+		parts.append("%s:%s" % [str(car["tile"]), str(car["suv"])])
+	return "|".join(parts).md5_text()

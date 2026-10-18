@@ -189,7 +189,7 @@ func _draw() -> void:
 				draw_circle(point, 3.5, Color(AMBER, 0.70))
 				dots += 1
 	var p: Vector2 = target["pos"]
-	var pulse := 0.65 + 0.35 * sin(Time.get_ticks_msec() * 0.004)
+	var pulse := 0.65 + 0.35 * sin(float(game.run_clock) * 4.0) # game time: replays identically in captures
 	# A tall world beacon; the HUD edge arrow remains visible when this column is off-screen.
 	for band in range(16):
 		var alpha := 0.18 * (1.0 - float(band) / 16.0)

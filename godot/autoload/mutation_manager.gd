@@ -51,6 +51,7 @@ func reset_run() -> void:
 	clocks.clear()
 	hit_counters.clear()
 	move_charge.clear()
+	damage_reaction_cooldowns.clear()
 	zones.clear()
 	flashes.clear()
 	for crawler in crawlers:
@@ -339,7 +340,9 @@ func _tick_passive(id: String,row: Dictionary,p: Dictionary,moved: float) -> voi
 	flashes.append({"kind":"ring","a":Vector2(game.player_pos),"radius":radius,"life":0.18,"tags":row["tags"]})
 
 func _trigger_player_damage_effect(id: String,row: Dictionary,p: Dictionary) -> void:
-	var now := Time.get_ticks_msec()/1000.0
+	# Game time, not wall-clock: the cooldown must not run down while paused, and
+	# fixed-FPS captures must replay identically.
+	var now := float(game.run_clock)
 	if now < float(damage_reaction_cooldowns.get(id,0.0)):
 		return
 	damage_reaction_cooldowns[id] = now + float(p.get("cooldown",2.5))

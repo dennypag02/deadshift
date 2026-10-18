@@ -1631,11 +1631,11 @@ func _draw_combat() -> void:
 
 	# Shared actor renderer supplies foot-anchored survivor shadow and texture.
 	recoil_vector = recoil_vector.move_toward(Vector2.ZERO, 120.0 * get_physics_process_delta_time())
-	var bounce := sin(float(Time.get_ticks_msec()) * TAU / 250.0) * 0.05 if player_velocity.length() > 40.0 else 0.0
+	var bounce := sin(run_clock * 1000.0 * TAU / 250.0) * 0.05 if player_velocity.length() > 40.0 else 0.0
 	var visual_scale := Vector2(1.0, 0.99 + bounce)
 	var survivor_tint := Color.WHITE
 	if player_hit_invulnerability > 0.0:
-		var flicker_on := int(Time.get_ticks_msec() / 70) % 2 == 0
+		var flicker_on := int(run_clock * 1000.0 / 70.0) % 2 == 0
 		survivor_tint.a = 0.30 if flicker_on else 1.0
 	# Survivor art is rendered in the same Y-sorted actor layer as enemies.
 

@@ -3,6 +3,7 @@ extends Control
 const GUIDE = preload("res://scripts/objective_guidance.gd")
 const AMBER := Color("#F2A23A")
 var game: Node2D
+var pulse_clock := 0.0
 var expanded := false
 var small_position := Vector2(310, 12)
 var small_size := Vector2(110, 112)
@@ -18,7 +19,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	gui_input.connect(_on_input)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	pulse_clock += delta # frame delta, so fixed-FPS captures replay identically
 	queue_redraw()
 	if expanded and is_instance_valid(full_canvas):
 		full_canvas.queue_redraw()
@@ -145,7 +147,7 @@ func _draw_map(canvas: Control, dimensions: Vector2, full: bool) -> void:
 		var tint := Color("#698481") if objective["done"] else Color("#B2D5D3")
 		if current:
 			tint = AMBER
-			canvas.draw_arc(point, (12.0 if full else 6.0) + 2.0 * sin(Time.get_ticks_msec() * 0.005), 0, TAU, 20, AMBER, 2.5)
+			canvas.draw_arc(point, (12.0 if full else 6.0) + 2.0 * sin(pulse_clock * 5.0), 0, TAU, 20, AMBER, 2.5)
 		GUIDE.draw_icon(canvas, point, objective["kind"], 8.0 if full else 3.5, tint)
 		if full:
 			var text_pos := (point + Vector2(10, -6)).clamp(area.position + Vector2(4, 15), area.end - Vector2(120, 16))

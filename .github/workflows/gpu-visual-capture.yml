@@ -85,6 +85,8 @@ jobs:
           $ev = ((Join-Path $env:GITHUB_WORKSPACE 'gpu-evidence/stress') -replace '\\','/')
           New-Item -ItemType Directory -Force -Path $ev | Out-Null
           $env:DEADSHIFT_EVIDENCE_DIR = $ev
+          # Same map roll every run so stress numbers compare like for like.
+          $env:DEADSHIFT_VALIDATION_SEED = '2026101701'
           & $env:GODOT_BIN --audio-driver Dummy --path godot --script res://scripts/performance_capture.gd --rendering-driver opengl3 --quit-after 4000 -- --stress 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath "$ev/run.log"
           if (Test-Path "$ev/stress-180.json") { Get-Content "$ev/stress-180.json" } else { Write-Warning "No stress report produced" }
           exit 0
