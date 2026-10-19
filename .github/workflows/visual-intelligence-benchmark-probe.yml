@@ -48,11 +48,13 @@ jobs:
             Write-Host 'ComfyUI not running; diagnostic may proceed.'
           }
       - name: Run real screenshot inference
+        id: inference
         run: |
           $ErrorActionPreference = 'Stop'
           python tools/visual_intelligence/batch_probe.py --images "${{ steps.image.outputs.image }}" --output visual-benchmark-evidence --max-images 12
           if ($LASTEXITCODE -ne 0) { throw 'Vision inference failed' }
       - name: Score only when reviewed labels exist
+        id: scoring
         run: |
           $ErrorActionPreference = 'Stop'
           $labels = 'tools/visual_intelligence/reviewed_labels.json'
@@ -64,6 +66,15 @@ jobs:
           } else {
             Write-Host 'REVIEW_UNQUALIFIED: no reviewed labels; diagnostic evidence only.'
           }
+      - name: Emit deterministic orchestration state
+        if: always()
+        env:
+          INFERENCE_RESULT: ${{ steps.inference.outcome }}
+          SCORING_RESULT: ${{ steps.scoring.outcome }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/visual_intelligence/route_stage.py --evidence visual-benchmark-evidence --inference-result "$env:INFERENCE_RESULT" --scoring-result "$env:SCORING_RESULT" --output visual-benchmark-evidence/route.json
+          if ($LASTEXITCODE -ne 0) { throw 'Orchestration state generation failed' }
       - name: Upload diagnostic report
         if: always()
         uses: actions/upload-artifact@v4
