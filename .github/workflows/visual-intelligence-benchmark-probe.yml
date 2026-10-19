@@ -1,7 +1,9 @@
 name: Visual Intelligence Benchmark Probe
 # Orchestrator acknowledgment acceptance probe 2: preserve all fail-closed review gates.
 on:
-  pull_request:
+  push:
+    branches:
+      - feature/visual-intelligence-v1-foundation
     paths:
       - 'tools/visual_intelligence/**'
       - '.github/workflows/visual-intelligence-benchmark-probe.yml'
