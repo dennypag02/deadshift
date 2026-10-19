@@ -2,7 +2,7 @@ name: Visual Intelligence Benchmark Probe
 on:
   pull_request:
     paths:
-      - 'tools/visual_intelligence/ollama_probe.py'
+      - 'tools/visual_intelligence/**'
       - '.github/workflows/visual-intelligence-benchmark-probe.yml'
   workflow_dispatch:
 permissions:
