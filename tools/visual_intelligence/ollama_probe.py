@@ -21,6 +21,8 @@ def main():
     p.add_argument("--model", default="qwen2.5vl:3b")
     p.add_argument("--endpoint", default="http://127.0.0.1:11434")
     args = p.parse_args()
+    if not args.image.is_file():
+        raise SystemExit("Screenshot path does not exist")
     raw = args.image.read_bytes()
     if not raw.startswith(b"\x89PNG\r\n\x1a\n"):
         raise SystemExit("Expected a real PNG screenshot")
