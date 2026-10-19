@@ -23,8 +23,8 @@ jobs:
         id: image
         run: |
           $ErrorActionPreference = 'Stop'
-          $candidates = @('C:\DeadShift-Vision-Test\test.png', (Join-Path $env:GITHUB_WORKSPACE 'gpu-evidence\contact-sheet.png'))
-          $image = $candidates | Where-Object { Test-Path $_ -PathType Leaf } | Select-Object -First 1
+          $candidates = @((Join-Path $env:GITHUB_WORKSPACE 'gpu-evidence\frames'), 'C:\DeadShift-Vision-Test\frames', 'C:\DeadShift-Vision-Test\test.png', (Join-Path $env:GITHUB_WORKSPACE 'gpu-evidence\contact-sheet.png'))
+          $image = $candidates | Where-Object { (Test-Path $_ -PathType Leaf) -or ((Test-Path $_ -PathType Container) -and @(Get-ChildItem $_ -Filter '*.png' -File).Count -gt 0) } | Select-Object -First 1
           if (-not $image) { throw 'No real PNG screenshot found' }
           "image=$image" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           Write-Host "Screenshot found: $image"
@@ -50,7 +50,7 @@ jobs:
       - name: Run real screenshot inference
         run: |
           $ErrorActionPreference = 'Stop'
-          python tools/visual_intelligence/batch_probe.py --images "${{ steps.image.outputs.image }}" --output visual-benchmark-evidence
+          python tools/visual_intelligence/batch_probe.py --images "${{ steps.image.outputs.image }}" --output visual-benchmark-evidence --max-images 12
           if ($LASTEXITCODE -ne 0) { throw 'Vision inference failed' }
       - name: Score only when reviewed labels exist
         run: |
