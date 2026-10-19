@@ -1,0 +1,45 @@
+name: Personal Runner Security Guard
+on:
+  pull_request:
+  push:
+    branches: [main, feature/visual-intelligence-v1-foundation]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned YAML parser
+        run: python3 -m pip install --user PyYAML==6.0.2
+      - name: Reject PR-triggered self-hosted workflows
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys,yaml
+          violations=[]
+          for path in sorted(Path(".github/workflows").glob("*.y*ml")):
+              try:
+                  doc=yaml.load(path.read_text(encoding="utf-8"),Loader=yaml.BaseLoader)
+              except Exception as exc:
+                  violations.append(f"{path}: invalid YAML: {exc}")
+                  continue
+              if not isinstance(doc,dict): continue
+              triggers=doc.get("on",{})
+              if isinstance(triggers,str): triggers=[triggers]
+              events=set(triggers if isinstance(triggers,list) else triggers.keys() if isinstance(triggers,dict) else [])
+              if not events.intersection({"pull_request","pull_request_target"}): continue
+              for job_name,job in (doc.get("jobs") or {}).items():
+                  if not isinstance(job,dict): continue
+                  runs_on=job.get("runs-on","")
+                  labels=[runs_on] if isinstance(runs_on,str) else runs_on if isinstance(runs_on,list) else []
+                  # Fail closed for dynamic runner selection and any self-hosted runner.
+                  if "self-hosted" in str(runs_on).lower() or not labels or any(not isinstance(x,str) or x.startswith("${{") for x in labels):
+                      violations.append(f"{path}: job {job_name} has PR trigger and possible self-hosted runner")
+          if violations:
+              print("\n".join(violations),file=sys.stderr)
+              sys.exit(1)
+          print("No PR-triggered self-hosted runner jobs found.")
+          PY
