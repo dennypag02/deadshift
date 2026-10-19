@@ -1,5 +1,5 @@
 name: Visual Intelligence Benchmark Probe
-# Orchestrator delivery acceptance probe: preserve all fail-closed review gates.
+# Orchestrator acknowledgment acceptance probe 2: preserve all fail-closed review gates.
 on:
   pull_request:
     paths:
