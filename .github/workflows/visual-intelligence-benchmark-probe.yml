@@ -7,6 +7,10 @@ on:
     paths:
       - 'tools/visual_intelligence/ollama_probe.py'
       - '.github/workflows/visual-intelligence-benchmark-probe.yml'
+  pull_request:
+    paths:
+      - 'tools/visual_intelligence/ollama_probe.py'
+      - '.github/workflows/visual-intelligence-benchmark-probe.yml'
   workflow_dispatch:
 
 permissions:
