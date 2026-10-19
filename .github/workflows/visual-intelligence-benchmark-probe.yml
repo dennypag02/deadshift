@@ -1,11 +1,5 @@
 name: Visual Intelligence Benchmark Probe
 on:
-  push:
-    branches: [feature/visual-intelligence-v1-foundation]
-    paths:
-      - 'tools/visual_intelligence/ollama_probe.py'
-      - 'tools/visual_intelligence/batch_probe.py'
-      - '.github/workflows/visual-intelligence-benchmark-probe.yml'
   pull_request:
     paths:
       - 'tools/visual_intelligence/ollama_probe.py'
