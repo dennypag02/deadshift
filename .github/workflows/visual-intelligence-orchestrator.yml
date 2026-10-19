@@ -6,6 +6,7 @@ on:
 permissions:
   actions: read
   contents: read
+  issues: write
 concurrency:
   group: deadshift-visual-orchestrator
   cancel-in-progress: false
@@ -22,6 +23,7 @@ jobs:
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
         shell: bash
         run: |
           set -euo pipefail
@@ -58,3 +60,27 @@ jobs:
           print("Verified stage route:",json.dumps(obj,sort_keys=True))
           print("No automatic coding or qualification: human-reviewed evidence and bridge acknowledgement required.")
           PY
+          # Publish a machine-verifiable, deduplicated acknowledgment only after
+          # source provenance and route validation have succeeded.
+          event_key="deadshift-visual:$RUN_ID:$RUN_ATTEMPT:$HEAD_SHA"
+          existing="$(gh api "repos/$GITHUB_REPOSITORY/issues/35/comments?per_page=100" --paginate --jq '.[].body' | grep -F "$event_key" || true)"
+          if [[ -n "$existing" ]]; then
+            echo "Acknowledgment already exists: $event_key"
+            exit 0
+          fi
+          python3 - "$route" "$event_key" "$RUN_ID" "$RUN_ATTEMPT" "$HEAD_SHA" <<'PY_ACK' > ack.json
+          import json,sys
+          from pathlib import Path
+          obj=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          body=("VISUAL_ORCHESTRATOR_ACK v1\\n"
+                f"event_key={sys.argv[2]}\\n"
+                f"source_run_id={sys.argv[3]}\\n"
+                f"source_attempt={sys.argv[4]}\\n"
+                f"source_sha={sys.argv[5]}\\n"
+                f"state={obj['state']}\\n"
+                f"next_action={obj['next_action']}\\n"
+                "validation=passed\\n"
+                "dispatch=not_enabled")
+          print(json.dumps({"body":body}))
+          PY_ACK
+          gh api "repos/$GITHUB_REPOSITORY/issues/35/comments" -X POST --input ack.json --jq .html_url
