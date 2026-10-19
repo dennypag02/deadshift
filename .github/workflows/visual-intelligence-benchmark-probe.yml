@@ -48,11 +48,35 @@ jobs:
           if ($session -eq 0) { throw 'Session 0 prohibited' }
           & nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
           if ($LASTEXITCODE -ne 0) { throw 'GPU unavailable' }
-          try {
-            $q = Invoke-RestMethod -Uri 'http://127.0.0.1:8188/queue' -TimeoutSec 5
-          } catch { throw "Cannot verify ComfyUI idle; fail closed: $_" }
-          if ($null -eq $q.queue_running -or $null -eq $q.queue_pending) { throw 'Invalid ComfyUI queue' }
-          if (@($q.queue_running).Count + @($q.queue_pending).Count -ne 0) { throw 'ComfyUI busy' }
+          # If ComfyUI is stopped, no queue endpoint exists. Verify no ComfyUI
+          # process before allowing diagnostic-only inference.
+          $comfy = @(Get-CimInstance Win32_Process | Where-Object {
+            ($_.Name -match '^(python|pythonw|comfyui)(\\.exe)?
+      - name: Run image-attached vision diagnostic
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/visual_intelligence/ollama_probe.py --image "${{ steps.image.outputs.image }}" --output visual-benchmark-evidence/report.json
+          if ($LASTEXITCODE -ne 0) { throw 'Vision diagnostic failed' }
+      - name: Upload diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-intelligence-diagnostic-${{ github.run_number }}
+          path: visual-benchmark-evidence/report.json
+          if-no-files-found: warn
+          retention-days: 14
+) -and
+            ($_.CommandLine -match '(?i)comfyui|main\\.py.*8188')
+          })
+          if ($comfy.Count -gt 0) {
+            try {
+              $q = Invoke-RestMethod -Uri 'http://127.0.0.1:8188/queue' -TimeoutSec 5
+            } catch { throw "ComfyUI process detected but queue unreachable: $_" }
+            if ($null -eq $q.queue_running -or $null -eq $q.queue_pending) { throw 'Invalid ComfyUI queue' }
+            if (@($q.queue_running).Count + @($q.queue_pending).Count -ne 0) { throw 'ComfyUI busy' }
+          } else {
+            Write-Host 'No ComfyUI process detected. Proceeding with diagnostic-only inference.'
+          }
       - name: Run image-attached vision diagnostic
         run: |
           $ErrorActionPreference = 'Stop'
