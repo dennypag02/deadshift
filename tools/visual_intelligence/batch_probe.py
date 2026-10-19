@@ -24,11 +24,14 @@ def main():
     if not images or not all(path.is_file() for path in images):
         raise SystemExit("No real PNG screenshot files found")
     images = images[:args.max_images]
+    digests = [hashlib.sha256(path.read_bytes()).hexdigest() for path in images]
+    if len(set(digests)) != len(digests):
+        raise SystemExit("Duplicate screenshot content detected; refusing inflated sample count")
     args.output.mkdir(parents=True, exist_ok=True)
     results = []
     failed = 0
     for i, path in enumerate(images):
-        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        digest = digests[i]
         report = args.output / f"image-{i:03d}-{digest[:12]}.json"
         cmd = [sys.executable, str(Path(__file__).with_name("ollama_probe.py")),
                "--image", str(path), "--output", str(report)]
