@@ -52,6 +52,18 @@ jobs:
           $ErrorActionPreference = 'Stop'
           python tools/visual_intelligence/batch_probe.py --images "${{ steps.image.outputs.image }}" --output visual-benchmark-evidence
           if ($LASTEXITCODE -ne 0) { throw 'Vision inference failed' }
+      - name: Score only when reviewed labels exist
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $labels = 'tools/visual_intelligence/reviewed_labels.json'
+          if (Test-Path $labels -PathType Leaf) {
+            python tools/visual_intelligence/join_labels.py --labels $labels --reports visual-benchmark-evidence --output visual-benchmark-evidence/scored_cases.json
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to join reviewed labels' }
+            python tools/visual_intelligence/evaluate.py visual-benchmark-evidence/scored_cases.json --split holdout
+            if ($LASTEXITCODE -ne 0) { throw 'REVIEW_UNQUALIFIED: holdout accuracy gate failed' }
+          } else {
+            Write-Host 'REVIEW_UNQUALIFIED: no reviewed labels; diagnostic evidence only.'
+          }
       - name: Upload diagnostic report
         if: always()
         uses: actions/upload-artifact@v4
