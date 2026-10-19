@@ -5,9 +5,6 @@ on:
       - feature/visual-intelligence-v1-foundation
     paths:
       - .github/workflows/visual-intelligence-runner-smoke.yml
-  pull_request:
-    paths:
-      - .github/workflows/visual-intelligence-runner-smoke.yml
   workflow_dispatch:
 
 permissions:
