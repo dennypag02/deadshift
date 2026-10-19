@@ -12,75 +12,88 @@ concurrency:
   cancel-in-progress: false
 jobs:
   route:
-    if: github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Verify source provenance and download evidence
+      - name: Audit every benchmark completion and validate route
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          SOURCE_EVENT: ${{ github.event.workflow_run.event }}
+          SOURCE_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           CONCLUSION: ${{ github.event.workflow_run.conclusion }}
-          RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
         shell: bash
         run: |
           set -euo pipefail
+          state="SKIPPED"
+          reason="UNCLASSIFIED"
+          next_action="none"
+          event_key="deadshift-visual:$RUN_ID:$RUN_ATTEMPT:$HEAD_SHA"
+          publish() {
+            local exit_status="$?"
+            trap - EXIT
+            if [[ "$exit_status" -ne 0 ]]; then
+              state="ERROR"
+              reason="VALIDATION_OR_API_FAILURE"
+            fi
+            python3 - "$event_key" "$RUN_ID" "$RUN_ATTEMPT" "$HEAD_SHA" "$SOURCE_EVENT" "$SOURCE_REPO" "$HEAD_BRANCH" "$CONCLUSION" "$state" "$reason" "$next_action" <<'PY_ACK' > ack.json
+          import json,sys
+          keys=["event_key","source_run_id","source_attempt","source_sha","source_event","source_repo","source_branch","conclusion","state","reason","next_action"]
+          values=dict(zip(keys,sys.argv[1:]))
+          body="VISUAL_ORCHESTRATOR_ACK v1\n"+"\n".join(f"{key}={values[key]}" for key in keys)+"\ndispatch=not_enabled"
+          print(json.dumps({"body":body}))
+          PY_ACK
+            local existing
+            existing="$(gh api "repos/$GITHUB_REPOSITORY/issues/35/comments?per_page=100" --paginate --jq '.[].body' | grep -F "event_key=$event_key" || true)"
+            if [[ -z "$existing" ]]; then
+              gh api "repos/$GITHUB_REPOSITORY/issues/35/comments" -X POST --input ack.json --jq .html_url
+            else
+              echo "Existing ledger entry: $event_key"
+            fi
+            exit "$exit_status"
+          }
+          trap publish EXIT
+          if [[ "$SOURCE_REPO" != "$GITHUB_REPOSITORY" ]]; then
+            reason="UNTRUSTED_SOURCE_REPOSITORY"
+            exit 0
+          fi
+          if [[ "$SOURCE_EVENT" != "push" && "$SOURCE_EVENT" != "workflow_dispatch" ]]; then
+            reason="UNSUPPORTED_SOURCE_EVENT"
+            exit 0
+          fi
           if [[ "$HEAD_BRANCH" != "feature/visual-intelligence-v1-foundation" ]]; then
-            echo "Ignoring unrelated branch $HEAD_BRANCH"
+            reason="WRONG_BRANCH"
             exit 0
           fi
           if [[ "$CONCLUSION" != "success" ]]; then
-            echo "::warning::Benchmark did not succeed: $CONCLUSION"
+            reason="BENCHMARK_NOT_SUCCESSFUL"
             exit 0
           fi
           actual="$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_BRANCH" --jq .sha)"
           if [[ "$actual" != "$HEAD_SHA" ]]; then
-            echo "::warning::Stale benchmark event; current branch head differs"
+            reason="STALE_SHA"
             exit 0
           fi
           mkdir -p evidence
           gh run download "$RUN_ID" -R "$GITHUB_REPOSITORY" -D evidence
           route="$(find evidence -name route.json -type f -print -quit)"
           if [[ -z "$route" ]]; then
-            echo "::error::Missing deterministic routing artifact"
+            reason="MISSING_ROUTE_ARTIFACT"
             exit 1
           fi
-          python3 - "$route" <<'PY'
-          import json, sys
-          from pathlib import Path
-          obj=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-          allowed={
-              "BLOCKED": {"repair_inference","repair_evidence","repair_scoring"},
-              "REVIEW_UNQUALIFIED": {"collect_reviewed_labels","verify_holdout_gate"},
-          }
-          if obj.get("next_action") not in allowed.get(obj.get("state"), set()):
-              raise SystemExit("Invalid or unsupported stage transition")
-          print("Verified stage route:",json.dumps(obj,sort_keys=True))
-          print("No automatic coding or qualification: human-reviewed evidence and bridge acknowledgement required.")
-          PY
-          # Publish a machine-verifiable, deduplicated acknowledgment only after
-          # source provenance and route validation have succeeded.
-          event_key="deadshift-visual:$RUN_ID:$RUN_ATTEMPT:$HEAD_SHA"
-          existing="$(gh api "repos/$GITHUB_REPOSITORY/issues/35/comments?per_page=100" --paginate --jq '.[].body' | grep -F "$event_key" || true)"
-          if [[ -n "$existing" ]]; then
-            echo "Acknowledgment already exists: $event_key"
-            exit 0
-          fi
-          python3 - "$route" "$event_key" "$RUN_ID" "$RUN_ATTEMPT" "$HEAD_SHA" <<'PY_ACK' > ack.json
+          validated="$(python3 - "$route" <<'PY_ROUTE'
           import json,sys
           from pathlib import Path
           obj=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-          body=("VISUAL_ORCHESTRATOR_ACK v1\n"
-                f"event_key={sys.argv[2]}\n"
-                f"source_run_id={sys.argv[3]}\n"
-                f"source_attempt={sys.argv[4]}\n"
-                f"source_sha={sys.argv[5]}\n"
-                f"state={obj['state']}\n"
-                f"next_action={obj['next_action']}\n"
-                "validation=passed\n"
-                "dispatch=not_enabled")
-          print(json.dumps({"body":body}))
-          PY_ACK
-          gh api "repos/$GITHUB_REPOSITORY/issues/35/comments" -X POST --input ack.json --jq .html_url
+          allowed={"BLOCKED":{"repair_inference","repair_evidence","repair_scoring"},"REVIEW_UNQUALIFIED":{"collect_reviewed_labels","verify_holdout_gate"}}
+          if obj.get("next_action") not in allowed.get(obj.get("state"),set()):
+              raise SystemExit("Invalid stage transition")
+          print(obj["state"]+" "+obj["next_action"])
+          PY_ROUTE
+          )"
+          read -r state next_action <<< "$validated"
+          reason="ROUTE_VALIDATED"
+          echo "Verified route: $state -> $next_action"
