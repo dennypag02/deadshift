@@ -13,8 +13,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: gpu-visual-${{ github.ref }}
-  cancel-in-progress: true
+  group: deadshift-gpu-exclusive
+  cancel-in-progress: false
 
 jobs:
   capture:
@@ -38,21 +38,28 @@ jobs:
           ffmpeg -version | Select-Object -First 1
           exit 0
 
-      - name: Wait until ComfyUI is idle (max 30 min)
+      - name: Require ComfyUI idle (fail closed)
         run: |
-          $ErrorActionPreference = 'Continue'
+          $ErrorActionPreference = 'Stop'
           $deadline = (Get-Date).AddMinutes(30)
           while ((Get-Date) -lt $deadline) {
             try {
               $q = Invoke-RestMethod -Uri "http://127.0.0.1:8188/queue" -TimeoutSec 5
-              $busy = @($q.queue_running).Count + @($q.queue_pending).Count
-            } catch { $busy = 0 }
-            if ($busy -eq 0) { Write-Host "GPU is free."; exit 0 }
-            Write-Host "ComfyUI has $busy job(s) queued. Waiting 60s..."
+            } catch {
+              throw "ComfyUI queue state unavailable; refusing GPU capture: $_"
+            }
+            if ($null -eq $q.queue_running -or $null -eq $q.queue_pending) {
+              throw "ComfyUI queue response missing required fields; refusing GPU capture"
+            }
+            $busy = @($q.queue_running).Count + @($q.queue_pending).Count
+            if ($busy -eq 0) {
+              Write-Host "ComfyUI queue idle. This is an idle check, NOT a cross-process GPU lease."
+              exit 0
+            }
+            Write-Host "ComfyUI has $busy job(s). Waiting 60s..."
             Start-Sleep -Seconds 60
           }
-          Write-Host "ComfyUI still busy after 30 min; continuing anyway."
-          exit 0
+          throw "ComfyUI did not become idle in 30 minutes; GPU capture blocked."
 
       - name: Strict Godot import
         run: |

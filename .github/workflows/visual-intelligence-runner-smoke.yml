@@ -1,0 +1,40 @@
+name: Visual Intelligence Runner Smoke Test
+on:
+  push:
+    branches:
+      - feature/visual-intelligence-v1-foundation
+    paths:
+      - .github/workflows/visual-intelligence-runner-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deadshift-gpu-exclusive
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: [self-hosted, Windows, gpu]
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Verify interactive session, GPU, and local Ollama API
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host "Runner: $env:RUNNER_NAME"
+          Write-Host "Windows user: $env:USERNAME"
+          $session = (Get-Process -Id $PID).SessionId
+          Write-Host "PowerShell SessionId: $session"
+          if ($session -eq 0) { throw "Runner is in Session 0; interactive GPU capture prohibited." }
+          $gpu = & nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader
+          if ($LASTEXITCODE -ne 0) { throw "nvidia-smi failed" }
+          Write-Host "GPU: $gpu"
+          $models = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/tags' -TimeoutSec 15
+          $names = @($models.models | ForEach-Object { $_.name })
+          if ('qwen2.5vl:3b' -notin $names) { throw "qwen2.5vl:3b missing from local Ollama API" }
+          Write-Host "Ollama model qwen2.5vl:3b reachable."
+          Write-Host "SMOKE_PASS"

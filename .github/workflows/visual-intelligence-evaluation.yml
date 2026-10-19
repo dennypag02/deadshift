@@ -1,0 +1,25 @@
+name: Visual Intelligence Evaluation Tests
+on:
+  push:
+    branches:
+      - feature/visual-intelligence-v1-foundation
+    paths:
+      - 'tools/visual_intelligence/**'
+      - '.github/workflows/visual-intelligence-evaluation.yml'
+  pull_request:
+    paths:
+      - 'tools/visual_intelligence/**'
+      - '.github/workflows/visual-intelligence-evaluation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evaluation-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python scoring unit tests
+        run: python -m unittest discover -s tools/visual_intelligence -p 'test_*.py' -v

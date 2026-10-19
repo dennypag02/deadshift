@@ -1,0 +1,88 @@
+name: Visual Intelligence Benchmark Probe
+# Orchestrator acknowledgment acceptance probe 2: preserve all fail-closed review gates.
+on:
+  push:
+    branches:
+      - feature/visual-intelligence-v1-foundation
+    paths:
+      - 'tools/visual_intelligence/**'
+      - '.github/workflows/visual-intelligence-benchmark-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deadshift-gpu-exclusive
+  cancel-in-progress: false
+jobs:
+  diagnostic:
+    runs-on: [self-hosted, Windows, gpu]
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v4
+      - name: Locate real DeadShift screenshot
+        id: image
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $candidates = @((Join-Path $env:GITHUB_WORKSPACE 'gpu-evidence\frames'), 'C:\DeadShift-Vision-Test\frames', 'C:\DeadShift-Vision-Test\test.png', (Join-Path $env:GITHUB_WORKSPACE 'gpu-evidence\contact-sheet.png'))
+          $image = $candidates | Where-Object { (Test-Path $_ -PathType Leaf) -or ((Test-Path $_ -PathType Container) -and @(Get-ChildItem $_ -Filter '*.png' -File).Count -gt 0) } | Select-Object -First 1
+          if (-not $image) { throw 'No real PNG screenshot found' }
+          "image=$image" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Screenshot found: $image"
+      - name: Verify GPU and ComfyUI availability
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((Get-Process -Id $PID).SessionId -eq 0) { throw 'Interactive session required' }
+          & nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
+          if ($LASTEXITCODE -ne 0) { throw 'GPU unavailable' }
+          $comfy = @(Get-CimInstance Win32_Process | Where-Object {
+            ($_.Name -match '^(python|pythonw|comfyui)(\.exe)?$') -and
+            ($_.CommandLine -match '(?i)comfyui|main\.py.*8188')
+          })
+          if ($comfy.Count -gt 0) {
+            try {
+              $q = Invoke-RestMethod -Uri 'http://127.0.0.1:8188/queue' -TimeoutSec 5
+            } catch { throw "ComfyUI process detected but queue unreachable: $_" }
+            if ($null -eq $q.queue_running -or $null -eq $q.queue_pending) { throw 'Invalid ComfyUI queue' }
+            if (@($q.queue_running).Count + @($q.queue_pending).Count -ne 0) { throw 'ComfyUI busy' }
+          } else {
+            Write-Host 'ComfyUI not running; diagnostic may proceed.'
+          }
+      - name: Run real screenshot inference
+        id: inference
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/visual_intelligence/batch_probe.py --images "${{ steps.image.outputs.image }}" --output visual-benchmark-evidence --max-images 12
+          if ($LASTEXITCODE -ne 0) { throw 'Vision inference failed' }
+      - name: Score only when reviewed labels exist
+        id: scoring
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $labels = 'tools/visual_intelligence/reviewed_labels.json'
+          if (Test-Path $labels -PathType Leaf) {
+            python tools/visual_intelligence/join_labels.py --labels $labels --reports visual-benchmark-evidence --output visual-benchmark-evidence/scored_cases.json
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to join reviewed labels' }
+            python tools/visual_intelligence/evaluate.py visual-benchmark-evidence/scored_cases.json --split holdout
+            if ($LASTEXITCODE -ne 0) { throw 'REVIEW_UNQUALIFIED: holdout accuracy gate failed' }
+          } else {
+            Write-Host 'REVIEW_UNQUALIFIED: no reviewed labels; diagnostic evidence only.'
+          }
+      - name: Emit deterministic orchestration state
+        if: always()
+        env:
+          INFERENCE_RESULT: ${{ steps.inference.outcome }}
+          SCORING_RESULT: ${{ steps.scoring.outcome }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/visual_intelligence/route_stage.py --evidence visual-benchmark-evidence --inference-result "$env:INFERENCE_RESULT" --scoring-result "$env:SCORING_RESULT" --output visual-benchmark-evidence/route.json
+          if ($LASTEXITCODE -ne 0) { throw 'Orchestration state generation failed' }
+      - name: Upload diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-intelligence-diagnostic-${{ github.run_number }}
+          path: visual-benchmark-evidence/*.json
+          if-no-files-found: warn
+          retention-days: 14
