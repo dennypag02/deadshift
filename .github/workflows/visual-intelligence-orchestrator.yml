@@ -1,0 +1,60 @@
+name: DeadShift Visual Intelligence Orchestrator
+on:
+  workflow_run:
+    workflows: ['Visual Intelligence Benchmark Probe']
+    types: [completed]
+permissions:
+  actions: read
+  contents: read
+concurrency:
+  group: deadshift-visual-orchestrator
+  cancel-in-progress: false
+jobs:
+  route:
+    if: github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify source provenance and download evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$HEAD_BRANCH" != "feature/visual-intelligence-v1-foundation" ]]; then
+            echo "Ignoring unrelated branch $HEAD_BRANCH"
+            exit 0
+          fi
+          if [[ "$CONCLUSION" != "success" ]]; then
+            echo "::warning::Benchmark did not succeed: $CONCLUSION"
+            exit 0
+          fi
+          actual="$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_BRANCH" --jq .sha)"
+          if [[ "$actual" != "$HEAD_SHA" ]]; then
+            echo "::warning::Stale benchmark event; current branch head differs"
+            exit 0
+          fi
+          mkdir -p evidence
+          gh run download "$RUN_ID" -R "$GITHUB_REPOSITORY" -D evidence
+          route="$(find evidence -name route.json -type f -print -quit)"
+          if [[ -z "$route" ]]; then
+            echo "::error::Missing deterministic routing artifact"
+            exit 1
+          fi
+          python3 - "$route" <<'PY'
+          import json, sys
+          from pathlib import Path
+          obj=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          allowed={
+              "BLOCKED": {"repair_inference","repair_evidence","repair_scoring"},
+              "REVIEW_UNQUALIFIED": {"collect_reviewed_labels","verify_holdout_gate"},
+          }
+          if obj.get("next_action") not in allowed.get(obj.get("state"), set()):
+              raise SystemExit("Invalid or unsupported stage transition")
+          print("Verified stage route:",json.dumps(obj,sort_keys=True))
+          print("No automatic coding or qualification: human-reviewed evidence and bridge acknowledgement required.")
+          PY
