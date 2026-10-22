@@ -104,6 +104,21 @@ func _ready() -> void:
 	pause.text = "Ⅱ"
 	pause.position = Vector2(10, 12)
 	pause.size = Vector2(43, 43)
+	# GVI Stage B: improve pause-control contrast without moving or resizing it.
+	# This is presentation-only; the pause action and touch target are unchanged.
+	var pause_style := StyleBoxFlat.new()
+	pause_style.bg_color = Color("#14110F", 0.96)
+	pause_style.border_color = AMBER
+	pause_style.set_border_width_all(2)
+	pause_style.set_corner_radius_all(9)
+	pause.add_theme_stylebox_override("normal", pause_style)
+	var pause_hover := pause_style.duplicate()
+	pause_hover.bg_color = Color("#403022", 0.98)
+	pause.add_theme_stylebox_override("hover", pause_hover)
+	pause.add_theme_stylebox_override("pressed", pause_hover)
+	pause.add_theme_font_size_override("font_size", 27)
+	pause.add_theme_color_override("font_color", Color("#FFF5E8"))
+	pause.add_theme_color_override("font_hover_color", Color("#FFFFFF"))
 	pause.pressed.connect(_toggle_pause)
 	root.add_child(pause)
 	var hp_panel := _panel(root, Rect2(58, 12, 155, 44))
