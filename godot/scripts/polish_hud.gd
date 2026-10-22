@@ -113,7 +113,7 @@ func _ready() -> void:
 	pause_style.set_corner_radius_all(9)
 	pause.add_theme_stylebox_override("normal", pause_style)
 	var pause_hover := pause_style.duplicate()
-	pause_hover.bg_color = Color("#403022", 0.98)
+	pause_hover.bg_color = Color("#51402E", 0.98)
 	pause.add_theme_stylebox_override("hover", pause_hover)
 	pause.add_theme_stylebox_override("pressed", pause_hover)
 	pause.add_theme_font_size_override("font_size", 27)
